@@ -5,3 +5,5 @@ pydantic-settings==2.10.1
 celery==5.5.3
 redis==6.4.0
 qibo==0.2.17
+pytest==8.4.1
+httpx==0.28.1

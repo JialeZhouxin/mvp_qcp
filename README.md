@@ -1,8 +1,8 @@
 ﻿# Quantum Cloud Platform MVP (Qibo)
 
 ## 当前范围
-- 本阶段已完成：项目骨架、FastAPI 基础层、SQLite + SQLModel 数据层（User/Task）
-- 下一阶段：鉴权、任务入队、Qibo 执行与轮询可视化
+- 已实现：鉴权、任务提交、Redis/Celery 异步执行、Qibo 受限执行、前端 Monaco + ECharts 展示。
+- MVP 目标：跑通最小技术闭环（鉴权 -> 提交 -> 入队 -> 执行 -> 结果）。
 
 ## 本机运行（无 Docker）
 
@@ -19,7 +19,7 @@ cd "backend"
 uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 3. 启动 Worker（当前为占位，后续步骤补全）
+### 3. 启动 Worker
 ```powershell
 cd "backend"
 uv run celery -A app.worker.celery_app:celery_app worker --loglevel=info --pool=solo
@@ -39,3 +39,20 @@ powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1"
 
 ## 健康检查
 - `GET http://127.0.0.1:8000/api/health`
+
+## 最小验收与测试
+
+### 后端 Smoke 测试
+```powershell
+cd "backend"
+uv run pytest -q
+```
+
+### 演示清单
+- 见 `scripts/demo-checklist.md`
+
+### 验收标准
+1. 可注册/登录并获取 token。
+2. 可提交任务并返回 Task ID。
+3. 可查询任务状态（PENDING/RUNNING/SUCCESS/FAILURE）。
+4. SUCCESS 时前端显示概率直方图与 JSON 结果。
