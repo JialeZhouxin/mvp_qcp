@@ -38,7 +38,11 @@ powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1"
 ```
 
 ## 健康检查
-- `GET http://127.0.0.1:8000/api/health`
+- API：`GET http://127.0.0.1:8000/api/health`
+- 一键联调检查：
+```powershell
+powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1"
+```
 
 ## 最小验收与测试
 
