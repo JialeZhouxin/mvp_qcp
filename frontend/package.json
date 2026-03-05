@@ -7,7 +7,8 @@
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run --config vitest.config.mjs"
+    "test": "vitest run --config vitest.config.mjs",
+    "test:node": "node tests-node/run-tests.mjs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
