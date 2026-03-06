@@ -1,44 +1,72 @@
-﻿# AGENTS.md - Quantum Cloud Platform MVP V1.0
+﻿# Global Agent Rules
 
-## 项目定位
-- 项目目标：构建本土化、轻量级量子计算云平台（Quantum as a Service）。
-- 商业定位：面向 B 端客户展示技术能力并承接 PoC 咨询。
-- 设计原则：场景化 API 封装 + 经典与量子混合任务调度 + 本土化体验。
+## Language
 
-## MVP V1.0 强约束（必须）
-- 仅实现最小技术闭环，不做超范围功能。
-- 必须具备：
-  1. 轻量级鉴权（注册/登录 + API Token）。
-  2. 在线代码提交（Web IDE，支持 Qibo Python 脚本）。
-  3. 异步任务调度（提交即入队，返回 Task ID）。
-  4. Worker 执行（受限环境调用本地 Qibo 模拟后端执行）。
-  5. 结果轮询与可视化（前端轮询状态 + 概率直方图）。
+Default to Chinese in user-facing replies unless the user explicitly requests another language.
 
-## 明确不做（MVP 阶段）
-- 拖拽式量子电路设计器。
-- 复杂计费系统。
-- RBAC 权限体系。
-- 任何与最小闭环无关的扩展功能。
+## Response Style
 
-## 技术栈约束（必须遵守）
-- 前端：React + Vite。
-- UI：Tailwind CSS（或 Ant Design，默认 Tailwind）。
-- 在线编辑器：Monaco Editor（React 封装）。
-- 可视化：Apache ECharts。
-- 后端：FastAPI。
-- 数据层：SQLite + SQLModel（或 SQLAlchemy，默认 SQLModel）。
-- 队列：Redis + Celery。
-- 量子引擎：Qibo。
+Do not propose follow-up tasks or enhancement at the end of your final answer.
 
-## 工程原则
-- KISS：保持实现简单直接。
-- YAGNI：只实现当前明确需求。
-- DRY：避免重复逻辑。
-- SOLID：在可维护性和交付速度之间平衡，优先单一职责和依赖抽象。
+## Debug-First Policy (No Silent Fallbacks)
 
-## 单人开发执行准则
-- 优先交付端到端可演示链路，再局部优化。
-- 默认选择低运维复杂度方案（本地 SQLite、单 Redis、单 Worker 起步）。
-- 所有新增模块需回答：是否支撑上述 5 条 MVP 核心业务流。
-- 若不支撑，拒绝进入当前迭代。
+- Do **not** introduce new boundary rules / guardrails / blockers / caps (e.g. max-turns), fallback behaviors, or silent degradation **just to make it run**.
+- Do **not** add mock/simulation fake success paths (e.g. returning `(mock) ok`, templated outputs that bypass real execution, or swallowing errors).
+- Do **not** write defensive or fallback code; it does not solve the root problem and only increases debugging cost.
+- Prefer **full exposure**: let failures surface clearly (explicit errors, exceptions, logs, failing tests) so bugs are visible and can be fixed at the root cause.
+- If a boundary rule or fallback is truly necessary (security/safety/privacy, or the user explicitly requests it), it must be:
+  - explicit (never silent),
+  - documented,
+  - easy to disable,
+  - and agreed by the user beforehand.
 
+## Engineering Quality Baseline
+
+- Follow SOLID, DRY, separation of concerns, and YAGNI.
+- Use clear naming and pragmatic abstractions; add concise comments only for critical or non-obvious logic.
+- Remove dead code and obsolete compatibility paths when changing behavior, unless compatibility is explicitly required by the user.
+- Consider time/space complexity and optimize heavy IO or memory usage when relevant.
+- Handle edge cases explicitly; do not hide failures.
+
+## Code Metrics (Hard Limits)
+
+- **Function length**: 50 lines (excluding blanks). Exceeded extract helper immediately.
+- **File size**: 300 lines. Exceeded split by responsibility.
+- **Nesting depth**: 3 levels. Use early returns / guard clauses to flatten.
+- **Parameters**: 3 positional. More use a config/options object.
+- **Cyclomatic complexity**: 10 per function. More decompose branching logic.
+- **No magic numbers**: extract to named constants (`MAX_RETRIES = 3`, not bare `3`).
+
+## Decoupling & Immutability
+
+- **Dependency injection**: business logic never `new`s or hard-imports concrete implementations; inject via parameters or interfaces.
+- **Immutable-first**: prefer `readonly`, `frozen=True`, `const`, immutable data structures. Never mutate function parameters or global state; return new values.
+
+## Security Baseline
+
+- Never hardcode secrets, API keys, or credentials in source code; use environment variables or secret managers.
+- Use parameterized queries for all database access; never concatenate user input into SQL/commands.
+- Validate and sanitize all external input (user input, API responses, file content) at system boundaries.
+- **Conversation keys -> code leaks**: When the user shares an API key in conversation (e.g. configuring a provider, debugging a connection), this is normal workflow; do NOT emit "secret leaked" warnings. Only alert when a key is written into a source code file. Frontend display is already masked; no need to remind repeatedly.
+
+## Testing and Validation
+
+- Keep code testable and verify with automated checks whenever feasible.
+- When running backend unit tests, enforce a hard timeout of 60 seconds to avoid stuck tasks.
+- Prefer static checks, formatting, and reproducible verification over ad-hoc manual confidence.
+
+## Skills
+
+Skills are stored in `~/.codex/skills/` (personal) and optionally `.codex/skills/` (project-shared).
+
+Before starting a task:
+
+- Scan available skills.
+- If a skill matches, read its `SKILL.md` and follow it.
+- Announce which skill(s) are being used.
+
+Routing table:
+
+| Scenario | Skill | Trigger |
+|----------|-------|---------|
+| Long-horizon autonomous tasks (FULL: 5-15 steps) | `taskmaster` | "long task", "big project", "autonomous", "从零开始", "长时任务", 1+ hour sessions |
