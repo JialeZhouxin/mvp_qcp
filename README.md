@@ -1,73 +1,323 @@
-﻿# Quantum Cloud Platform MVP (Qibo)
+﻿# Quantum Cloud Platform MVP（Qibo）项目说明文档
 
-## 当前范围
-- 已实现：鉴权、任务提交、Redis/Celery 异步执行、Qibo 受限执行、前端 Monaco + ECharts 展示。
-- MVP 目标：跑通最小技术闭环（鉴权 -> 提交 -> 入队 -> 执行 -> 结果）。
+## 1. 项目概述
 
-## 本机运行（无 Docker）
+本项目是量子计算云平台 MVP，实现了从用户鉴权到量子任务执行再到结果可视化的最小闭环：
 
-### 1. 准备后端环境（uv）
+1. 用户注册/登录并获取 Token
+2. 在线提交 Python 量子脚本
+3. 后端将任务异步入队（Redis + Celery）
+4. Worker 在受限环境执行脚本并产出标准化结果
+5. 前端轮询任务状态并展示概率分布图
+
+后端量子执行引擎已统一为 **Qibo**。
+
+## 2. 当前开发进度
+
+### 2.1 已完成
+
+1. 基础工程结构（frontend/backend/scripts）
+2. 后端核心模块
+   - FastAPI 应用入口与健康检查
+   - SQLite + SQLModel 数据层（User、Task）
+   - 轻量鉴权（register/login/token）
+   - 任务 API（submit/status/result）
+   - Celery Worker 与任务状态流转
+   - Qibo 受限执行器（含 AST 校验、超时、结果标准化）
+3. 前端核心模块
+   - 登录/注册/任务页路由
+   - Token 注入 API 客户端
+   - Monaco 编辑器接入
+   - ECharts 概率直方图展示
+   - 自动轮询与手动刷新
+4. 测试与脚本
+   - 后端 smoke + 任务流转集成测试
+   - 前端 Vitest 测试文件（已接入）
+   - 前端受限环境下 Node 单进程测试（`test:node`）
+   - 一键启动脚本与联调健康检查脚本
+
+### 2.2 未完成 / 待完善
+
+1. 生产级安全沙箱（当前为 MVP 受限执行）
+2. 任务执行资源隔离强化（CPU/内存更细粒度限制）
+3. 前端 UI 风格与交互细节优化
+4. Vitest 测试筛选配置优化（避免 `tests-node/*.test.mjs` 被 Vitest 扫描）
+
+## 3. 技术栈
+
+- 前端：React + Vite + React Router + Monaco + ECharts
+- 后端：FastAPI + SQLModel + SQLite
+- 队列：Redis + Celery
+- 量子执行：Qibo
+- 测试：pytest（后端），Vitest + Node fallback（前端）
+
+## 4. 目录结构（当前）
+
+```text
+mvp_qcp/
+├─ backend/
+│  ├─ app/
+│  │  ├─ api/            # auth, health, tasks 路由
+│  │  ├─ core/           # 配置、日志
+│  │  ├─ db/             # engine/session
+│  │  ├─ models/         # User, Task
+│  │  ├─ schemas/        # 请求/响应模型
+│  │  ├─ services/       # 鉴权、sandbox、qibo 执行器
+│  │  └─ worker/         # celery app、任务执行
+│  ├─ tests/
+│  └─ requirements.txt
+├─ frontend/
+│  ├─ src/
+│  │  ├─ api/            # 前端 API 客户端
+│  │  ├─ auth/           # token 管理
+│  │  ├─ components/     # CodeEditor, ResultChart, ProtectedRoute
+│  │  ├─ pages/          # Login/Register/Tasks
+│  │  └─ tests/          # Vitest 测试
+│  ├─ tests-node/        # 受限环境 fallback 测试
+│  └─ package.json
+├─ scripts/
+│  ├─ start-dev.ps1
+│  ├─ dev-health-check.ps1
+│  ├─ run-backend-tests.ps1
+│  └─ demo-checklist.md
+└─ README.md
+```
+
+## 5. 运行方式（无 Docker）
+
+### 5.1 后端环境
+
 ```powershell
 cd "backend"
 uv venv
 uv pip install -r requirements.txt
 ```
 
-### 2. 启动 API
+### 5.2 启动 API
+
 ```powershell
 cd "backend"
 uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 3. 启动 Worker
+### 5.3 启动 Worker
+
 ```powershell
 cd "backend"
 uv run celery -A app.worker.celery_app:celery_app worker --loglevel=info --pool=solo
 ```
 
-### 4. 启动前端
+### 5.4 启动前端
+
 ```powershell
 cd "frontend"
 npm install
 npm run dev
 ```
 
-### 5. 一键启动（可选）
+### 5.5 一键启动
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1"
 ```
 
-## 健康检查
-- API：`GET http://127.0.0.1:8000/api/health`
-- 一键联调检查：
+### 5.6 联调健康检查
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1"
 ```
 
-## 最小验收与测试
+## 6. API 结构说明
 
-### 后端 Smoke 测试
+### 6.1 健康检查
+
+- `GET /api/health`
+- 作用：检查 API 存活状态
+
+示例响应：
+
+```json
+{
+  "status": "ok",
+  "app": "QCP MVP API",
+  "env": "dev"
+}
+```
+
+### 6.2 鉴权接口
+
+#### `POST /api/auth/register`
+
+请求：
+
+```json
+{
+  "username": "alice",
+  "password": "pass123456"
+}
+```
+
+响应：
+
+```json
+{
+  "user_id": 1,
+  "username": "alice"
+}
+```
+
+#### `POST /api/auth/login`
+
+请求：
+
+```json
+{
+  "username": "alice",
+  "password": "pass123456"
+}
+```
+
+响应：
+
+```json
+{
+  "access_token": "...",
+  "token_type": "Bearer"
+}
+```
+
+### 6.3 任务接口
+
+所有任务接口都需要 Header：
+
+`Authorization: Bearer <access_token>`
+
+#### `POST /api/tasks/submit`
+
+请求：
+
+```json
+{
+  "code": "def main():\n    return {'counts': {'00': 10, '11': 6}}"
+}
+```
+
+成功响应：
+
+```json
+{
+  "task_id": 123,
+  "status": "PENDING"
+}
+```
+
+可能错误：
+
+- `503`：任务入队失败（返回 `任务入队失败`）
+
+#### `GET /api/tasks/{task_id}`
+
+响应：
+
+```json
+{
+  "task_id": 123,
+  "status": "RUNNING",
+  "error_message": null
+}
+```
+
+说明：
+
+- 非属主访问或任务不存在统一返回 `404 任务不存在`
+
+#### `GET /api/tasks/{task_id}/result`
+
+响应（未完成）：
+
+```json
+{
+  "task_id": 123,
+  "status": "RUNNING",
+  "result": null,
+  "message": "task not finished"
+}
+```
+
+响应（成功）：
+
+```json
+{
+  "task_id": 123,
+  "status": "SUCCESS",
+  "result": {
+    "counts": {"00": 10, "11": 6},
+    "probabilities": {"00": 0.625, "11": 0.375}
+  },
+  "message": null
+}
+```
+
+## 7. 任务状态机
+
+`PENDING -> RUNNING -> SUCCESS | FAILURE`
+
+- `PENDING`：任务已创建，等待执行
+- `RUNNING`：Worker 正在执行
+- `SUCCESS`：执行成功并写入结果
+- `FAILURE`：执行失败并写入错误信息
+
+## 8. 测试说明
+
+### 8.1 后端
+
 ```powershell
 cd "backend"
 uv run pytest -q
 ```
 
-### 后端一键测试脚本
+或：
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/run-backend-tests.ps1"
 ```
 
-### 前端受限环境测试（不依赖 Vitest 子进程）
+覆盖重点：
+
+1. 健康检查
+2. 注册/登录
+3. 任务提交契约
+4. 入队成功与失败处理
+5. 任务属主隔离
+
+### 8.2 前端
+
+Vitest（当前环境可运行但存在 tests-node 扫描冲突）：
+
+```powershell
+cd "frontend"
+npm run test
+```
+
+受限环境兜底（推荐稳定执行）：
+
 ```powershell
 cd "frontend"
 npm run test:node
 ```
 
-### 演示清单
-- 见 `scripts/demo-checklist.md`
+## 9. 已知问题
 
-### 验收标准
-1. 可注册/登录并获取 token。
-2. 可提交任务并返回 Task ID。
-3. 可查询任务状态（PENDING/RUNNING/SUCCESS/FAILURE）。
-4. SUCCESS 时前端显示概率直方图与 JSON 结果。
+1. `npm run test` 目前会扫描 `tests-node/*.test.mjs`，导致 "No test suite found" 失败。建议后续在 Vitest 配置中明确 include/exclude。
+2. Windows 环境下偶发 Git `index.lock` 残留，需要串行执行 Git 操作可避免。
+
+## 10. 演示路径
+
+详见：`scripts/demo-checklist.md`
+
+建议演示流程：
+
+1. 注册并登录
+2. 在 Monaco 中提交脚本
+3. 观察任务从 `PENDING/RUNNING` 到 `SUCCESS`
+4. 查看 JSON 与概率直方图
