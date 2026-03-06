@@ -52,6 +52,17 @@ cd "backend"
 uv run pytest -q
 ```
 
+### 后端一键测试脚本
+```powershell
+powershell -ExecutionPolicy Bypass -File "scripts/run-backend-tests.ps1"
+```
+
+### 前端受限环境测试（不依赖 Vitest 子进程）
+```powershell
+cd "frontend"
+npm run test:node
+```
+
 ### 演示清单
 - 见 `scripts/demo-checklist.md`
 
