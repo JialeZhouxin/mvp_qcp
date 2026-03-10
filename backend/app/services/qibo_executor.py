@@ -1,7 +1,7 @@
 ﻿from typing import Any
 
 from app.core.config import settings
-from app.services.sandbox import run_with_limits
+from app.services.execution.factory import get_execution_backend
 
 
 def _normalize_counts(counts: dict[Any, Any]) -> dict[str, int]:
@@ -23,7 +23,8 @@ def _counts_to_probabilities(counts: dict[str, int]) -> dict[str, float]:
 
 
 def execute_qibo_script(code: str) -> dict:
-    raw_result = run_with_limits(code, timeout_seconds=settings.qibo_exec_timeout_seconds)
+    backend = get_execution_backend()
+    raw_result = backend.execute(code, timeout_seconds=settings.qibo_exec_timeout_seconds)
 
     if not isinstance(raw_result, dict):
         raise ValueError("execution result must be a dict")

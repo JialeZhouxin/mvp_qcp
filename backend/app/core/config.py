@@ -15,9 +15,18 @@ class Settings(BaseSettings):
     redis_url: str = "redis://127.0.0.1:6379/0"
     cors_allow_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
     rq_queue_name: str = "qcp-default"
-    rq_job_timeout_seconds: int = 30
+    rq_job_timeout_seconds: int = 90
     token_expire_hours: int = 24
-    qibo_exec_timeout_seconds: int = 10
+    qibo_exec_timeout_seconds: int = 60
+    execution_backend: str = "docker"
+    execution_image: str = "qcp-backend-dev:latest"
+    execution_runner_module: str = "app.services.execution.runner"
+    execution_read_only_rootfs: bool = True
+    execution_network_disabled: bool = True
+    execution_mem_limit_mb: int = 256
+    execution_cpu_limit: float = 0.5
+    execution_pids_limit: int = 64
+    execution_tmpfs_size_mb: int = 64
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

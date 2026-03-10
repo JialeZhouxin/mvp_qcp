@@ -365,4 +365,13 @@ powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker 
 - Docker 模式：使用 `docker compose up --build` 启动容器化运行链路。
 - 两种模式可并存，建议单次联调只启用一种，避免端口冲突。
 
+### 11.5 容器隔离执行（方案 B）
+
+- 任务执行默认使用 `EXECUTION_BACKEND=docker`，由 `worker` 创建短生命周期执行容器。
+- `worker` 通过挂载 `/var/run/docker.sock` 访问 Docker Daemon。
+- 执行镜像默认 `EXECUTION_IMAGE=qcp-backend-dev:latest`，入口 `EXECUTION_RUNNER_MODULE=app.services.execution.runner`。
+- 默认执行限制：禁网、只读根文件系统、内存/CPU/PIDs 限制、超时强制回收。
+- 若出现 `DOCKER_UNAVAILABLE` 或 `EXEC_IMAGE_NOT_FOUND`，先确认 Docker Desktop 正常、镜像已构建、socket 挂载生效。
+- `EXECUTION_BACKEND=local` 仅用于测试场景显式启用，不建议作为开发/演示默认配置。
+
 

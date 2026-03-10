@@ -14,6 +14,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: qcp-backend-dev:latest
     command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     working_dir: /app/backend
     environment:
@@ -37,15 +38,26 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: qcp-backend-dev:latest
     command: python -m app.worker.rq_worker
     working_dir: /app/backend
     environment:
       ENV: dev
       DATABASE_URL: sqlite:///./data/qcp.db
       REDIS_URL: redis://redis:6379/0
+      EXECUTION_BACKEND: docker
+      EXECUTION_IMAGE: qcp-backend-dev:latest
+      EXECUTION_RUNNER_MODULE: app.services.execution.runner
+      EXECUTION_READ_ONLY_ROOTFS: "true"
+      EXECUTION_NETWORK_DISABLED: "true"
+      EXECUTION_MEM_LIMIT_MB: "256"
+      EXECUTION_CPU_LIMIT: "0.5"
+      EXECUTION_PIDS_LIMIT: "64"
+      EXECUTION_TMPFS_SIZE_MB: "64"
     volumes:
       - ./backend:/app/backend
       - sqlite-data:/app/backend/data
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       redis:
         condition: service_healthy
