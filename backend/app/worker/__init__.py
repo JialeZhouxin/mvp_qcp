@@ -1,3 +1,3 @@
-﻿from app.worker.celery_app import celery_app
+from app.worker.tasks import run_quantum_task
 
-__all__ = ["celery_app"]
+__all__ = ["run_quantum_task"]

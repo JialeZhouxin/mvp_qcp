@@ -1,4 +1,8 @@
-﻿from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _split_csv(raw_value: str) -> list[str]:
+    return [value.strip() for value in raw_value.split(",") if value.strip()]
 
 
 class Settings(BaseSettings):
@@ -9,10 +13,17 @@ class Settings(BaseSettings):
     api_port: int = 8000
     database_url: str = "sqlite:///./data/qcp.db"
     redis_url: str = "redis://127.0.0.1:6379/0"
+    cors_allow_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
+    rq_queue_name: str = "qcp-default"
+    rq_job_timeout_seconds: int = 30
     token_expire_hours: int = 24
     qibo_exec_timeout_seconds: int = 10
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return _split_csv(self.cors_allow_origins)
 
 
 settings = Settings()

@@ -6,7 +6,7 @@
 
 1. 用户注册/登录并获取 Token
 2. 在线提交 Python 量子脚本
-3. 后端将任务异步入队（Redis + Celery）
+3. 后端将任务异步入队（Redis + RQ）
 4. Worker 在受限环境执行脚本并产出标准化结果
 5. 前端轮询任务状态并展示概率分布图
 
@@ -22,7 +22,7 @@
    - SQLite + SQLModel 数据层（User、Task）
    - 轻量鉴权（register/login/token）
    - 任务 API（submit/status/result）
-   - Celery Worker 与任务状态流转
+   - RQ Worker 与任务状态流转
    - Qibo 受限执行器（含 AST 校验、超时、结果标准化）
 3. 前端核心模块
    - 登录/注册/任务页路由
@@ -47,7 +47,7 @@
 
 - 前端：React + Vite + React Router + Monaco + ECharts
 - 后端：FastAPI + SQLModel + SQLite
-- 队列：Redis + Celery
+- 队列：Redis + RQ
 - 量子执行：Qibo
 - 测试：pytest（后端），Vitest + Node fallback（前端）
 
@@ -63,7 +63,7 @@ mvp_qcp/
 │  │  ├─ models/         # User, Task
 │  │  ├─ schemas/        # 请求/响应模型
 │  │  ├─ services/       # 鉴权、sandbox、qibo 执行器
-│  │  └─ worker/         # celery app、任务执行
+│  │  └─ worker/         # rq worker、任务执行
 │  ├─ tests/
 │  └─ requirements.txt
 ├─ frontend/
@@ -89,7 +89,7 @@ mvp_qcp/
 
 ```powershell
 cd "backend"
-uv venv
+uv venv --python 3.11
 uv pip install -r requirements.txt
 ```
 
@@ -104,7 +104,7 @@ uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ```powershell
 cd "backend"
-uv run celery -A app.worker.celery_app:celery_app worker --loglevel=info --pool=solo
+uv run python -m app.worker.rq_worker
 ```
 
 ### 5.4 启动前端
@@ -321,3 +321,48 @@ npm run test:node
 2. 在 Monaco 中提交脚本
 3. 观察任务从 `PENDING/RUNNING` 到 `SUCCESS`
 4. 查看 JSON 与概率直方图
+
+## 11. Docker 开发/演示运行
+
+### 11.1 一键启动（推荐）
+
+```powershell
+docker compose up --build
+```
+
+启动后访问：
+
+- 前端：`http://127.0.0.1:5173`
+- 后端健康检查：`http://127.0.0.1:8000/api/health`
+
+### 11.2 停止与清理
+
+```powershell
+docker compose down
+```
+
+如果需要同时删除命名卷（会清空 SQLite 持久化数据）：
+
+```powershell
+docker compose down -v
+```
+
+### 11.3 联调健康检查（Docker 模式）
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker
+```
+
+深度验证（含注册/登录/任务提交流程）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker -Deep
+```
+
+### 11.4 与本机模式差异
+
+- 本机模式：使用 `scripts/start-dev.ps1` 分别启动本机进程。
+- Docker 模式：使用 `docker compose up --build` 启动容器化运行链路。
+- 两种模式可并存，建议单次联调只启用一种，避免端口冲突。
+
+

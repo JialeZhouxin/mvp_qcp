@@ -7,9 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.api.auth import get_current_user
+from app.core.config import settings
 from app.db.session import get_session
 from app.models.task import Task, TaskStatus
 from app.models.user import User
+from app.queue.rq_queue import get_task_queue
 from app.schemas.task import TaskResultResponse, TaskStatusResponse, TaskSubmitRequest, TaskSubmitResponse
 from app.worker.tasks import run_quantum_task
 
@@ -38,7 +40,8 @@ def submit_task(
     session.refresh(task)
 
     try:
-        run_quantum_task.delay(task.id)
+        queue = get_task_queue()
+        queue.enqueue(run_quantum_task, task.id, job_timeout=settings.rq_job_timeout_seconds)
     except Exception as exc:
         task.status = TaskStatus.FAILURE
         task.updated_at = datetime.utcnow()

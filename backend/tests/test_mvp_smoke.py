@@ -1,17 +1,37 @@
-﻿import os
+import os
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 # 测试环境使用独立数据库，避免污染开发数据
-os.environ["DATABASE_URL"] = "sqlite:///./data/test_qcp.db"
+TEST_DATABASE_URL = "sqlite:///./data/test_qcp.db"
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 
-from app.db.session import engine  # noqa: E402
+
+def _resolve_sqlite_db_path(database_url: str) -> Path | None:
+    sqlite_prefix = "sqlite:///"
+    if not database_url.startswith(sqlite_prefix):
+        return None
+
+    db_path_text = database_url.replace(sqlite_prefix, "", 1)
+    if db_path_text == ":memory:":
+        return None
+
+    db_path = Path(db_path_text)
+    if db_path.is_absolute():
+        return db_path
+
+    backend_root = Path(__file__).resolve().parents[1]
+    return (backend_root / db_path).resolve()
+
+
+from app.db.session import engine, init_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models.task import Task, TaskStatus  # noqa: E402
 
 
+init_db()
 client = TestClient(app)
 
 
@@ -70,10 +90,13 @@ def test_task_submit_and_query_contract() -> None:
 def test_task_submit_queue_success_sets_pending(monkeypatch) -> None:
     queued: dict[str, int] = {}
 
-    def fake_delay(task_id: int) -> None:
-        queued["task_id"] = task_id
+    class QueueStub:
+        def enqueue(self, func, task_id: int, job_timeout: int) -> None:
+            assert func.__name__ == "run_quantum_task"
+            assert job_timeout > 0
+            queued["task_id"] = task_id
 
-    monkeypatch.setattr("app.api.tasks.run_quantum_task.delay", fake_delay)
+    monkeypatch.setattr("app.api.tasks.get_task_queue", lambda: QueueStub())
 
     headers = _auth_headers("tester_queue_ok")
     code = "def main():\n    return {'counts': {'00': 3, '11': 1}}"
@@ -91,10 +114,11 @@ def test_task_submit_queue_success_sets_pending(monkeypatch) -> None:
 
 
 def test_task_submit_queue_failure_marks_task_failed(monkeypatch) -> None:
-    def fake_delay_fail(_: int) -> None:
-        raise RuntimeError("redis unavailable")
+    class QueueStub:
+        def enqueue(self, *_args, **_kwargs) -> None:
+            raise RuntimeError("redis unavailable")
 
-    monkeypatch.setattr("app.api.tasks.run_quantum_task.delay", fake_delay_fail)
+    monkeypatch.setattr("app.api.tasks.get_task_queue", lambda: QueueStub())
 
     headers = _auth_headers("tester_queue_fail")
     code = "def main():\n    return {'counts': {'00': 1, '11': 1}}  # queue-fail-case"
@@ -113,10 +137,11 @@ def test_task_submit_queue_failure_marks_task_failed(monkeypatch) -> None:
 
 
 def test_task_status_isolation_by_owner(monkeypatch) -> None:
-    def fake_delay(_: int) -> None:
-        return None
+    class QueueStub:
+        def enqueue(self, *_args, **_kwargs) -> None:
+            return None
 
-    monkeypatch.setattr("app.api.tasks.run_quantum_task.delay", fake_delay)
+    monkeypatch.setattr("app.api.tasks.get_task_queue", lambda: QueueStub())
 
     owner_headers = _auth_headers("tester_owner")
     other_headers = _auth_headers("tester_other")
@@ -135,7 +160,12 @@ def test_task_status_isolation_by_owner(monkeypatch) -> None:
 
 
 def teardown_module() -> None:
+    client.close()
     # 清理测试数据库文件
-    db_path = Path("E:/02_Projects/quantuncloudplatform/mvp_qcp/backend/data/test_qcp.db")
-    if db_path.exists():
-        db_path.unlink()
+    database_url = os.getenv("DATABASE_URL", TEST_DATABASE_URL)
+    db_path = _resolve_sqlite_db_path(database_url)
+    try:
+        if db_path and db_path.exists():
+            db_path.unlink()
+    except PermissionError:
+        pass

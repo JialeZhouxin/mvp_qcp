@@ -2,7 +2,7 @@
 
 ## 0. 前置检查
 1. 本机 Redis 已启动，端口 `6379` 可连接。
-2. Python 3.10+，Node.js 18+ 已安装。
+2. Python 3.11，Node.js 18+ 已安装。
 
 ## 1. 启动后端与前端
 ```powershell
@@ -27,3 +27,4 @@ powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1"
 2. 可提交任务并拿到 Task ID。
 3. 可查询任务状态。
 4. 成功时可查看结果 JSON 与概率图。
+

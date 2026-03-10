@@ -7,7 +7,7 @@ import { clearToken } from "../auth/token";
 import CodeEditor from "../components/CodeEditor";
 import ResultChart from "../components/ResultChart";
 
-const SAMPLE_CODE = `from qibo import Circuit\n\n\ndef main():\n    # MVP 约定：返回 counts 字典即可\n    return {"counts": {"00": 512, "11": 512}}\n`;
+const SAMPLE_CODE = `from qibo import Circuit, gates\n\n\nSHOTS = 1024\n\n\ndef main():\n    # 1) 创建两量子比特线路\n    circuit = Circuit(2)\n\n    # 2) H + CNOT 制备 Bell 态 (|00> + |11>) / sqrt(2)\n    circuit.add(gates.H(0))\n    circuit.add(gates.CNOT(0, 1))\n\n    # 3) 在计算基测量两个量子比特\n    circuit.add(gates.M(0, 1))\n\n    # 4) 运行并统计测量结果\n    result = circuit(nshots=SHOTS)\n    counts = result.frequencies(binary=True)\n\n    # 5) 返回后端约定格式，前端可直接渲染概率柱状图\n    return {"counts": dict(counts)}\n`;
 
 function TasksPage() {
   const navigate = useNavigate();
@@ -146,3 +146,4 @@ function TasksPage() {
 }
 
 export default TasksPage;
+
