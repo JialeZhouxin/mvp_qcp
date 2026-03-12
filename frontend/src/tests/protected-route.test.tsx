@@ -10,7 +10,8 @@ function renderWithRoutes(initialPath: string) {
     <MemoryRouter initialEntries={[initialPath]}>
       <Routes>
         <Route element={<ProtectedRoute />}>
-          <Route path="/tasks" element={<div>tasks page</div>} />
+          <Route path="/tasks/circuit" element={<div>circuit page</div>} />
+          <Route path="/tasks/code" element={<div>code page</div>} />
         </Route>
         <Route path="/login" element={<div>login page</div>} />
       </Routes>
@@ -21,13 +22,19 @@ function renderWithRoutes(initialPath: string) {
 describe("ProtectedRoute", () => {
   it("redirects to login when token is missing", () => {
     clearToken();
-    renderWithRoutes("/tasks");
+    renderWithRoutes("/tasks/circuit");
     expect(screen.getByText("login page")).toBeInTheDocument();
   });
 
-  it("renders protected page when token exists", () => {
+  it("renders circuit page when token exists", () => {
     setToken("token-1");
-    renderWithRoutes("/tasks");
-    expect(screen.getByText("tasks page")).toBeInTheDocument();
+    renderWithRoutes("/tasks/circuit");
+    expect(screen.getByText("circuit page")).toBeInTheDocument();
+  });
+
+  it("renders code page when token exists", () => {
+    setToken("token-1");
+    renderWithRoutes("/tasks/code");
+    expect(screen.getByText("code page")).toBeInTheDocument();
   });
 });

@@ -1,0 +1,97 @@
+# Tasks Document
+
+- [x] 1. 建立电路领域类型与限制常量
+  - File: `frontend/src/features/circuit/model/types.ts`, `frontend/src/features/circuit/model/constants.ts`
+  - 定义 `CircuitModel`、`Operation`、门枚举、复杂度错误码等核心类型与常量（`MAX_QUBITS/MAX_DEPTH/MAX_GATES`）。
+  - 目的：建立后续模块统一契约，避免模型漂移。
+  - _Leverage: `frontend/src/pages/TasksPage.tsx` 中现有状态字段命名与 `ResultChart` 概率数据契约_
+  - _Requirements: Requirement 1, Requirement 4_
+  - _Prompt: Implement the task for spec graphical-qasm3-workbench, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Domain Model Engineer | Task: Create circuit domain types and shared constants for the graphical workbench with strict typing and explicit limits | Restrictions: 不要在此任务实现 UI 或业务逻辑，不要引入后端依赖，不要添加静默 fallback | _Leverage: existing frontend TypeScript patterns and current probability payload shape | _Requirements: Requirement 1, Requirement 4 | Success: 类型与常量可被后续模块直接复用且编译通过；开始前将任务标记为 `[-]`，完成实现后调用 `log-implementation` 记录产物，再将任务标记为 `[x]`。_
+
+- [x] 2. 实现电路模型工具与复杂度守卫
+  - File: `frontend/src/features/circuit/model/circuit-model.ts`, `frontend/src/features/circuit/model/complexity-guard.ts`, `frontend/src/tests/circuit-complexity.test.ts`
+  - 提供不可变模型更新函数（新增/删除/改参数）与复杂度评估函数。
+  - 目的：保证编辑行为和执行前校验一致。
+  - _Leverage: Task 1 的类型与常量，现有 Vitest 测试风格_
+  - _Requirements: Requirement 1, Requirement 4_
+  - _Prompt: Implement the task for spec graphical-qasm3-workbench, first run spec-workflow-guide to get the workflow guide then implement the task: Role: TypeScript Logic Engineer | Task: Build immutable circuit mutation helpers and complexity guard with deterministic error codes plus unit tests | Restrictions: 不要将复杂度校验散落到组件内，不要写可变共享状态，不要使用魔法数字 | _Leverage: `types.ts`, `constants.ts`, existing `frontend/src/tests` conventions | _Requirements: Requirement 1, Requirement 4 | Success: 复杂度超限场景均可被测试覆盖并返回结构化结果；开始前标记 `[-]`，完成后记录 implementation log，再改为 `[x]`。_
+
+- [x] 3. 实现概率过滤与统计计算
+  - File: `frontend/src/features/circuit/simulation/probability-filter.ts`, `frontend/src/tests/probability-filter.test.ts`
+  - 按 `epsilon = 2^-(n+2)` 过滤概率并输出可见/隐藏计数与概率和。
+  - 目的：满足图表显示规则与可解释性要求。
+  - _Leverage: `ResultChart` 现有输入结构_
+  - _Requirements: Requirement 3_
+  - _Prompt: Implement the task for spec graphical-qasm3-workbench, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Numerical Frontend Engineer | Task: Implement probability filtering/statistics utility based on epsilon rule and provide focused unit tests | Restrictions: 不要在图表组件里硬编码过滤逻辑，不要容忍 NaN/负概率静默通过，不要引入后端计算 | _Leverage: existing chart data contract and Vitest setup | _Requirements: Requirement 3 | Success: 过滤规则、统计值、边界情况均有自动化测试；开始前标记 `[-]`，完成后记录 implementation log，再改为 `[x]`。_
+
+- [x] 4. 实现 OpenQASM 3 子集解析错误模型与解析器
+  - File: `frontend/src/features/circuit/qasm/qasm-errors.ts`, `frontend/src/features/circuit/qasm/qasm-parser.ts`, `frontend/src/tests/qasm-parser.test.ts`
+  - 定义解析错误结构（含行号/列号/错误码）并实现支持子集解析。
+  - 目的：为“非法 QASM 不同步左侧”提供可靠基础。
+  - _Leverage: 项目现有 `toErrorMessage` 错误表达风格_
+  - _Requirements: Requirement 2_
+  - _Prompt: Implement the task for spec graphical-qasm3-workbench, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Language Tooling Engineer | Task: Create a strict OpenQASM3-subset parser and structured parse-error model with line-aware failures | Restrictions: 不要实现超出设计文档范围的完整 QASM3，不要在失败时返回部分成功，不要吞掉语法错误 | _Leverage: existing frontend error handling conventions | _Requirements: Requirement 2 | Success: 非法输入返回可定位错误，合法子集可稳定解析；开始前标记 `[-]`，完成后记录 implementation log，再改为 `[x]`。_
+
+- [x] 5. 实现 QASM 双向桥接与规范化输出
+  - File: `frontend/src/features/circuit/qasm/qasm-bridge.ts`, `frontend/src/tests/qasm-bridge.test.ts`
+  - 实现 `CircuitModel <-> OpenQASM3` 转换，含 `u1/u2/u3` 兼容映射与规范化序列化。
+  - 目的：确保左右编辑视图一致。
+  - _Leverage: Task 4 解析器与 Task 1 模型类型_
+  - _Requirements: Requirement 2_
+  - _Prompt: Implement the task for spec graphical-qasm3-workbench, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Compiler-Bridge Engineer | Task: Build deterministic bidirectional bridge between circuit model and OpenQASM3 subset with alias normalization | Restrictions: 不要写双向不一致的转换规则，不要输出非规范头部，不要在解析失败时改写现有模型 | _Leverage: `qasm-parser.ts`, `types.ts`, existing tests conventions | _Requirements: Requirement 2 | Success: 双向转换在支持门集内可往返且测试通过；开始前标记 `[-]`，完成后记录 implementation log，再改为 `[x]`。_
+
+- [x] 6. 实现浏览器仿真 Worker 通信客户端
+  - File: `frontend/src/features/circuit/simulation/simulation-worker.ts`, `frontend/src/features/circuit/simulation/simulation-client.ts`, `frontend/src/tests/simulation-worker.test.ts`
+  - 定义 Worker 请求/响应协议并实现基础仿真调用封装。
+  - 目的：把计算从主线程隔离出去。
+  - _Leverage: 浏览器 Worker API，Task 1/2 的模型契约_
+  - _Requirements: Requirement 3, Requirement 4_
+  - _Prompt: Implement the task for spec graphical-qasm3-workbench, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Runtime Engineer | Task: Implement web-worker simulation protocol and typed client wrapper for local execution | Restrictions: 不要在主线程执行仿真核心计算，不要返回 mock 成功结果，不要绕过类型校验 | _Leverage: circuit model contracts and existing TypeScript module patterns | _Requirements: Requirement 3, Requirement 4 | Success: Worker 可接收模型并返回概率结果，通信错误可显式暴露；开始前标记 `[-]`，完成后记录 implementation log，再改为 `[x]`。_
+
+- [x] 7. 实现仿真调度器（防抖/取消/超时）
+  - File: `frontend/src/features/circuit/simulation/scheduler.ts`, `frontend/src/tests/simulation-scheduler.test.ts`
+  - 实现 200ms 防抖、新请求取消旧请求、超时错误输出。
+  - 目的：防止实时编辑导致乱序回写和卡顿。
+  - _Leverage: Task 6 的 simulation client_
+  - _Requirements: Requirement 3, Requirement 4_
+  - _Prompt: Implement the task for spec graphical-qasm3-workbench, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Concurrency Engineer | Task: Add deterministic simulation scheduler with debounce, stale-result rejection, and timeout handling | Restrictions: 不要使用全局可变单例污染状态，不要忽略过期响应，不要让超时默默失败 | _Leverage: `simulation-client.ts`, existing async test setup | _Requirements: Requirement 3, Requirement 4 | Success: 快速连续编辑时仅最新任务生效且超时路径可测试；开始前标记 `[-]`，完成后记录 implementation log，再改为 `[x]`。_
+
+- [x] 8. 实现左侧图形化线路编辑组件
+  - File: `frontend/src/components/circuit/GatePalette.tsx`, `frontend/src/components/circuit/CircuitCanvas.tsx`, `frontend/src/tests/circuit-canvas.test.tsx`
+  - 实现门库拖拽、线路网格渲染、门放置/删除/参数编辑回调。
+  - 目的：完成图形化编辑核心交互。
+  - _Leverage: React 组件风格与现有页面样式模式_
+  - _Requirements: Requirement 1_
+  - _Prompt: Implement the task for spec graphical-qasm3-workbench, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Interaction Engineer | Task: Build gate palette and circuit canvas components with drag/drop editing and model-change callbacks | Restrictions: 不要在组件中嵌入仿真计算，不要绕过模型层直接拼 QASM，不要引入额外状态管理库 | _Leverage: existing React component patterns in `frontend/src/components` | _Requirements: Requirement 1 | Success: 拖拽与编辑行为可通过组件测试验证并输出规范模型变更；开始前标记 `[-]`，完成后记录 implementation log，再改为 `[x]`。_
+
+- [x] 9. 实现右侧 QASM 编辑与错误面板组件
+  - File: `frontend/src/components/circuit/QasmEditorPane.tsx`, `frontend/src/components/circuit/QasmErrorPanel.tsx`, `frontend/src/tests/qasm-editor-pane.test.tsx`
+  - 实现 Monaco 编辑、200ms 输入防抖、解析成功回调与解析失败展示。
+  - 目的：满足“可编辑但非法不落地”规则。
+  - _Leverage: `frontend/src/components/CodeEditor.tsx` Monaco 配置_
+  - _Requirements: Requirement 2_
+  - _Prompt: Implement the task for spec graphical-qasm3-workbench, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Editor Engineer | Task: Create editable OpenQASM pane with debounced parse flow and explicit error panel behavior | Restrictions: 不要在解析失败时更新电路模型，不要隐藏错误细节，不要破坏键盘输入体验 | _Leverage: existing Monaco wrapper patterns and qasm bridge/parser modules | _Requirements: Requirement 2 | Success: 合法/非法输入分支行为稳定并有测试覆盖；开始前标记 `[-]`，完成后记录 implementation log，再改为 `[x]`。_
+
+- [x] 10. 集成工作台页面与概率图展示
+  - File: `frontend/src/pages/CircuitWorkbenchPage.tsx`, `frontend/src/components/ResultChart.tsx`, `frontend/src/tests/workbench-page.test.tsx`
+  - 编排左/右编辑、复杂度校验、调度执行、过滤统计与图表渲染。
+  - 目的：完成新主页面端到端主流程。
+  - _Leverage: Tasks 2/3/5/7/8/9 产物，现有 `ResultChart` 基础实现_
+  - _Requirements: Requirement 1, Requirement 2, Requirement 3, Requirement 4_
+  - _Prompt: Implement the task for spec graphical-qasm3-workbench, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Frontend Feature Integrator | Task: Assemble the graphical workbench page integrating model sync, validation, scheduling, simulation result filtering, and chart rendering | Restrictions: 不要引入后端仿真依赖，不要在失败时清空全部上下文导致不可调试，不要让页面逻辑跨文件重复 | _Leverage: existing `ResultChart`, new circuit/qasm/simulation modules | _Requirements: Requirement 1, Requirement 2, Requirement 3, Requirement 4 | Success: 页面能实现实时仿真与双向同步的完整闭环并通过集成测试；开始前标记 `[-]`，完成后记录 implementation log，再改为 `[x]`。_
+
+- [x] 11. 路由切分并保留旧代码入口
+  - File: `frontend/src/pages/CodeTasksPage.tsx`, `frontend/src/App.tsx`, `frontend/src/tests/workbench-route.test.tsx`
+  - 将旧代码提交流程迁移到 `/tasks/code`，新增 `/tasks/circuit` 主入口并保持鉴权行为一致。
+  - 目的：新旧模式并存且不破坏现有用户流程。
+  - _Leverage: `frontend/src/pages/TasksPage.tsx`, `frontend/src/components/ProtectedRoute.tsx`_
+  - _Requirements: Requirement 5_
+  - _Prompt: Implement the task for spec graphical-qasm3-workbench, first run spec-workflow-guide to get the workflow guide then implement the task: Role: React Routing Engineer | Task: Split routing for circuit/code modes under protected routes while preserving current auth redirects and legacy behavior | Restrictions: 不要移除旧代码入口，不要更改登录接口行为，不要引入路由循环重定向 | _Leverage: existing App routing and ProtectedRoute implementation | _Requirements: Requirement 5 | Success: `/tasks/circuit` 与 `/tasks/code` 均可用且未登录仍正确跳转；开始前标记 `[-]`，完成后记录 implementation log，再改为 `[x]`。_
+
+- [x] 12. 更新使用文档与回归验证
+  - File: `README.md`, `docs/project-status-and-usage.md`, `frontend/src/tests/protected-route.test.tsx`
+  - 更新“如何使用图形化工作台/代码模式入口”的说明并补充鉴权回归断言。
+  - 目的：确保交付可演示、可操作、可回归。
+  - _Leverage: 现有 README 与项目状态文档结构_
+  - _Requirements: Requirement 5_
+  - _Prompt: Implement the task for spec graphical-qasm3-workbench, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Documentation & QA Engineer | Task: Update user-facing docs for new dual-entry workflow and add regression checks for protected routing behavior | Restrictions: 不要写与实现不一致的说明，不要省略启动路径变化，不要降低现有测试强度 | _Leverage: existing docs and route tests | _Requirements: Requirement 5 | Success: 文档可直接指导用户使用新功能且关键回归测试通过；开始前标记 `[-]`，完成后记录 implementation log，再改为 `[x]`。_

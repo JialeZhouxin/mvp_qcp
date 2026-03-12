@@ -187,3 +187,21 @@ Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:8000/api/health"
 - `QUEUE_MAX_DEPTH`
 - `IDEMPOTENCY_TTL_HOURS`
 - `IDEMPOTENCY_CLEANUP_BATCH_SIZE`
+
+## Graphical Workbench Update (2026-03-12)
+
+### New frontend entries
+
+- `/tasks/circuit`: graphical quantum workbench (drag gates + editable OpenQASM 3 + browser-local simulation).
+- `/tasks/code`: legacy code submission page retained for compatibility.
+
+### Workbench runtime limits
+
+- `qubits <= 10`
+- `depth <= 200`
+- `total_gates <= 1000`
+
+### Histogram filtering rule
+
+- Display only states with `p > 2^-(n+2)`.
+- Show total/visible/hidden state counts and probability sum for explainability.

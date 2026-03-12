@@ -2,14 +2,15 @@
 
 interface ResultChartProps {
   probabilities: Record<string, number>;
+  title?: string;
 }
 
-function ResultChart({ probabilities }: ResultChartProps) {
+function ResultChart({ probabilities, title = "量子测量概率分布" }: ResultChartProps) {
   const labels = Object.keys(probabilities);
   const values = labels.map((k) => probabilities[k]);
 
   const option = {
-    title: { text: "量子测量概率分布" },
+    title: { text: title },
     tooltip: {
       trigger: "axis",
       formatter: (params: Array<{ axisValue: string; value: number }>) => {

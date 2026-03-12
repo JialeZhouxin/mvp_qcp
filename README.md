@@ -12,6 +12,15 @@
 
 后端量子执行引擎已统一为 **Qibo**。
 
+### 1.1 前端双入口（2026-03 图形化升级）
+
+当前前端提供两个受保护入口：
+
+1. `http://127.0.0.1:5173/tasks/circuit`  
+   图形化量子工作台（左侧拖拽电路，右侧 OpenQASM 3，可编辑并实时本地仿真）。
+2. `http://127.0.0.1:5173/tasks/code`  
+   原有代码提交模式（保留兼容）。
+
 ## 2. 当前开发进度
 
 ### 2.1 已完成
@@ -25,7 +34,10 @@
    - RQ Worker 与任务状态流转
    - Qibo 受限执行器（含 AST 校验、超时、结果标准化）
 3. 前端核心模块
-   - 登录/注册/任务页路由
+   - 登录/注册/任务页路由（`/tasks/circuit` + `/tasks/code`）
+   - 图形化量子工作台（GatePalette + CircuitCanvas + QasmEditorPane）
+   - OpenQASM 3 子集解析与双向桥接
+   - 浏览器 Web Worker 本地仿真调度
    - Token 注入 API 客户端
    - Monaco 编辑器接入
    - ECharts 概率直方图展示
@@ -318,9 +330,9 @@ npm run test:node
 建议演示流程：
 
 1. 注册并登录
-2. 在 Monaco 中提交脚本
-3. 观察任务从 `PENDING/RUNNING` 到 `SUCCESS`
-4. 查看 JSON 与概率直方图
+2. 进入 `tasks/circuit`，拖拽量子门并观察右侧 QASM 与下方概率图实时更新
+3. 在右侧故意输入非法 QASM，确认仅报错且左侧电路保持上次有效状态
+4. 进入 `tasks/code`，验证旧脚本提交流程仍可用
 
 ## 11. Docker 开发/演示运行
 
