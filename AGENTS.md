@@ -53,6 +53,8 @@ Do not propose follow-up tasks or enhancement at the end of your final answer.
 
 - Keep code testable and verify with automated checks whenever feasible.
 - When running backend unit tests, enforce a hard timeout of 60 seconds to avoid stuck tasks.
+- Runtime timeout baseline (current project defaults): `RQ_JOB_TIMEOUT_SECONDS=90` and `QIBO_EXEC_TIMEOUT_SECONDS=60`.
+- When adjusting execution limits, ensure the outer queue timeout (`RQ_JOB_TIMEOUT_SECONDS`) remains greater than the inner execution timeout (`QIBO_EXEC_TIMEOUT_SECONDS`).
 - Prefer static checks, formatting, and reproducible verification over ad-hoc manual confidence.
 
 ## Skills

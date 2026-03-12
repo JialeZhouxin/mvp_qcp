@@ -1,7 +1,14 @@
-﻿from typing import Any
+from typing import Any
 
 from app.core.config import settings
 from app.services.execution.factory import get_execution_backend
+
+
+class QiboExecutionError(ValueError):
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
 
 
 def _normalize_counts(counts: dict[Any, Any]) -> dict[str, int]:
@@ -10,7 +17,7 @@ def _normalize_counts(counts: dict[Any, Any]) -> dict[str, int]:
         bitstring = str(key)
         parsed = int(value)
         if parsed < 0:
-            raise ValueError(f"count must be non-negative for key: {bitstring}")
+            raise QiboExecutionError("INVALID_EXEC_RESULT", f"count must be non-negative for key: {bitstring}")
         normalized[bitstring] = parsed
     return normalized
 
@@ -27,7 +34,7 @@ def execute_qibo_script(code: str) -> dict:
     raw_result = backend.execute(code, timeout_seconds=settings.qibo_exec_timeout_seconds)
 
     if not isinstance(raw_result, dict):
-        raise ValueError("execution result must be a dict")
+        raise QiboExecutionError("INVALID_EXEC_RESULT", "execution result must be a dict")
 
     if "counts" in raw_result and isinstance(raw_result["counts"], dict):
         counts = _normalize_counts(raw_result["counts"])
@@ -36,9 +43,8 @@ def execute_qibo_script(code: str) -> dict:
             probabilities = _counts_to_probabilities(counts)
         return {"counts": counts, "probabilities": probabilities}
 
-    # 兼容格式：直接返回 bitstring -> count
     if raw_result and all(isinstance(k, str) for k in raw_result.keys()):
         counts = _normalize_counts(raw_result)
         return {"counts": counts, "probabilities": _counts_to_probabilities(counts)}
 
-    raise ValueError("invalid result format, expected {'counts': {...}}")
+    raise QiboExecutionError("INVALID_EXEC_RESULT", "invalid result format, expected {'counts': {...}}")

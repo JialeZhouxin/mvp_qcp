@@ -375,3 +375,9 @@ powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker 
 - `EXECUTION_BACKEND=local` 仅用于测试场景显式启用，不建议作为开发/演示默认配置。
 
 
+## Reliability and Observability Update (2026-03-10)
+
+- Runtime knobs: `RQ_JOB_TIMEOUT_SECONDS`, `QIBO_EXEC_TIMEOUT_SECONDS`, `TASK_MAX_RETRIES`, `TASK_RETRY_BACKOFF_SECONDS`, `QUEUE_MAX_DEPTH`, `IDEMPOTENCY_TTL_HOURS`, `IDEMPOTENCY_CLEANUP_BATCH_SIZE`.
+- Invariant: `RQ_JOB_TIMEOUT_SECONDS` must be greater than `QIBO_EXEC_TIMEOUT_SECONDS`.
+- `POST /api/tasks/submit` accepts optional `Idempotency-Key` header and response now includes `deduplicated`.
+- Added endpoints: `GET /api/health/live`, `GET /api/health/ready`, `GET /api/metrics`.

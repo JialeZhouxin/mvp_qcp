@@ -10,6 +10,8 @@ class TaskStatus(str, Enum):
     RUNNING = "RUNNING"
     SUCCESS = "SUCCESS"
     FAILURE = "FAILURE"
+    TIMEOUT = "TIMEOUT"
+    RETRY_EXHAUSTED = "RETRY_EXHAUSTED"
 
 
 class Task(SQLModel, table=True):
@@ -19,5 +21,9 @@ class Task(SQLModel, table=True):
     status: TaskStatus = Field(default=TaskStatus.PENDING, index=True)
     result_json: Optional[str] = Field(default=None)
     error_message: Optional[str] = Field(default=None)
+    attempt_count: int = Field(default=0)
+    started_at: Optional[datetime] = Field(default=None)
+    finished_at: Optional[datetime] = Field(default=None)
+    duration_ms: Optional[int] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

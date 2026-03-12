@@ -2,9 +2,8 @@ import os
 from pathlib import Path
 
 from fastapi.testclient import TestClient
-from sqlmodel import Session, select
+from sqlmodel import SQLModel, Session, select
 
-# 测试环境使用独立数据库，避免污染开发数据
 TEST_DATABASE_URL = "sqlite:///./data/test_qcp.db"
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 
@@ -26,11 +25,17 @@ def _resolve_sqlite_db_path(database_url: str) -> Path | None:
     return (backend_root / db_path).resolve()
 
 
+initial_db_path = _resolve_sqlite_db_path(TEST_DATABASE_URL)
+if initial_db_path and initial_db_path.exists():
+    initial_db_path.unlink()
+
+
 from app.db.session import engine, init_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models.task import Task, TaskStatus  # noqa: E402
 
 
+SQLModel.metadata.drop_all(engine)
 init_db()
 client = TestClient(app)
 
@@ -68,11 +73,7 @@ def test_task_submit_and_query_contract() -> None:
     headers = _auth_headers("tester_task")
 
     sample_code = "def main():\n    return {'counts': {'00': 10, '11': 6}}"
-    submit_resp = client.post(
-        "/api/tasks/submit",
-        json={"code": sample_code},
-        headers=headers,
-    )
+    submit_resp = client.post("/api/tasks/submit", json={"code": sample_code}, headers=headers)
     assert submit_resp.status_code in (200, 503)
 
     if submit_resp.status_code == 200:
@@ -91,6 +92,8 @@ def test_task_submit_queue_success_sets_pending(monkeypatch) -> None:
     queued: dict[str, int] = {}
 
     class QueueStub:
+        count = 0
+
         def enqueue(self, func, task_id: int, job_timeout: int) -> None:
             assert func.__name__ == "run_quantum_task"
             assert job_timeout > 0
@@ -105,6 +108,7 @@ def test_task_submit_queue_success_sets_pending(monkeypatch) -> None:
     assert submit_resp.status_code == 200
     payload = submit_resp.json()
     assert payload["status"] == "PENDING"
+    assert payload["deduplicated"] is False
     assert queued["task_id"] == payload["task_id"]
 
     with Session(engine) as session:
@@ -115,6 +119,8 @@ def test_task_submit_queue_success_sets_pending(monkeypatch) -> None:
 
 def test_task_submit_queue_failure_marks_task_failed(monkeypatch) -> None:
     class QueueStub:
+        count = 0
+
         def enqueue(self, *_args, **_kwargs) -> None:
             raise RuntimeError("redis unavailable")
 
@@ -125,7 +131,8 @@ def test_task_submit_queue_failure_marks_task_failed(monkeypatch) -> None:
     submit_resp = client.post("/api/tasks/submit", json={"code": code}, headers=headers)
 
     assert submit_resp.status_code == 503
-    assert submit_resp.json()["detail"] == "任务入队失败"
+    detail = submit_resp.json()["detail"]
+    assert detail["code"] == "QUEUE_PUBLISH_ERROR"
 
     with Session(engine) as session:
         tasks = session.exec(select(Task).where(Task.code == code)).all()
@@ -138,6 +145,8 @@ def test_task_submit_queue_failure_marks_task_failed(monkeypatch) -> None:
 
 def test_task_status_isolation_by_owner(monkeypatch) -> None:
     class QueueStub:
+        count = 0
+
         def enqueue(self, *_args, **_kwargs) -> None:
             return None
 
@@ -156,12 +165,11 @@ def test_task_status_isolation_by_owner(monkeypatch) -> None:
 
     other_status = client.get(f"/api/tasks/{task_id}", headers=other_headers)
     assert other_status.status_code == 404
-    assert other_status.json()["detail"] == "任务不存在"
+    assert other_status.json()["detail"] == "task not found"
 
 
 def teardown_module() -> None:
     client.close()
-    # 清理测试数据库文件
     database_url = os.getenv("DATABASE_URL", TEST_DATABASE_URL)
     db_path = _resolve_sqlite_db_path(database_url)
     try:

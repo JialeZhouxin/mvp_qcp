@@ -10,6 +10,7 @@ class TaskSubmitRequest(BaseModel):
 class TaskSubmitResponse(BaseModel):
     task_id: int
     status: str
+    deduplicated: bool = False
 
 
 class TaskStatusResponse(BaseModel):

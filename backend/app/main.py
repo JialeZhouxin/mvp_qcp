@@ -1,7 +1,7 @@
 ﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth_router, health_router, tasks_router
+from app.api import auth_router, health_router, metrics_router, tasks_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.db.session import init_db
@@ -27,5 +27,6 @@ def on_startup() -> None:
 
 
 app.include_router(health_router)
+app.include_router(metrics_router)
 app.include_router(auth_router)
 app.include_router(tasks_router)

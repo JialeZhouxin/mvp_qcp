@@ -9,10 +9,15 @@ class WindowsSimpleWorker(SimpleWorker):
     death_penalty_class = TimerDeathPenalty
 
 
+def _validate_timeout_invariant() -> None:
+    if settings.rq_job_timeout_seconds <= settings.qibo_exec_timeout_seconds:
+        raise ValueError("RQ_JOB_TIMEOUT_SECONDS must be greater than QIBO_EXEC_TIMEOUT_SECONDS")
+
+
 def main() -> None:
+    _validate_timeout_invariant()
     redis_connection = get_redis_connection()
     with Connection(redis_connection):
-        # Windows 不支持 os.fork，且无 SIGALRM，使用 TimerDeathPenalty
         worker = WindowsSimpleWorker([settings.rq_queue_name])
         worker.work(with_scheduler=False)
 

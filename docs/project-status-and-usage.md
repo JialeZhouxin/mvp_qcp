@@ -161,3 +161,29 @@ Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:8000/api/health"
 - 后端入口：`backend/app/main.py`
 - Worker 入口：`backend/app/worker/rq_worker.py`
 - 前端入口：`frontend/src/main.tsx`
+## Reliability and Observability Update (2026-03-10)
+
+### New task terminal states
+
+- `TIMEOUT`
+- `RETRY_EXHAUSTED`
+
+### New submit behavior
+
+- `POST /api/tasks/submit` supports optional `Idempotency-Key` header.
+- Submit response includes `deduplicated` field.
+- Queue overload now returns `503` with code `QUEUE_OVERLOADED`.
+
+### New health and metrics endpoints
+
+- `GET /api/health/live`
+- `GET /api/health/ready`
+- `GET /api/metrics`
+
+### New environment keys
+
+- `TASK_MAX_RETRIES`
+- `TASK_RETRY_BACKOFF_SECONDS`
+- `QUEUE_MAX_DEPTH`
+- `IDEMPOTENCY_TTL_HOURS`
+- `IDEMPOTENCY_CLEANUP_BATCH_SIZE`

@@ -6,3 +6,11 @@ from app.queue.redis_conn import get_redis_connection
 
 def get_task_queue() -> Queue:
     return Queue(name=settings.rq_queue_name, connection=get_redis_connection())
+
+
+def get_task_queue_depth() -> int:
+    queue = get_task_queue()
+    depth = queue.count
+    if callable(depth):
+        depth = depth()
+    return int(depth)

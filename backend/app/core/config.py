@@ -27,12 +27,26 @@ class Settings(BaseSettings):
     execution_cpu_limit: float = 0.5
     execution_pids_limit: int = 64
     execution_tmpfs_size_mb: int = 64
+    idempotency_ttl_hours: int = 24
+    idempotency_cleanup_batch_size: int = 200
+    task_max_retries: int = 2
+    task_retry_backoff_seconds: str = "1,3"
+    queue_max_depth: int = 200
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     @property
     def cors_origins(self) -> list[str]:
         return _split_csv(self.cors_allow_origins)
+
+    @property
+    def retry_backoff_schedule(self) -> list[int]:
+        schedule = [int(value.strip()) for value in self.task_retry_backoff_seconds.split(",") if value.strip()]
+        if not schedule:
+            raise ValueError("task_retry_backoff_seconds must contain at least one positive integer")
+        if any(value <= 0 for value in schedule):
+            raise ValueError("task_retry_backoff_seconds values must be positive integers")
+        return schedule
 
 
 settings = Settings()
