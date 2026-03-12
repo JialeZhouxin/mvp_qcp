@@ -2,6 +2,7 @@ export type QasmParseErrorCode =
   | "MISSING_HEADER"
   | "MISSING_DECLARATION"
   | "INVALID_SYNTAX"
+  | "INVALID_CIRCUIT"
   | "INVALID_PARAMETER"
   | "INVALID_OPERAND"
   | "UNSUPPORTED_STATEMENT"
@@ -30,4 +31,3 @@ export function createQasmParseError(
     excerpt,
   };
 }
-

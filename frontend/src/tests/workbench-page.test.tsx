@@ -21,8 +21,9 @@ describe("CircuitWorkbenchPage", () => {
     render(<CircuitWorkbenchPage scheduler={scheduler} />);
 
     await vi.runAllTimersAsync();
-    expect(screen.getByText(/总态数:/)).toBeInTheDocument();
-    expect(screen.getByText(/已渲染:/)).toBeInTheDocument();
+    expect(screen.getByText(/总状态数:/)).toBeInTheDocument();
+    expect(screen.getByText(/可见:/)).toBeInTheDocument();
+    expect(screen.getByText(/状态:/)).toBeInTheDocument();
   });
 
   it("does not trigger endless simulation reschedule for unchanged qasm", async () => {

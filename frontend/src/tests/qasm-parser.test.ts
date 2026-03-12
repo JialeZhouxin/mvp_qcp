@@ -85,5 +85,21 @@ x q[2];
     }
     expect(result.error.code).toBe("INVALID_OPERAND");
   });
-});
 
+  it("fails when measurement is not terminal", () => {
+    const source = `
+OPENQASM 3;
+qubit[2] q;
+bit[2] c;
+c[0] = measure q[0];
+h q[1];
+`;
+    const result = parseQasm3(source);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.error.code).toBe("INVALID_CIRCUIT");
+  });
+});

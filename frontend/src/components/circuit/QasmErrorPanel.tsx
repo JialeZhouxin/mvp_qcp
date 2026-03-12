@@ -25,4 +25,3 @@ function QasmErrorPanel({ error }: QasmErrorPanelProps) {
 }
 
 export default QasmErrorPanel;
-

@@ -1,4 +1,5 @@
 import type { Operation } from "../model/types";
+import { validateCircuitModel } from "../model/circuit-validation";
 import { createQasmParseError } from "./qasm-errors";
 import {
   parseOperandIndex,
@@ -20,6 +21,10 @@ import {
   type RegisterState,
   type StatementLine,
 } from "./qasm-parser-types";
+
+interface OperationSourceMap {
+  readonly lineByOperationId: ReadonlyMap<string, StatementLine>;
+}
 
 function parseDeclaration(
   statement: string,
@@ -154,11 +159,35 @@ function parseGateStatement(
   );
 }
 
+function toOperationSourceMap(
+  linesByOperationId: Map<string, StatementLine>,
+): OperationSourceMap {
+  return {
+    lineByOperationId: new Map(linesByOperationId),
+  };
+}
+
+function toInvalidCircuitError(
+  map: OperationSourceMap,
+  operationId: string | undefined,
+  message: string,
+) {
+  if (!operationId) {
+    return createQasmParseError("INVALID_CIRCUIT", message, 1, "");
+  }
+  const source = map.lineByOperationId.get(operationId);
+  if (!source) {
+    return createQasmParseError("INVALID_CIRCUIT", message, 1, "");
+  }
+  return createQasmParseError("INVALID_CIRCUIT", message, source.line, source.excerpt);
+}
+
 function parseStatements(statements: StatementLine[]): ParseQasmResult {
   let hasHeader = false;
   let qubit: RegisterState | null = null;
   let bit: RegisterState | null = null;
   const operations: Operation[] = [];
+  const linesByOperationId = new Map<string, StatementLine>();
 
   for (const item of statements) {
     if (HEADER_RE.test(item.statement)) {
@@ -188,9 +217,12 @@ function parseStatements(statements: StatementLine[]): ParseQasmResult {
     );
     if (measureOperation) {
       operations.push(measureOperation);
+      linesByOperationId.set(measureOperation.id, item);
       continue;
     }
-    operations.push(parseGateStatement(item, activeQubit, operations.length + 1));
+    const gateOperation = parseGateStatement(item, activeQubit, operations.length + 1);
+    operations.push(gateOperation);
+    linesByOperationId.set(gateOperation.id, item);
   }
 
   if (!hasHeader) {
@@ -204,7 +236,19 @@ function parseStatements(statements: StatementLine[]): ParseQasmResult {
     );
   }
 
-  return { ok: true, model: { numQubits: qubit.size, operations } };
+  const model = { numQubits: qubit.size, operations };
+  const validation = validateCircuitModel(model);
+  if (!validation.ok) {
+    throwParseException(
+      toInvalidCircuitError(
+        toOperationSourceMap(linesByOperationId),
+        validation.error.operationId,
+        validation.error.message,
+      ),
+    );
+  }
+
+  return { ok: true, model };
 }
 
 export function parseQasm3(source: string): ParseQasmResult {

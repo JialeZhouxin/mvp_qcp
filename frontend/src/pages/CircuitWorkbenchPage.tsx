@@ -5,15 +5,19 @@ import GatePalette from "../components/circuit/GatePalette";
 import QasmEditorPane from "../components/circuit/QasmEditorPane";
 import QasmErrorPanel from "../components/circuit/QasmErrorPanel";
 import ResultChart from "../components/ResultChart";
+import { validateCircuitModel } from "../features/circuit/model/circuit-validation";
 import { evaluateComplexity } from "../features/circuit/model/complexity-guard";
 import type { CircuitModel } from "../features/circuit/model/types";
-import { filterProbabilities, type ProbabilityFilterResult } from "../features/circuit/simulation/probability-filter";
+import { toQasm3 } from "../features/circuit/qasm/qasm-bridge";
+import type { QasmParseError } from "../features/circuit/qasm/qasm-errors";
+import {
+  filterProbabilities,
+  type ProbabilityFilterResult,
+} from "../features/circuit/simulation/probability-filter";
 import {
   SimulationScheduleError,
   createSimulationScheduler,
 } from "../features/circuit/simulation/scheduler";
-import { toQasm3 } from "../features/circuit/qasm/qasm-bridge";
-import type { QasmParseError } from "../features/circuit/qasm/qasm-errors";
 
 const INITIAL_CIRCUIT: CircuitModel = {
   numQubits: 2,
@@ -24,6 +28,8 @@ const INITIAL_CIRCUIT: CircuitModel = {
     { id: "init-4", gate: "m", targets: [1], layer: 3 },
   ],
 };
+
+type SimulationViewState = "IDLE" | "RUNNING" | "READY" | "ERROR";
 
 interface SimulationSchedulerLike {
   readonly schedule: (
@@ -46,18 +52,44 @@ function normalizeCircuitQasm(model: CircuitModel): string {
   return toQasm3(model).trim();
 }
 
+function formatSimulationState(state: SimulationViewState): string {
+  if (state === "RUNNING") {
+    return "仿真中...";
+  }
+  if (state === "READY") {
+    return "结果已更新";
+  }
+  if (state === "ERROR") {
+    return "仿真失败";
+  }
+  return "等待仿真";
+}
+
 function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
   const [circuit, setCircuit] = useState<CircuitModel>(INITIAL_CIRCUIT);
   const [qasm, setQasm] = useState(() => toQasm3(INITIAL_CIRCUIT));
   const [parseError, setParseError] = useState<QasmParseError | null>(null);
   const [simError, setSimError] = useState<string | null>(null);
+  const [simulationState, setSimulationState] = useState<SimulationViewState>("IDLE");
   const [probabilityView, setProbabilityView] = useState<ProbabilityFilterResult | null>(null);
   const schedulerRef = useRef<SimulationSchedulerLike>(scheduler ?? createSimulationScheduler());
 
   const runSimulation = async (model: CircuitModel) => {
+    setSimulationState("RUNNING");
+
+    const validation = validateCircuitModel(model);
+    if (!validation.ok) {
+      setSimError(validation.error.message);
+      setProbabilityView(null);
+      setSimulationState("ERROR");
+      return;
+    }
+
     const complexity = evaluateComplexity(model);
     if (!complexity.ok) {
       setSimError(formatComplexityMessage(complexity.message));
+      setProbabilityView(null);
+      setSimulationState("ERROR");
       return;
     }
 
@@ -66,11 +98,13 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
       const filtered = filterProbabilities(model.numQubits, response.probabilities);
       setProbabilityView(filtered);
       setSimError(null);
+      setSimulationState("READY");
     } catch (error) {
       if (error instanceof SimulationScheduleError && error.code === "SIM_STALE") {
         return;
       }
       setSimError(error instanceof Error ? error.message : String(error));
+      setSimulationState("ERROR");
     }
   };
 
@@ -99,7 +133,7 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
       <header>
         <h1 style={{ marginBottom: 8 }}>图形化量子工作台</h1>
         <p style={{ margin: 0, color: "#666" }}>
-          左侧拖拽电路，右侧编辑 OpenQASM 3，编辑后自动本地仿真并更新概率直方图。
+          左侧拖拽量子门构建线路，右侧可编辑 OpenQASM 3，变更后会自动本地仿真并更新概率图。
         </p>
       </header>
 
@@ -122,17 +156,18 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
 
       <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
         <h3 style={{ marginTop: 0 }}>测量概率直方图</h3>
+        <p style={{ margin: "0 0 8px 0", color: "#666" }}>状态: {formatSimulationState(simulationState)}</p>
         {simError ? <p style={{ color: "#cf1322" }}>{simError}</p> : null}
         {probabilityView ? (
           <>
             <p style={{ margin: "0 0 8px 0", color: "#666" }}>
-              总态数: {probabilityView.totalCount} | 已渲染: {probabilityView.visibleCount} |
-              已隐藏: {probabilityView.hiddenCount} | 概率和: {probabilityView.probabilitySum.toFixed(6)}
+              总状态数: {probabilityView.totalCount} | 可见: {probabilityView.visibleCount} | 隐藏:{" "}
+              {probabilityView.hiddenCount} | 概率和: {probabilityView.probabilitySum.toFixed(6)}
             </p>
             {probabilityView.visibleCount > 0 ? (
-              <ResultChart probabilities={probabilityView.visible} title="过滤后基态概率分布" />
+              <ResultChart probabilities={probabilityView.visible} title="过滤后的基态概率分布" />
             ) : (
-              <p style={{ color: "#999" }}>当前阈值下无可见态。</p>
+              <p style={{ color: "#999" }}>当前阈值下没有可展示的基态。</p>
             )}
           </>
         ) : (
