@@ -1,4 +1,4 @@
-﻿# Global Agent Rules
+# Global Agent Rules
 
 ## Language
 
@@ -71,4 +71,17 @@ Routing table:
 
 | Scenario | Skill | Trigger |
 |----------|-------|---------|
-| Long-horizon autonomous tasks (FULL: 5-15 steps) | `taskmaster` | "long task", "big project", "autonomous", "从零开始", "长时任务", 1+ hour sessions |
+| Long-horizon autonomous tasks (FULL: 5-15 steps) | `taskmaster` | "long task", "big project", "autonomous", "from scratch", "long running task", 1+ hour sessions |
+
+## Collaboration Workflow (Standard)
+
+This project follows a strict user-agent delivery loop:
+
+1. Goal alignment first: user defines business goal, priority, and tradeoffs (for example MVP speed vs long-term architecture).
+2. Spec-first execution: agent must use `spec-workflow` (`Requirements -> Design -> Tasks -> Implementation`) for medium/large changes.
+3. Approval-gated progression: each major spec artifact is reviewed by user before moving to the next phase.
+4. Constraint-aware implementation: code changes must respect runtime constraints (Docker environment, timeout baseline, security limits).
+5. Debug-first validation: verify with reproducible checks (tests, build, docker run, logs); do not hide failures behind fallback paths.
+6. Root-cause fixing: when runtime issues appear, diagnose from evidence (API response, container logs, DB/runtime state), then patch at source.
+7. Traceable delivery: update docs/spec logs, summarize outcomes, and commit with clear Conventional Commit messages after user confirmation.
+8. Feedback loop: user performs scenario testing; agent iterates until acceptance criteria are met.
