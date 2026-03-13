@@ -205,3 +205,24 @@ Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:8000/api/health"
 
 - Display only states with `p > 2^-(n+2)`.
 - Show total/visible/hidden state counts and probability sum for explainability.
+
+## Workbench UX Iteration (2026-03-13)
+
+### New capabilities
+
+- Two-qubit gate placement now has step guidance and actionable Chinese error hints.
+- Added toolbar operations: `撤销` / `重做` / `清空线路` / `重置工作台`.
+- Added result display mode toggle: filtered-only vs all states.
+- Added epsilon visibility (`2^-(n+2)`) and display statistics in result panel.
+- Added built-in templates (Bell / superposition) for quick demo startup.
+- Added first-time quick guide with persisted dismiss preference.
+- Added local draft persistence and restore for circuit/QASM/display mode.
+- Localized QASM parse feedback with structured fix suggestions.
+
+### Updated usage flow
+
+1. Open `/tasks/circuit` and load a template first for baseline verification.
+2. Modify the circuit via drag-drop or edit QASM directly.
+3. Use undo/redo while iterating to compare nearby circuit variants.
+4. Switch display mode to inspect filtered and full probability distributions.
+5. Refresh the page to verify draft auto-restore behavior.

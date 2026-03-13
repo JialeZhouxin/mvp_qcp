@@ -393,3 +393,24 @@ powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker 
 - Invariant: `RQ_JOB_TIMEOUT_SECONDS` must be greater than `QIBO_EXEC_TIMEOUT_SECONDS`.
 - `POST /api/tasks/submit` accepts optional `Idempotency-Key` header and response now includes `deduplicated`.
 - Added endpoints: `GET /api/health/live`, `GET /api/health/ready`, `GET /api/metrics`.
+
+## Workbench UX Iteration (2026-03-13)
+
+图形化工作台已完成一轮可用性增强，重点面向“新用户上手 + 高频编辑”场景：
+
+- 双比特门两步放置提供明确引导和中文可执行提示。
+- 工作台新增 `撤销 / 重做 / 清空线路 / 重置工作台` 操作。
+- 结果区新增显示模式切换：`仅显示过滤后状态` 与 `显示全部状态`。
+- 结果区显示过滤规则与阈值：`epsilon = 2^-(n+2)`，并展示可见/隐藏统计。
+- 新增内置模板（Bell 态、均匀叠加态），支持一键加载。
+- 首次进入展示快速引导，用户关闭后会记住偏好。
+- 本地草稿自动保存与恢复（线路、QASM、显示模式）。
+- QASM 错误面板统一中文文案，并附修复建议。
+
+### Workbench 操作建议
+
+1. 访问 `http://127.0.0.1:5173/tasks/circuit`。
+2. 先点击模板按钮（如 Bell 态）验证闭环结果。
+3. 在左侧拖拽量子门编辑线路，或在右侧修改 QASM。
+4. 使用工具栏撤销/重做快速试错。
+5. 在结果区切换显示模式，对比过滤后与全量概率分布。
