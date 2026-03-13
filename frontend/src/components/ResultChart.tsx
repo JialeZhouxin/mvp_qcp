@@ -1,4 +1,4 @@
-﻿import ReactECharts from "echarts-for-react";
+import ReactECharts from "echarts-for-react";
 
 interface ResultChartProps {
   probabilities: Record<string, number>;
@@ -7,7 +7,7 @@ interface ResultChartProps {
 
 function ResultChart({ probabilities, title = "量子测量概率分布" }: ResultChartProps) {
   const labels = Object.keys(probabilities);
-  const values = labels.map((k) => probabilities[k]);
+  const values = labels.map((key) => probabilities[key]);
 
   const option = {
     title: { text: title },
@@ -15,7 +15,9 @@ function ResultChart({ probabilities, title = "量子测量概率分布" }: Resu
       trigger: "axis",
       formatter: (params: Array<{ axisValue: string; value: number }>) => {
         const item = params?.[0];
-        if (!item) return "";
+        if (!item) {
+          return "";
+        }
         return `${item.axisValue}: ${(item.value ?? 0).toFixed(4)}`;
       },
     },

@@ -52,7 +52,8 @@ describe("CircuitCanvas", () => {
     });
 
     expect(onCircuitChange).not.toHaveBeenCalled();
-    expect(screen.getByText(/already has an operation/)).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-message")).toHaveTextContent("无法放置量子门");
+    expect(screen.getByTestId("canvas-message")).toHaveTextContent("已存在操作");
   });
 
   it("places two-qubit gate in two steps", () => {
@@ -66,6 +67,7 @@ describe("CircuitCanvas", () => {
       },
     });
     expect(onCircuitChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId("canvas-message")).toHaveTextContent("等待选择目标量子位");
 
     fireEvent.click(screen.getByTestId("canvas-cell-1-0"));
     expect(onCircuitChange).toHaveBeenCalledTimes(1);
@@ -73,6 +75,23 @@ describe("CircuitCanvas", () => {
     expect(nextModel.operations[0].gate).toBe("cx");
     expect(nextModel.operations[0].controls).toEqual([0]);
     expect(nextModel.operations[0].targets).toEqual([1]);
+  });
+
+  it("shows actionable guidance when two-qubit second step uses invalid layer", () => {
+    const model: CircuitModel = { numQubits: 2, operations: [] };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    fireEvent.drop(screen.getByTestId("canvas-cell-0-0"), {
+      dataTransfer: {
+        getData: () => "cx",
+      },
+    });
+    fireEvent.click(screen.getByTestId("canvas-cell-1-1"));
+
+    expect(onCircuitChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId("canvas-message")).toHaveTextContent("目标层不正确");
+    expect(screen.getByTestId("canvas-message")).toHaveTextContent("同一层");
   });
 
   it("updates parameter value from panel for parameterized gate", () => {

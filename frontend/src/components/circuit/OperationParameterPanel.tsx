@@ -1,5 +1,9 @@
-import { PARAMETER_LABELS, getParameterValues, isParameterizedGate } from "./canvas-gate-utils";
 import type { Operation } from "../../features/circuit/model/types";
+import {
+  PARAMETER_LABELS,
+  getParameterValues,
+  isParameterizedGate,
+} from "./canvas-gate-utils";
 
 interface OperationParameterPanelProps {
   readonly operation: Operation;
@@ -11,7 +15,11 @@ function OperationParameterPanel({
   onParamChange,
 }: OperationParameterPanelProps) {
   if (!isParameterizedGate(operation.gate)) {
-    return <p style={{ margin: "8px 0 0 0", color: "#666" }}>当前选中门无可编辑参数。</p>;
+    return (
+      <p style={{ margin: "8px 0 0 0", color: "#666" }}>
+        当前选中门无可编辑参数。
+      </p>
+    );
   }
 
   const labels = PARAMETER_LABELS[operation.gate];

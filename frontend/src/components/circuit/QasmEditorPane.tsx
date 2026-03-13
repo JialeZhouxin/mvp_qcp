@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import type { CircuitModel } from "../../features/circuit/model/types";
 import type { QasmParseError } from "../../features/circuit/qasm/qasm-errors";
-import { fromQasm3 } from "../../features/circuit/qasm/qasm-bridge";
+import { fromQasm3, toQasm3 } from "../../features/circuit/qasm/qasm-bridge";
 
 const DEFAULT_DEBOUNCE_MS = 200;
 
@@ -23,6 +23,7 @@ function QasmEditorPane({
 }: QasmEditorPaneProps) {
   const onValidQasmChangeRef = useRef(onValidQasmChange);
   const onParseErrorRef = useRef(onParseError);
+  const lastSyncedSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
     onValidQasmChangeRef.current = onValidQasmChange;
@@ -37,6 +38,11 @@ function QasmEditorPane({
       const parsed = fromQasm3(value);
       if (parsed.ok) {
         onParseErrorRef.current(null);
+        const signature = toQasm3(parsed.model).trim();
+        if (lastSyncedSignatureRef.current === signature) {
+          return;
+        }
+        lastSyncedSignatureRef.current = signature;
         onValidQasmChangeRef.current(parsed.model);
         return;
       }

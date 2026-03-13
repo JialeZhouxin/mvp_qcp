@@ -71,5 +71,33 @@ describe("QasmEditorPane", () => {
     });
     expect(onValueChange).toHaveBeenCalledTimes(1);
   });
-});
 
+  it("does not emit duplicate valid callback for equivalent qasm", async () => {
+    const onValidQasmChange = vi.fn();
+    const onParseError = vi.fn();
+    const view = render(
+      <QasmEditorPane
+        value={VALID_QASM}
+        onValueChange={vi.fn()}
+        onValidQasmChange={onValidQasmChange}
+        onParseError={onParseError}
+        debounceMs={100}
+      />,
+    );
+
+    await vi.advanceTimersByTimeAsync(120);
+    expect(onValidQasmChange).toHaveBeenCalledTimes(1);
+
+    view.rerender(
+      <QasmEditorPane
+        value={`${VALID_QASM}\n`}
+        onValueChange={vi.fn()}
+        onValidQasmChange={onValidQasmChange}
+        onParseError={onParseError}
+        debounceMs={100}
+      />,
+    );
+    await vi.advanceTimersByTimeAsync(120);
+    expect(onValidQasmChange).toHaveBeenCalledTimes(1);
+  });
+});
