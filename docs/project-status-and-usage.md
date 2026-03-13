@@ -226,3 +226,7 @@ Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:8000/api/health"
 3. Use undo/redo while iterating to compare nearby circuit variants.
 4. Switch display mode to inspect filtered and full probability distributions.
 5. Refresh the page to verify draft auto-restore behavior.
+6. Click `Submit Task` to send the current circuit as a backend task (with idempotency key).
+7. Check `task_id` and `task status` in-place, and use `Refresh Status` to fetch latest progress.
+8. If the UI shows deduplicated hint, repeated submit was bound to an existing task.
+9. Jump to `/tasks/center` for full task timeline and diagnostics.
