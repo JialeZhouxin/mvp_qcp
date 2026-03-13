@@ -12,14 +12,16 @@
 
 后端量子执行引擎已统一为 **Qibo**。
 
-### 1.1 前端双入口（2026-03 图形化升级）
+### 1.1 前端三入口（2026-03 任务中心与项目化升级）
 
-当前前端提供两个受保护入口：
+当前前端提供三个受保护入口：
 
 1. `http://127.0.0.1:5173/tasks/circuit`  
-   图形化量子工作台（左侧拖拽电路，右侧 OpenQASM 3，可编辑并实时本地仿真）。
+   图形化量子工作台（左侧拖拽电路，右侧 OpenQASM 3，可编辑并实时本地仿真，可保存电路项目）。
 2. `http://127.0.0.1:5173/tasks/code`  
-   原有代码提交模式（保留兼容）。
+   代码提交模式（保留兼容，可保存代码项目）。
+3. `http://127.0.0.1:5173/tasks/center`  
+   任务中心（任务历史列表、筛选、详情、SSE 实时状态、失败诊断）。
 
 ## 2. 当前开发进度
 
@@ -198,7 +200,7 @@ powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1"
 }
 ```
 
-### 6.3 任务接口
+### 6.3 任务接口（含任务中心）
 
 所有任务接口都需要 Header：
 
@@ -255,6 +257,32 @@ powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1"
   "message": "task not finished"
 }
 ```
+
+#### `GET /api/tasks?status=&limit=&offset=`
+
+作用：任务中心分页查询当前用户任务历史（支持状态筛选）。
+
+#### `GET /api/tasks/{task_id}/detail`
+
+作用：任务详情查询（包含结构化诊断字段 `diagnostic`）。
+
+#### `GET /api/tasks/stream`
+
+作用：SSE 实时状态推送，事件类型包含 `task_status` 与 `heartbeat`。
+
+### 6.4 项目接口（代码 + 电路）
+
+#### `PUT /api/projects/{name}`
+
+作用：按用户和项目名保存/覆盖项目（upsert）。
+
+#### `GET /api/projects`
+
+作用：分页查询当前用户项目列表。
+
+#### `GET /api/projects/{project_id}`
+
+作用：读取单个项目详情并恢复到对应编辑入口。
 
 响应（成功）：
 

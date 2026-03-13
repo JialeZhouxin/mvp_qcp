@@ -1,0 +1,74 @@
+import { useState } from "react";
+
+import type { ProjectEntryType, ProjectItem } from "../../api/projects";
+
+interface ProjectPanelProps {
+  entryType: ProjectEntryType;
+  projects: ProjectItem[];
+  loading: boolean;
+  saving: boolean;
+  error: string | null;
+  success: string | null;
+  onRefresh: () => void;
+  onSave: (name: string) => void;
+  onLoad: (projectId: number) => void;
+}
+
+function ProjectPanel({
+  entryType,
+  projects,
+  loading,
+  saving,
+  error,
+  success,
+  onRefresh,
+  onSave,
+  onLoad,
+}: ProjectPanelProps) {
+  const [name, setName] = useState("");
+  const filtered = projects.filter((project) => project.entry_type === entryType);
+
+  return (
+    <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+      <h3 style={{ marginTop: 0 }}>项目保存</h3>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <input
+          placeholder={entryType === "code" ? "输入代码项目名" : "输入电路项目名"}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          style={{ flex: 1 }}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            onSave(name);
+            setName("");
+          }}
+          disabled={saving}
+        >
+          {saving ? "保存中..." : "保存项目"}
+        </button>
+        <button type="button" onClick={onRefresh} disabled={loading}>
+          刷新项目
+        </button>
+      </div>
+      {error ? <p style={{ color: "#cf1322", margin: "4px 0" }}>{error}</p> : null}
+      {success ? <p style={{ color: "#389e0d", margin: "4px 0" }}>{success}</p> : null}
+      <div style={{ display: "grid", gap: 6, maxHeight: 180, overflow: "auto" }}>
+        {filtered.map((project) => (
+          <button
+            type="button"
+            key={project.id}
+            onClick={() => onLoad(project.id)}
+            style={{ textAlign: "left", border: "1px solid #ddd", borderRadius: 6, background: "#fff", padding: 8 }}
+          >
+            <div>{project.name}</div>
+            <div style={{ fontSize: 12, color: "#666" }}>更新时间：{project.updated_at}</div>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export default ProjectPanel;

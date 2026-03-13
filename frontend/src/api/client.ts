@@ -1,20 +1,22 @@
 ﻿import { getToken } from "../auth/token";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
-type HttpMethod = "GET" | "POST";
+type HttpMethod = "GET" | "POST" | "PUT";
 
 interface RequestOptions {
   method?: HttpMethod;
   body?: unknown;
   withAuth?: boolean;
+  headers?: Record<string, string>;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, withAuth = false } = options;
+  const { method = "GET", body, withAuth = false, headers: extraHeaders } = options;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...(extraHeaders ?? {}),
   };
 
   if (withAuth) {

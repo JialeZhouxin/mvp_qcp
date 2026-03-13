@@ -2,6 +2,7 @@
 
 import { getToken } from "./auth/token";
 import ProtectedRoute from "./components/ProtectedRoute";
+import TaskCenterPage from "./pages/TaskCenterPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import CircuitWorkbenchPage from "./pages/CircuitWorkbenchPage";
@@ -16,6 +17,7 @@ function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/tasks" element={<Navigate to="/tasks/circuit" replace />} />
+        <Route path="/tasks/center" element={<TaskCenterPage />} />
         <Route path="/tasks/circuit" element={<CircuitWorkbenchPage />} />
         <Route path="/tasks/code" element={<CodeTasksPage />} />
       </Route>

@@ -1,9 +1,22 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 
 import CircuitWorkbenchPage from "../pages/CircuitWorkbenchPage";
 
 const DRAFT_KEY = "qcp.workbench.draft.v1";
 const GUIDE_KEY = "qcp.workbench.guide.dismissed.v1";
+
+function renderWorkbench(scheduler: { schedule: (model: unknown) => Promise<unknown> }) {
+  return render(
+    <MemoryRouter>
+      <CircuitWorkbenchPage scheduler={scheduler} />
+    </MemoryRouter>,
+  );
+}
+
+vi.mock("../components/ResultChart", () => ({
+  default: () => <div data-testid="mock-result-chart">mock-result-chart</div>,
+}));
 
 describe("CircuitWorkbenchPage", () => {
   beforeEach(() => {
@@ -22,7 +35,7 @@ describe("CircuitWorkbenchPage", () => {
         probabilities: { "00": 0.5, "01": 0, "10": 0, "11": 0.5 },
       })),
     };
-    render(<CircuitWorkbenchPage scheduler={scheduler} />);
+    renderWorkbench(scheduler);
 
     await vi.runAllTimersAsync();
     expect(screen.getByText(/总状态数:/)).toBeInTheDocument();
@@ -37,7 +50,7 @@ describe("CircuitWorkbenchPage", () => {
         probabilities: { "00": 0.5, "01": 0, "10": 0, "11": 0.5 },
       })),
     };
-    render(<CircuitWorkbenchPage scheduler={scheduler} />);
+    renderWorkbench(scheduler);
 
     await vi.advanceTimersByTimeAsync(1500);
     expect(scheduler.schedule.mock.calls.length).toBe(1);
@@ -50,7 +63,7 @@ describe("CircuitWorkbenchPage", () => {
         probabilities: { "00": 1, "01": 0, "10": 0, "11": 0 },
       })),
     };
-    render(<CircuitWorkbenchPage scheduler={scheduler} />);
+    renderWorkbench(scheduler);
 
     fireEvent.change(screen.getByTestId("qasm-editor-input"), {
       target: { value: "OPENQASM 3;\nqubit[1] q\nx q[0];" },
@@ -67,7 +80,7 @@ describe("CircuitWorkbenchPage", () => {
         probabilities: { "00": 0.5, "01": 0, "10": 0, "11": 0.5 },
       })),
     };
-    render(<CircuitWorkbenchPage scheduler={scheduler} />);
+    renderWorkbench(scheduler);
     await vi.runAllTimersAsync();
 
     const input = screen.getByTestId("qasm-editor-input") as HTMLTextAreaElement;
@@ -99,7 +112,7 @@ describe("CircuitWorkbenchPage", () => {
         probabilities: { "00": 0.5, "01": 0.1, "10": 0.02, "11": 0.38 },
       })),
     };
-    render(<CircuitWorkbenchPage scheduler={scheduler} />);
+    renderWorkbench(scheduler);
     await vi.runAllTimersAsync();
 
     expect(screen.getByText(/当前显示:\s*3/)).toBeInTheDocument();
@@ -115,7 +128,7 @@ describe("CircuitWorkbenchPage", () => {
         probabilities: { "00": 1, "01": 0, "10": 0, "11": 0 },
       })),
     };
-    const first = render(<CircuitWorkbenchPage scheduler={scheduler} />);
+    const first = renderWorkbench(scheduler);
     expect(screen.getByTestId("workbench-guide")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "我知道了" }));
@@ -123,7 +136,7 @@ describe("CircuitWorkbenchPage", () => {
     expect(window.localStorage.getItem(GUIDE_KEY)).toBe("1");
 
     first.unmount();
-    render(<CircuitWorkbenchPage scheduler={scheduler} />);
+    renderWorkbench(scheduler);
     expect(screen.queryByTestId("workbench-guide")).toBeNull();
   });
 
@@ -148,7 +161,7 @@ describe("CircuitWorkbenchPage", () => {
         probabilities: { "0": 0, "1": 1 },
       })),
     };
-    render(<CircuitWorkbenchPage scheduler={scheduler} />);
+    renderWorkbench(scheduler);
     await vi.runAllTimersAsync();
 
     expect((screen.getByTestId("qasm-editor-input") as HTMLTextAreaElement).value).toContain(

@@ -12,6 +12,10 @@ vi.mock("../pages/CodeTasksPage", () => ({
   default: () => <div>mock-code-tasks</div>,
 }));
 
+vi.mock("../pages/TaskCenterPage", () => ({
+  default: () => <div>mock-task-center</div>,
+}));
+
 describe("workbench routes", () => {
   beforeEach(() => {
     clearToken();
@@ -39,6 +43,17 @@ describe("workbench routes", () => {
     expect(screen.getByText("mock-code-tasks")).toBeInTheDocument();
   });
 
+  it("keeps /tasks/center entry available for authenticated users", () => {
+    setToken("token");
+    render(
+      <MemoryRouter initialEntries={["/tasks/center"]}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("mock-task-center")).toBeInTheDocument();
+  });
+
   it("redirects unauthenticated users to login page", () => {
     render(
       <MemoryRouter initialEntries={["/tasks/circuit"]}>
@@ -49,4 +64,3 @@ describe("workbench routes", () => {
     expect(screen.getByRole("heading", { name: "登录" })).toBeInTheDocument();
   });
 });
-
