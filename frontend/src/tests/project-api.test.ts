@@ -1,4 +1,5 @@
 import { getProjectDetail, getProjectList, saveProject } from "../api/projects";
+import { submitTask } from "../api/tasks";
 import { apiRequest } from "../api/client";
 
 vi.mock("../api/client", () => ({
@@ -47,5 +48,40 @@ describe("projects api", () => {
     await getProjectDetail(2);
 
     expect(mockedApiRequest).toHaveBeenCalledWith("/api/projects/2", { withAuth: true });
+  });
+
+  it("submits task with idempotency header when provided", async () => {
+    mockedApiRequest.mockResolvedValue({
+      task_id: 12,
+      status: "PENDING",
+      deduplicated: false,
+    });
+
+    await submitTask("print(1)", { idempotencyKey: "idem-abc" });
+
+    expect(mockedApiRequest).toHaveBeenCalledWith("/api/tasks/submit", {
+      method: "POST",
+      body: { code: "print(1)" },
+      withAuth: true,
+      headers: { "Idempotency-Key": "idem-abc" },
+    });
+  });
+
+  it("submits task without idempotency header by default", async () => {
+    mockedApiRequest.mockResolvedValue({
+      task_id: 13,
+      status: "PENDING",
+      deduplicated: true,
+    });
+
+    const response = await submitTask("print(2)");
+
+    expect(mockedApiRequest).toHaveBeenCalledWith("/api/tasks/submit", {
+      method: "POST",
+      body: { code: "print(2)" },
+      withAuth: true,
+      headers: undefined,
+    });
+    expect(response.deduplicated).toBe(true);
   });
 });

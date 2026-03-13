@@ -3,6 +3,7 @@
 export interface TaskSubmitResponse {
   task_id: number;
   status: string;
+  deduplicated?: boolean;
 }
 
 export interface TaskStatusResponse {
@@ -21,11 +22,19 @@ export interface TaskResultResponse {
   message?: string;
 }
 
-export function submitTask(code: string): Promise<TaskSubmitResponse> {
+interface SubmitTaskOptions {
+  readonly idempotencyKey?: string;
+}
+
+export function submitTask(code: string, options: SubmitTaskOptions = {}): Promise<TaskSubmitResponse> {
+  const headers = options.idempotencyKey
+    ? { "Idempotency-Key": options.idempotencyKey }
+    : undefined;
   return apiRequest("/api/tasks/submit", {
     method: "POST",
     body: { code },
     withAuth: true,
+    headers,
   });
 }
 

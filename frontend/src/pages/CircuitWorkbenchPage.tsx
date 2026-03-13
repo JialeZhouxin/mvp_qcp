@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { toErrorMessage } from "../api/errors";
-import { getProjectDetail, getProjectList, saveProject, type ProjectItem } from "../api/projects";
 import CircuitCanvas from "../components/circuit/CircuitCanvas";
 import GatePalette from "../components/circuit/GatePalette";
 import QasmEditorPane from "../components/circuit/QasmEditorPane";
 import QasmErrorPanel from "../components/circuit/QasmErrorPanel";
 import WorkbenchGuide from "../components/circuit/WorkbenchGuide";
 import WorkbenchResultPanel from "../components/circuit/WorkbenchResultPanel";
+import WorkbenchSubmitPanel from "../components/circuit/WorkbenchSubmitPanel";
 import WorkbenchToolbar from "../components/circuit/WorkbenchToolbar";
 import ProjectPanel from "../components/task-center/ProjectPanel";
 import { evaluateComplexity } from "../features/circuit/model/complexity-guard";
@@ -19,6 +18,7 @@ import {
   createHistoryState,
   redoHistoryState,
   undoHistoryState,
+  type EditorHistoryState,
 } from "../features/circuit/model/history";
 import { listCircuitTemplates, loadCircuitTemplate } from "../features/circuit/model/templates";
 import type { CircuitModel } from "../features/circuit/model/types";
@@ -31,16 +31,16 @@ import {
   type ProbabilityFilterResult,
 } from "../features/circuit/simulation/probability-filter";
 import { SimulationScheduleError, createSimulationScheduler } from "../features/circuit/simulation/scheduler";
+import { useWorkbenchTaskSubmit } from "../features/circuit/submission/use-workbench-task-submit";
 import { clearWorkbenchDraft, saveWorkbenchDraft } from "../features/circuit/ui/draft-storage";
 import { isWorkbenchGuideDismissed, setWorkbenchGuideDismissed } from "../features/circuit/ui/guide-preference";
 import {
+  areCircuitsEquivalent,
   buildInitialState,
   createDefaultCircuit,
   createNextHistoryState,
-  formatComplexityMessage,
-  isCircuitModel,
-  areCircuitsEquivalent,
 } from "../features/circuit/ui/workbench-model-utils";
+import { useWorkbenchProjects } from "../features/circuit/ui/use-workbench-projects";
 
 const DEFAULT_DISPLAY_MODE: ProbabilityDisplayMode = "FILTERED";
 
@@ -70,15 +70,40 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
   const [simulationState, setSimulationState] = useState<SimulationViewState>("IDLE");
   const [probabilityView, setProbabilityView] = useState<ProbabilityFilterResult | null>(null);
   const [showGuide, setShowGuide] = useState(() => !isWorkbenchGuideDismissed());
-  const [projectLoading, setProjectLoading] = useState(false);
-  const [projectSaving, setProjectSaving] = useState(false);
-  const [projectError, setProjectError] = useState<string | null>(null);
-  const [projectSuccess, setProjectSuccess] = useState<string | null>(null);
-  const [projects, setProjects] = useState<ProjectItem[]>([]);
   const schedulerRef = useRef<SimulationSchedulerLike>(scheduler ?? createSimulationScheduler());
 
   const circuit = history.present;
   const templates = listCircuitTemplates();
+  const {
+    projectLoading,
+    projectSaving,
+    projectError,
+    projectSuccess,
+    projects,
+    loadProjects,
+    saveCurrentProject,
+    loadProjectById,
+  } = useWorkbenchProjects({
+    circuit,
+    qasm,
+    displayMode,
+    onProjectLoaded: (payload) => {
+      setHistory(createHistoryState(payload.circuit));
+      setQasm(payload.qasm);
+      setDisplayMode(payload.displayMode);
+      setParseError(null);
+    },
+  });
+  const {
+    submittingTask,
+    submittedTaskId,
+    submittedTaskStatus,
+    submitError,
+    deduplicatedSubmit,
+    canSubmit,
+    onSubmitTask,
+    onRefreshTaskStatus,
+  } = useWorkbenchTaskSubmit({ circuit, parseError });
 
   const runSimulation = async (model: CircuitModel) => {
     setSimulationState("RUNNING");
@@ -91,11 +116,12 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
     }
     const complexity = evaluateComplexity(model);
     if (!complexity.ok) {
-      setSimError(formatComplexityMessage(complexity.message));
+      setSimError(`线路复杂度超限：${complexity.message ?? ""}`.trim());
       setProbabilityView(null);
       setSimulationState("ERROR");
       return;
     }
+
     try {
       const response = await schedulerRef.current.schedule(model);
       const filtered = filterProbabilities(model.numQubits, response.probabilities);
@@ -131,23 +157,6 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
     });
   }, [circuit, displayMode]);
 
-  async function loadProjects() {
-    setProjectLoading(true);
-    setProjectError(null);
-    try {
-      const response = await getProjectList(50, 0);
-      setProjects(response.projects);
-    } catch (error) {
-      setProjectError(toErrorMessage(error, "项目列表加载失败"));
-    } finally {
-      setProjectLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void loadProjects();
-  }, []);
-
   const pushCircuit = (next: CircuitModel) => {
     setHistory((previous) => createNextHistoryState(previous, next));
   };
@@ -171,54 +180,6 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
     clearWorkbenchDraft();
   };
 
-  async function onSaveProject(name: string) {
-    if (!name.trim()) {
-      setProjectError("项目名不能为空");
-      return;
-    }
-    setProjectSaving(true);
-    setProjectError(null);
-    setProjectSuccess(null);
-    try {
-      await saveProject(name.trim(), {
-        entry_type: "circuit",
-        payload: {
-          circuit,
-          qasm,
-          display_mode: displayMode,
-        },
-      });
-      setProjectSuccess("项目已保存");
-      await loadProjects();
-    } catch (error) {
-      setProjectError(toErrorMessage(error, "项目保存失败"));
-    } finally {
-      setProjectSaving(false);
-    }
-  }
-
-  async function onLoadProject(projectId: number) {
-    setProjectError(null);
-    setProjectSuccess(null);
-    try {
-      const detail = await getProjectDetail(projectId);
-      if (!isCircuitModel(detail.payload.circuit)) {
-        throw new Error("项目内容缺少有效 circuit");
-      }
-      if (typeof detail.payload.qasm !== "string") {
-        throw new Error("项目内容缺少 qasm");
-      }
-      const restoredMode = detail.payload.display_mode === "ALL" ? "ALL" : "FILTERED";
-      setHistory(createHistoryState(detail.payload.circuit));
-      setQasm(detail.payload.qasm);
-      setDisplayMode(restoredMode);
-      setParseError(null);
-      setProjectSuccess(`已加载项目：${detail.name}`);
-    } catch (error) {
-      setProjectError(toErrorMessage(error, "项目加载失败"));
-    }
-  }
-
   const probabilityDisplayView = probabilityView
     ? getProbabilityDisplayView(displayMode, probabilityView)
     : null;
@@ -236,10 +197,13 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
         </p>
       </header>
 
-      <WorkbenchGuide visible={showGuide} onDismiss={() => {
-        setShowGuide(false);
-        setWorkbenchGuideDismissed(true);
-      }} />
+      <WorkbenchGuide
+        visible={showGuide}
+        onDismiss={() => {
+          setShowGuide(false);
+          setWorkbenchGuideDismissed(true);
+        }}
+      />
       <WorkbenchToolbar
         canUndo={canUndoHistory(history)}
         canRedo={canRedoHistory(history)}
@@ -267,6 +231,17 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
         </div>
       </section>
 
+      <WorkbenchSubmitPanel
+        submitting={submittingTask}
+        canSubmit={canSubmit}
+        taskId={submittedTaskId}
+        taskStatus={submittedTaskStatus}
+        submitError={submitError}
+        deduplicated={deduplicatedSubmit}
+        onSubmit={() => void onSubmitTask()}
+        onRefreshStatus={() => void onRefreshTaskStatus()}
+      />
+
       <ProjectPanel
         entryType="circuit"
         projects={projects}
@@ -275,8 +250,8 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
         error={projectError}
         success={projectSuccess}
         onRefresh={() => void loadProjects()}
-        onSave={(name) => void onSaveProject(name)}
-        onLoad={(projectId) => void onLoadProject(projectId)}
+        onSave={(name) => void saveCurrentProject(name)}
+        onLoad={(projectId) => void loadProjectById(projectId)}
       />
 
       <WorkbenchResultPanel
