@@ -191,7 +191,10 @@ function CircuitCanvas({
   };
 
   return (
-    <section style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}>
+    <section
+      data-testid="circuit-canvas-panel"
+      style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}
+    >
       <h3 style={{ marginTop: 0 }}>电路画布</h3>
       {interactionMessage ? <MessageBlock message={interactionMessage} /> : null}
       {pendingPlacement ? (

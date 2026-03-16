@@ -53,7 +53,10 @@ function QasmEditorPane({
   }, [value, debounceMs]);
 
   return (
-    <section style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}>
+    <section
+      data-testid="qasm-editor-panel"
+      style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}
+    >
       <h3 style={{ marginTop: 0 }}>OpenQASM 3</h3>
       <textarea
         data-testid="qasm-editor-input"

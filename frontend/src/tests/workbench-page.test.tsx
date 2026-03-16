@@ -71,6 +71,26 @@ describe("CircuitWorkbenchPage", () => {
     expect(relation & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("renders gate, canvas and qasm in the primary layout before result panel", async () => {
+    const scheduler = {
+      schedule: vi.fn(async () => ({
+        requestId: "sim-layout",
+        probabilities: { "00": 0.5, "01": 0, "10": 0, "11": 0.5 },
+      })),
+    };
+    renderWorkbench(scheduler);
+    await flushTimers();
+
+    const primaryLayout = screen.getByTestId("workbench-primary-layout");
+    expect(within(primaryLayout).getByTestId("gate-palette-panel")).toBeInTheDocument();
+    expect(within(primaryLayout).getByTestId("circuit-canvas-panel")).toBeInTheDocument();
+    expect(within(primaryLayout).getByTestId("qasm-editor-panel")).toBeInTheDocument();
+
+    const resultPanel = screen.getByTestId("workbench-result-panel");
+    const relation = primaryLayout.compareDocumentPosition(resultPanel);
+    expect(relation & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("supports +Qubit and -Qubit operations", async () => {
     const scheduler = {
       schedule: vi.fn(async () => ({

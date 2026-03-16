@@ -270,12 +270,22 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
         onLoadTemplate={(templateId) => pushCircuit(loadCircuitTemplate(templateId))}
       />
 
-      <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <div style={{ display: "grid", gap: 12 }}>
+      <section
+        data-testid="workbench-primary-layout"
+        style={{
+          display: "grid",
+          gap: 16,
+          alignItems: "start",
+          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 4fr) minmax(0, 1fr)",
+        }}
+      >
+        <div data-testid="workbench-gate-column" style={{ minWidth: 0 }}>
           <GatePalette />
+        </div>
+        <div data-testid="workbench-canvas-column" style={{ minWidth: 0 }}>
           <CircuitCanvas circuit={circuit} onCircuitChange={(next) => pushCircuit(next)} />
         </div>
-        <div style={{ display: "grid", gap: 12 }}>
+        <div data-testid="workbench-qasm-column" style={{ display: "grid", gap: 12, minWidth: 0 }}>
           <QasmEditorPane
             value={qasm}
             onValueChange={setQasm}

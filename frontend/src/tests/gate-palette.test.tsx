@@ -3,17 +3,22 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import GatePalette from "../components/circuit/GatePalette";
 
 describe("GatePalette", () => {
-  it("renders grouped categories in deterministic order", () => {
+  it("renders gates in category order without section titles", () => {
     render(<GatePalette />);
 
-    const headings = screen.getAllByRole("heading", { level: 4 });
-    expect(headings).toHaveLength(3);
+    const panel = screen.getByTestId("gate-palette-panel");
+    expect(within(panel).queryByRole("heading", { level: 4 })).not.toBeInTheDocument();
 
-    expect(within(headings[0].parentElement as HTMLElement).getByTestId("gate-h")).toBeInTheDocument();
-    expect(within(headings[1].parentElement as HTMLElement).getByTestId("gate-cx")).toBeInTheDocument();
-    expect(within(headings[1].parentElement as HTMLElement).getByTestId("gate-cp")).toBeInTheDocument();
-    expect(within(headings[1].parentElement as HTMLElement).getByTestId("gate-ccx")).toBeInTheDocument();
-    expect(within(headings[2].parentElement as HTMLElement).getByTestId("gate-m")).toBeInTheDocument();
+    const gateButtons = within(panel).getAllByRole("button");
+    const buttonTestIds = gateButtons.map((button) => button.getAttribute("data-testid"));
+
+    expect(buttonTestIds).toContain("gate-h");
+    expect(buttonTestIds).toContain("gate-cx");
+    expect(buttonTestIds).toContain("gate-cp");
+    expect(buttonTestIds).toContain("gate-ccx");
+    expect(buttonTestIds).toContain("gate-m");
+    expect(buttonTestIds.indexOf("gate-h")).toBeLessThan(buttonTestIds.indexOf("gate-cx"));
+    expect(buttonTestIds.indexOf("gate-cx")).toBeLessThan(buttonTestIds.indexOf("gate-m"));
   });
 
   it("applies category color token to gate buttons", () => {
