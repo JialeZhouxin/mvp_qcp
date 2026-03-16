@@ -232,7 +232,7 @@ function CircuitCanvas({
                       borderRadius: 6,
                       padding: "4px 6px",
                       display: "flex",
-                      justifyContent: "space-between",
+                      justifyContent: "center",
                       alignItems: "center",
                       cursor: "pointer",
                       background: getCellBackground(operation, layer),

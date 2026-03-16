@@ -34,22 +34,21 @@ export function toPendingPlacementMessage(pending: PendingPlacement): LocalizedM
 }
 
 export function GateLabel({ operation }: { operation: Operation }) {
+  let label: string;
   if (operation.controls && operation.controls.length > 0) {
     const controls = operation.controls.map((value) => `c${value}`).join(",");
-    return (
-      <span>
-        {operation.gate.toUpperCase()} {controls} {"->"} t{operation.targets[0]}
-      </span>
-    );
+    label = `${operation.gate.toUpperCase()} ${controls} -> t${operation.targets[0]}`;
+  } else if (operation.targets.length === 2) {
+    label = `${operation.gate.toUpperCase()} q${operation.targets[0]} <-> q${operation.targets[1]}`;
+  } else {
+    label = operation.gate.toUpperCase();
   }
-  if (operation.targets.length === 2) {
-    return (
-      <span>
-        {operation.gate.toUpperCase()} q{operation.targets[0]} {"<->"} q{operation.targets[1]}
-      </span>
-    );
-  }
-  return <span>{operation.gate.toUpperCase()}</span>;
+
+  return (
+    <span className="canvas-gate-box">
+      <span className="canvas-gate-text">{label}</span>
+    </span>
+  );
 }
 
 export function MessageBlock({ message }: { message: LocalizedMessage }) {
@@ -63,4 +62,3 @@ export function MessageBlock({ message }: { message: LocalizedMessage }) {
     </div>
   );
 }
-

@@ -2,6 +2,29 @@
   position: relative;
 }
 
+.canvas-gate-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  max-width: 100%;
+  padding: 1px 7px;
+  border: 1px solid #1f2937;
+  border-radius: 2px;
+  background: #ffffff;
+  box-shadow: inset 0 -1px 0 rgba(31, 41, 55, 0.18);
+}
+
+.canvas-gate-text {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .canvas-delete-btn {
   position: absolute;
   top: 2px;

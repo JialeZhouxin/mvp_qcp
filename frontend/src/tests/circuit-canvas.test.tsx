@@ -30,6 +30,10 @@ describe("CircuitCanvas", () => {
     const onCircuitChange = vi.fn();
     render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
 
+    const gateText = screen.getByText("X");
+    expect(gateText).toHaveClass("canvas-gate-text");
+    expect(gateText.parentElement).toHaveClass("canvas-gate-box");
+
     const removeButton = screen.getByTestId("remove-op-op-1");
     expect(removeButton).toHaveTextContent("×");
     expect(removeButton).toHaveAttribute("aria-label", "删除 gate");
