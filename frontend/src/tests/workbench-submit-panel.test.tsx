@@ -25,7 +25,7 @@ describe("WorkbenchSubmitPanel", () => {
     expect(screen.getByText("任务 ID: -")).toBeInTheDocument();
     expect(screen.getByText("任务状态: -")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "刷新状态" })).toBeDisabled();
-    expect(screen.getByText("尚未提交任务，提交后可在此查看状态。")).toBeInTheDocument();
+    expect(screen.getByText("提交后将显示任务 ID 和实时状态。")).toBeInTheDocument();
   });
 
   it("shows loading state and disables submit while submitting", () => {
@@ -72,6 +72,6 @@ describe("WorkbenchSubmitPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "刷新状态" }));
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onRefreshStatus).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("已复用已有任务（幂等去重）")).toBeInTheDocument();
+    expect(screen.getByText("检测到幂等键重复，本次请求复用了已有任务。")).toBeInTheDocument();
   });
 });

@@ -36,7 +36,7 @@ function WorkbenchSubmitPanel({
         <button type="button" onClick={onRefreshStatus} disabled={!hasTask || submitting}>
           刷新状态
         </button>
-        <Link to="/tasks/center">进入任务中心</Link>
+        <Link to="/tasks/center">前往任务中心</Link>
       </div>
 
       <div style={{ marginTop: 8, color: "#595959" }}>
@@ -45,13 +45,15 @@ function WorkbenchSubmitPanel({
       </div>
 
       {deduplicated ? (
-        <p style={{ margin: "8px 0 0 0", color: "#1677ff" }}>已复用已有任务（幂等去重）</p>
+        <p style={{ margin: "8px 0 0 0", color: "#1677ff" }}>
+          检测到幂等键重复，本次请求复用了已有任务。
+        </p>
       ) : null}
       {submitError ? (
         <p style={{ margin: "8px 0 0 0", color: "#cf1322" }}>{submitError}</p>
       ) : null}
       {!hasTask ? (
-        <p style={{ margin: "8px 0 0 0", color: "#999" }}>尚未提交任务，提交后可在此查看状态。</p>
+        <p style={{ margin: "8px 0 0 0", color: "#999" }}>提交后将显示任务 ID 和实时状态。</p>
       ) : null}
     </section>
   );

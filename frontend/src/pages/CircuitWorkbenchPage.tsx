@@ -10,7 +10,9 @@ import WorkbenchResultPanel from "../components/circuit/WorkbenchResultPanel";
 import WorkbenchSubmitPanel from "../components/circuit/WorkbenchSubmitPanel";
 import WorkbenchToolbar from "../components/circuit/WorkbenchToolbar";
 import ProjectPanel from "../components/task-center/ProjectPanel";
-import { evaluateComplexity } from "../features/circuit/model/complexity-guard";
+import { EDITOR_MAX_QUBITS, EDITOR_MIN_QUBITS } from "../features/circuit/model/constants";
+import { evaluateComplexity, getLocalSimulationGuardMessage } from "../features/circuit/model/complexity-guard";
+import { decreaseQubits, increaseQubits } from "../features/circuit/model/circuit-model";
 import { validateCircuitModel } from "../features/circuit/model/circuit-validation";
 import {
   canRedoHistory,
@@ -67,6 +69,7 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
   );
   const [parseError, setParseError] = useState<QasmParseError | null>(null);
   const [simError, setSimError] = useState<string | null>(null);
+  const [qubitMessage, setQubitMessage] = useState<string | null>(null);
   const [simulationState, setSimulationState] = useState<SimulationViewState>("IDLE");
   const [probabilityView, setProbabilityView] = useState<ProbabilityFilterResult | null>(null);
   const [showGuide, setShowGuide] = useState(() => !isWorkbenchGuideDismissed());
@@ -110,6 +113,13 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
     const validation = validateCircuitModel(model);
     if (!validation.ok) {
       setSimError(`线路校验失败：${validation.error.message}`);
+      setProbabilityView(null);
+      setSimulationState("ERROR");
+      return;
+    }
+    const simGuardMessage = getLocalSimulationGuardMessage(model);
+    if (simGuardMessage) {
+      setSimError(simGuardMessage);
       setProbabilityView(null);
       setSimulationState("ERROR");
       return;
@@ -168,6 +178,7 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
   };
 
   const onClearCircuit = () => {
+    setQubitMessage(null);
     pushCircuit({ numQubits: circuit.numQubits, operations: [] });
   };
 
@@ -177,8 +188,46 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
     setQasm(toQasm3(fallback));
     setDisplayMode(DEFAULT_DISPLAY_MODE);
     setParseError(null);
+    setQubitMessage(null);
     clearWorkbenchDraft();
   };
+
+  const onIncreaseQubits = () => {
+    const result = increaseQubits(circuit, {
+      minQubits: EDITOR_MIN_QUBITS,
+      maxQubits: EDITOR_MAX_QUBITS,
+    });
+    if (!result.ok) {
+      setQubitMessage("已达到可编辑的最大量子比特数。");
+      return;
+    }
+    setQubitMessage(null);
+    pushCircuit(result.model);
+  };
+
+  const onDecreaseQubits = () => {
+    const result = decreaseQubits(circuit, {
+      minQubits: EDITOR_MIN_QUBITS,
+      maxQubits: EDITOR_MAX_QUBITS,
+    });
+    if (!result.ok) {
+      if (result.code === "QUBIT_SHRINK_BLOCKED_BY_OPERATION") {
+        setQubitMessage("无法减少量子比特：高位量子比特上仍有门操作。");
+      } else {
+        setQubitMessage("已达到可编辑的最小量子比特数。");
+      }
+      return;
+    }
+    setQubitMessage(null);
+    pushCircuit(result.model);
+  };
+
+  const canIncreaseQubits = circuit.numQubits < EDITOR_MAX_QUBITS;
+  const canDecreaseQubits =
+    decreaseQubits(circuit, {
+      minQubits: EDITOR_MIN_QUBITS,
+      maxQubits: EDITOR_MAX_QUBITS,
+    }).ok;
 
   const probabilityDisplayView = probabilityView
     ? getProbabilityDisplayView(displayMode, probabilityView)
@@ -207,9 +256,15 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
       <WorkbenchToolbar
         canUndo={canUndoHistory(history)}
         canRedo={canRedoHistory(history)}
+        currentQubits={circuit.numQubits}
+        canIncreaseQubits={canIncreaseQubits}
+        canDecreaseQubits={canDecreaseQubits}
+        qubitMessage={qubitMessage}
         templates={templates}
         onUndo={() => setHistory((previous) => undoHistoryState(previous))}
         onRedo={() => setHistory((previous) => redoHistoryState(previous))}
+        onIncreaseQubits={onIncreaseQubits}
+        onDecreaseQubits={onDecreaseQubits}
         onClearCircuit={onClearCircuit}
         onResetWorkbench={onResetWorkbench}
         onLoadTemplate={(templateId) => pushCircuit(loadCircuitTemplate(templateId))}
@@ -230,6 +285,16 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
           <QasmErrorPanel error={parseError} />
         </div>
       </section>
+
+      <WorkbenchResultPanel
+        simulationState={simulationState}
+        simError={simError}
+        displayMode={displayMode}
+        epsilonText={epsilonText}
+        probabilityView={probabilityView}
+        probabilityDisplayView={probabilityDisplayView}
+        onDisplayModeChange={setDisplayMode}
+      />
 
       <WorkbenchSubmitPanel
         submitting={submittingTask}
@@ -254,15 +319,6 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
         onLoad={(projectId) => void loadProjectById(projectId)}
       />
 
-      <WorkbenchResultPanel
-        simulationState={simulationState}
-        simError={simError}
-        displayMode={displayMode}
-        epsilonText={epsilonText}
-        probabilityView={probabilityView}
-        probabilityDisplayView={probabilityDisplayView}
-        onDisplayModeChange={setDisplayMode}
-      />
     </main>
   );
 }

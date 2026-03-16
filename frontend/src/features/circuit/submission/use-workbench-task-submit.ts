@@ -2,18 +2,16 @@ import { useEffect, useState } from "react";
 
 import { toErrorMessage } from "../../../api/errors";
 import { getTaskStatus, submitTask } from "../../../api/tasks";
-import { evaluateComplexity } from "../model/complexity-guard";
 import { validateCircuitModel } from "../model/circuit-validation";
 import type { CircuitModel } from "../model/types";
 import type { QasmParseError } from "../qasm/qasm-errors";
-import { formatComplexityMessage } from "../ui/workbench-model-utils";
 import {
   buildIdempotencyKey,
   buildQiboTaskCode,
   buildSubmitFingerprint,
 } from "./circuit-task-submit";
 
-const SUBMIT_PARSE_ERROR_HINT = "请先修复 QASM 错误后再提交。";
+const SUBMIT_PARSE_ERROR_HINT = "QASM 解析失败，请先修复后再提交。";
 
 interface UseWorkbenchTaskSubmitParams {
   readonly circuit: CircuitModel;
@@ -29,11 +27,7 @@ function resolveSubmitBlockReason(
   }
   const validation = validateCircuitModel(circuit);
   if (!validation.ok) {
-    return `线路校验失败：${validation.error.message}`;
-  }
-  const complexity = evaluateComplexity(circuit);
-  if (!complexity.ok) {
-    return formatComplexityMessage(complexity.message);
+    return `电路校验失败：${validation.error.message}`;
   }
   return null;
 }

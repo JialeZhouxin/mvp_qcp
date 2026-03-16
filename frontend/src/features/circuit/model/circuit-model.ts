@@ -1,4 +1,10 @@
-import type { CircuitModel, GateName, Operation } from "./types";
+import type {
+  CircuitModel,
+  GateName,
+  Operation,
+  QubitAdjustResult,
+  QubitBoundary,
+} from "./types";
 
 interface AddOperationInput {
   readonly gate: GateName;
@@ -122,3 +128,61 @@ export function getTotalGates(model: CircuitModel): number {
   return model.operations.length;
 }
 
+function touchesQubitBeyond(operation: Operation, nextQubitCount: number): boolean {
+  const touched = [...operation.targets, ...(operation.controls ?? [])];
+  return touched.some((qubit) => qubit >= nextQubitCount);
+}
+
+export function increaseQubits(
+  model: CircuitModel,
+  boundary: QubitBoundary,
+): QubitAdjustResult {
+  if (model.numQubits >= boundary.maxQubits) {
+    return {
+      ok: false,
+      code: "QUBIT_MAX_REACHED",
+      message: `qubits ${model.numQubits} already reached max ${boundary.maxQubits}`,
+    };
+  }
+  return {
+    ok: true,
+    model: normalizeCircuit({
+      ...model,
+      numQubits: model.numQubits + 1,
+    }),
+  };
+}
+
+export function decreaseQubits(
+  model: CircuitModel,
+  boundary: QubitBoundary,
+): QubitAdjustResult {
+  if (model.numQubits <= boundary.minQubits) {
+    return {
+      ok: false,
+      code: "QUBIT_MIN_REACHED",
+      message: `qubits ${model.numQubits} already reached min ${boundary.minQubits}`,
+    };
+  }
+
+  const nextQubitCount = model.numQubits - 1;
+  const blockingOperation = model.operations.find((operation) =>
+    touchesQubitBeyond(operation, nextQubitCount),
+  );
+  if (blockingOperation) {
+    return {
+      ok: false,
+      code: "QUBIT_SHRINK_BLOCKED_BY_OPERATION",
+      message: `operation ${blockingOperation.id} touches qubit >= ${nextQubitCount}`,
+      operationId: blockingOperation.id,
+    };
+  }
+
+  return {
+    ok: true,
+    model: normalizeCircuit({
+      ...model,
+      numQubits: nextQubitCount,
+    }),
+  };
+}
