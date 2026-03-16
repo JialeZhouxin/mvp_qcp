@@ -31,6 +31,7 @@ import {
 import "./CircuitCanvas.css";
 
 const DEFAULT_MIN_LAYERS = 8;
+const GATE_DRAG_MIME = "application/x-qcp-gate";
 
 interface CircuitCanvasProps {
   readonly circuit: CircuitModel;
@@ -47,6 +48,8 @@ function CircuitCanvas({
   const [interactionMessage, setInteractionMessage] =
     useState<LocalizedMessage | null>(null);
   const [selectedOperationId, setSelectedOperationId] = useState<string | null>(null);
+  const [isGateDragging, setIsGateDragging] = useState(false);
+  const [hoveredCellKey, setHoveredCellKey] = useState<string | null>(null);
 
   const layers = computeLayerCount(circuit, minLayers);
   const qubits = Array.from({ length: circuit.numQubits }).map((_, index) => index);
@@ -67,6 +70,19 @@ function CircuitCanvas({
     }
   }, [circuit.operations, selectedOperationId]);
 
+  useEffect(() => {
+    const clearDragPreview = () => {
+      setIsGateDragging(false);
+      setHoveredCellKey(null);
+    };
+    window.addEventListener("dragend", clearDragPreview);
+    window.addEventListener("drop", clearDragPreview);
+    return () => {
+      window.removeEventListener("dragend", clearDragPreview);
+      window.removeEventListener("drop", clearDragPreview);
+    };
+  }, []);
+
   const commitCircuit = (next: CircuitModel): boolean => {
     const validation = validateCircuitModel(next);
     if (!validation.ok) {
@@ -84,9 +100,60 @@ function CircuitCanvas({
     setInteractionMessage(toCanvasMessage("CELL_OCCUPIED", { qubit, layer }));
   };
 
+  const toCellKey = (qubit: number, layer: number) => `${qubit}-${layer}`;
+
+  const isGateDragEvent = (event: DragEvent<HTMLDivElement>): boolean => {
+    const types = Array.from(event.dataTransfer?.types ?? []);
+    return types.includes(GATE_DRAG_MIME);
+  };
+
+  const onDragEnterCell = (
+    event: DragEvent<HTMLDivElement>,
+    qubit: number,
+    layer: number,
+  ) => {
+    event.preventDefault();
+    if (!isGateDragEvent(event)) {
+      return;
+    }
+    setIsGateDragging(true);
+    setHoveredCellKey(toCellKey(qubit, layer));
+  };
+
+  const onDragOverCell = (
+    event: DragEvent<HTMLDivElement>,
+    qubit: number,
+    layer: number,
+  ) => {
+    event.preventDefault();
+    if (!isGateDragEvent(event)) {
+      return;
+    }
+    setIsGateDragging(true);
+    setHoveredCellKey(toCellKey(qubit, layer));
+  };
+
+  const onDragLeaveCell = (
+    event: DragEvent<HTMLDivElement>,
+    qubit: number,
+    layer: number,
+  ) => {
+    if (!isGateDragEvent(event)) {
+      return;
+    }
+    const related = event.relatedTarget;
+    if (related instanceof Node && event.currentTarget.contains(related)) {
+      return;
+    }
+    const key = toCellKey(qubit, layer);
+    setHoveredCellKey((current) => (current === key ? null : current));
+  };
+
   const onDrop = (event: DragEvent<HTMLDivElement>, qubit: number, layer: number) => {
     event.preventDefault();
-    const rawGate = event.dataTransfer.getData("application/x-qcp-gate");
+    setIsGateDragging(false);
+    setHoveredCellKey(null);
+    const rawGate = event.dataTransfer.getData(GATE_DRAG_MIME);
     if (!isSupportedGate(rawGate)) {
       return;
     }
@@ -178,17 +245,33 @@ function CircuitCanvas({
     setInteractionMessage(null);
   };
 
-  const getCellBackground = (operation: Operation | undefined, layer: number): string => {
-    if (selectedOperationId && operation?.id === selectedOperationId) {
-      return "#e6f4ff";
-    }
+  const getCellClassName = (operation: Operation | undefined, qubit: number, layer: number) => {
+    const key = toCellKey(qubit, layer);
+    const isSelected = selectedOperationId !== null && operation?.id === selectedOperationId;
+    const isHovered = hoveredCellKey === key;
+    const classNames = ["canvas-cell"];
+
     if (operation) {
-      return "#f0f7ff";
+      classNames.push("canvas-cell--occupied");
+      if (isSelected) {
+        classNames.push("canvas-cell--selected");
+      } else if (isGateDragging) {
+        classNames.push("canvas-cell--blocked");
+      }
+    } else {
+      classNames.push("canvas-cell--empty");
+      if (pendingPlacement && pendingPlacement.layer === layer) {
+        classNames.push("canvas-cell--pending-layer");
+      }
+      if (isGateDragging) {
+        classNames.push("canvas-cell--drop-target");
+        if (isHovered) {
+          classNames.push("canvas-cell--drop-hover");
+        }
+      }
     }
-    if (pendingPlacement && pendingPlacement.layer === layer) {
-      return "#fffbe6";
-    }
-    return "#fff";
+
+    return classNames.join(" ");
   };
 
   return (
@@ -220,23 +303,13 @@ function CircuitCanvas({
                   <div
                     key={`${qubit}-${layer}`}
                     onDrop={(event) => onDrop(event, qubit, layer)}
-                    onDragOver={(event) => event.preventDefault()}
+                    onDragEnter={(event) => onDragEnterCell(event, qubit, layer)}
+                    onDragOver={(event) => onDragOverCell(event, qubit, layer)}
+                    onDragLeave={(event) => onDragLeaveCell(event, qubit, layer)}
                     onClick={() => onCellClick(qubit, layer)}
-                    className="canvas-cell"
+                    className={getCellClassName(operation, qubit, layer)}
                     tabIndex={operation ? 0 : undefined}
                     data-testid={`canvas-cell-${qubit}-${layer}`}
-                    style={{
-                      width: 120,
-                      minHeight: 42,
-                      border: "1px dashed #bbb",
-                      borderRadius: 6,
-                      padding: "4px 6px",
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      cursor: "pointer",
-                      background: getCellBackground(operation, layer),
-                    }}
                   >
                     {operation ? <GateLabel operation={operation} /> : <span style={{ color: "#999" }}>-</span>}
                     {operation ? (

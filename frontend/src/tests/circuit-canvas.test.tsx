@@ -3,6 +3,13 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import CircuitCanvas from "../components/circuit/CircuitCanvas";
 import type { CircuitModel } from "../features/circuit/model/types";
 
+const GATE_DRAG_MIME = "application/x-qcp-gate";
+
+const createGateDragData = (gate: string) => ({
+  types: [GATE_DRAG_MIME],
+  getData: (type: string) => (type === GATE_DRAG_MIME ? gate : ""),
+});
+
 describe("CircuitCanvas", () => {
   it("adds gate when dropped into cell", () => {
     const model: CircuitModel = { numQubits: 1, operations: [] };
@@ -20,6 +27,37 @@ describe("CircuitCanvas", () => {
     const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
     expect(nextModel.operations[0].gate).toBe("x");
     expect(nextModel.operations[0].targets).toEqual([0]);
+  });
+
+  it("shows drag preview feedback for droppable and occupied cells", () => {
+    const model: CircuitModel = {
+      numQubits: 2,
+      operations: [{ id: "op-1", gate: "x", targets: [0], layer: 0 }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    const occupiedCell = screen.getByTestId("canvas-cell-0-0");
+    const droppableCell = screen.getByTestId("canvas-cell-1-0");
+
+    fireEvent.dragEnter(droppableCell, {
+      dataTransfer: createGateDragData("h"),
+    });
+    fireEvent.dragOver(droppableCell, {
+      dataTransfer: createGateDragData("h"),
+    });
+
+    expect(droppableCell).toHaveClass("canvas-cell--drop-target");
+    expect(droppableCell).toHaveClass("canvas-cell--drop-hover");
+    expect(occupiedCell).toHaveClass("canvas-cell--blocked");
+
+    fireEvent.drop(droppableCell, {
+      dataTransfer: createGateDragData("h"),
+    });
+
+    expect(droppableCell).not.toHaveClass("canvas-cell--drop-target");
+    expect(droppableCell).not.toHaveClass("canvas-cell--drop-hover");
+    expect(occupiedCell).not.toHaveClass("canvas-cell--blocked");
   });
 
   it("removes operation when delete button clicked", () => {
