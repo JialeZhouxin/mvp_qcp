@@ -28,6 +28,7 @@ import {
   isSupportedGate,
   type PendingPlacement,
 } from "./canvas-gate-utils";
+import "./CircuitCanvas.css";
 
 const DEFAULT_MIN_LAYERS = 8;
 
@@ -221,6 +222,8 @@ function CircuitCanvas({
                     onDrop={(event) => onDrop(event, qubit, layer)}
                     onDragOver={(event) => event.preventDefault()}
                     onClick={() => onCellClick(qubit, layer)}
+                    className="canvas-cell"
+                    tabIndex={operation ? 0 : undefined}
                     data-testid={`canvas-cell-${qubit}-${layer}`}
                     style={{
                       width: 120,
@@ -243,9 +246,11 @@ function CircuitCanvas({
                           event.stopPropagation();
                           onDelete(operation.id);
                         }}
+                        className="canvas-delete-btn"
+                        aria-label="删除 gate"
                         data-testid={`remove-op-${operation.id}`}
                       >
-                        删除
+                        ×
                       </button>
                     ) : null}
                   </div>

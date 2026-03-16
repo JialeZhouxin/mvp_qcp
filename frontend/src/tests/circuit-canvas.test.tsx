@@ -30,7 +30,11 @@ describe("CircuitCanvas", () => {
     const onCircuitChange = vi.fn();
     render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
 
-    fireEvent.click(screen.getByTestId("remove-op-op-1"));
+    const removeButton = screen.getByTestId("remove-op-op-1");
+    expect(removeButton).toHaveTextContent("×");
+    expect(removeButton).toHaveAttribute("aria-label", "删除 gate");
+
+    fireEvent.click(removeButton);
     expect(onCircuitChange).toHaveBeenCalledTimes(1);
     const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
     expect(nextModel.operations).toHaveLength(0);
