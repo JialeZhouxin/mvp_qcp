@@ -33,6 +33,21 @@ function requireParams(operation: Operation, expectedCount: number): number[] {
   return [...operation.params];
 }
 
+function requireControls(operation: Operation, expectedCount: number): number[] {
+  if (!operation.controls || operation.controls.length !== expectedCount) {
+    throw new Error(`gate ${operation.gate} expects ${expectedCount} control${expectedCount > 1 ? "s" : ""}`);
+  }
+  return [...operation.controls];
+}
+
+function buildRzLine(target: number, theta: number): string {
+  return `circuit.add(gates.RZ(${target}, theta=${formatNumber(theta)}))`;
+}
+
+function buildCnotLine(control: number, target: number): string {
+  return `circuit.add(gates.CNOT(${control}, ${target}))`;
+}
+
 function buildSingleQubitGateLine(operation: Operation): string {
   const [target] = requireTargets(operation, 1);
   const gateMap: Record<string, string> = {
@@ -60,6 +75,10 @@ function buildParameterizedGateLines(operation: Operation): string[] {
     const gateName = operation.gate.toUpperCase();
     return [`circuit.add(gates.${gateName}(${target}, theta=${formatNumber(theta)}))`];
   }
+  if (operation.gate === "p") {
+    const [lambda] = requireParams(operation, 1);
+    return [buildRzLine(target, lambda)];
+  }
   if (operation.gate === "u") {
     const [theta, phi, lambda] = requireParams(operation, 3);
     return [
@@ -72,18 +91,53 @@ function buildParameterizedGateLines(operation: Operation): string[] {
 }
 
 function buildControlledGateLine(operation: Operation): string {
-  if (!operation.controls || operation.controls.length !== 1) {
-    throw new Error(`gate ${operation.gate} expects 1 control`);
-  }
+  const [control] = requireControls(operation, 1);
   const [target] = requireTargets(operation, 1);
-  const control = operation.controls[0];
   if (operation.gate === "cx") {
-    return `circuit.add(gates.CNOT(${control}, ${target}))`;
+    return buildCnotLine(control, target);
   }
   if (operation.gate === "cz") {
     return `circuit.add(gates.CZ(${control}, ${target}))`;
   }
   throw new Error(`unsupported controlled gate: ${operation.gate}`);
+}
+
+function buildControlledPhaseLines(operation: Operation): string[] {
+  const [control] = requireControls(operation, 1);
+  const [target] = requireTargets(operation, 1);
+  const [lambda] = requireParams(operation, 1);
+  const halfLambda = lambda / 2;
+
+  return [
+    buildRzLine(control, halfLambda),
+    buildCnotLine(control, target),
+    buildRzLine(target, -halfLambda),
+    buildCnotLine(control, target),
+    buildRzLine(target, halfLambda),
+  ];
+}
+
+function buildDoubleControlledXLines(operation: Operation): string[] {
+  const [firstControl, secondControl] = requireControls(operation, 2);
+  const [target] = requireTargets(operation, 1);
+
+  return [
+    `circuit.add(gates.H(${target}))`,
+    buildCnotLine(secondControl, target),
+    `circuit.add(gates.TDG(${target}))`,
+    buildCnotLine(firstControl, target),
+    `circuit.add(gates.T(${target}))`,
+    buildCnotLine(secondControl, target),
+    `circuit.add(gates.TDG(${target}))`,
+    buildCnotLine(firstControl, target),
+    `circuit.add(gates.T(${secondControl}))`,
+    `circuit.add(gates.T(${target}))`,
+    `circuit.add(gates.H(${target}))`,
+    buildCnotLine(firstControl, secondControl),
+    `circuit.add(gates.T(${firstControl}))`,
+    `circuit.add(gates.TDG(${secondControl}))`,
+    buildCnotLine(firstControl, secondControl),
+  ];
 }
 
 function buildOperationLines(operation: Operation): string[] {
@@ -98,7 +152,19 @@ function buildOperationLines(operation: Operation): string[] {
   if (operation.gate === "cx" || operation.gate === "cz") {
     return [buildControlledGateLine(operation)];
   }
-  if (operation.gate === "rx" || operation.gate === "ry" || operation.gate === "rz" || operation.gate === "u") {
+  if (operation.gate === "cp") {
+    return buildControlledPhaseLines(operation);
+  }
+  if (operation.gate === "ccx") {
+    return buildDoubleControlledXLines(operation);
+  }
+  if (
+    operation.gate === "rx"
+    || operation.gate === "ry"
+    || operation.gate === "rz"
+    || operation.gate === "u"
+    || operation.gate === "p"
+  ) {
     return buildParameterizedGateLines(operation);
   }
   return [buildSingleQubitGateLine(operation)];

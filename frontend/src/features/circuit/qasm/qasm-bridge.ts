@@ -44,6 +44,11 @@ function serializeOperation(operation: Operation): string {
       const [theta] = requireParams(operation, 1);
       return `${operation.gate}(${formatNumber(theta)}) q[${target}];`;
     }
+    case "p": {
+      const [target] = requireTargets(operation, 1);
+      const [lambda] = requireParams(operation, 1);
+      return `p(${formatNumber(lambda)}) q[${target}];`;
+    }
     case "u": {
       const [target] = requireTargets(operation, 1);
       const [theta, phi, lambda] = requireParams(operation, 3);
@@ -56,6 +61,21 @@ function serializeOperation(operation: Operation): string {
       }
       const [target] = requireTargets(operation, 1);
       return `${operation.gate} q[${operation.controls[0]}], q[${target}];`;
+    }
+    case "cp": {
+      if (!operation.controls || operation.controls.length !== 1) {
+        throw new Error(`gate ${operation.gate} expects 1 control`);
+      }
+      const [target] = requireTargets(operation, 1);
+      const [lambda] = requireParams(operation, 1);
+      return `cp(${formatNumber(lambda)}) q[${operation.controls[0]}], q[${target}];`;
+    }
+    case "ccx": {
+      if (!operation.controls || operation.controls.length !== 2) {
+        throw new Error(`gate ${operation.gate} expects 2 controls`);
+      }
+      const [target] = requireTargets(operation, 1);
+      return `ccx q[${operation.controls[0]}], q[${operation.controls[1]}], q[${target}];`;
     }
     case "swap": {
       const [left, right] = requireTargets(operation, 2);
@@ -97,4 +117,3 @@ export function toQasm3(model: CircuitModel): string {
 export function fromQasm3(source: string): ParseQasmResult {
   return parseQasm3(source);
 }
-

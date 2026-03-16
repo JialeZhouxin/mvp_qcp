@@ -12,8 +12,11 @@ export type GateName =
   | "ry"
   | "rz"
   | "u"
+  | "p"
   | "cx"
+  | "cp"
   | "cz"
+  | "ccx"
   | "swap"
   | "m";
 

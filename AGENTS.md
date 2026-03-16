@@ -12,7 +12,7 @@ Do not propose follow-up tasks or enhancement at the end of your final answer.
 
 - Do **not** introduce new boundary rules / guardrails / blockers / caps (e.g. max-turns), fallback behaviors, or silent degradation **just to make it run**.
 - Do **not** add mock/simulation fake success paths (e.g. returning `(mock) ok`, templated outputs that bypass real execution, or swallowing errors).
-- Do **not** write defensive or fallback code; it does not solve the root problem and only increases debugging cost.
+- Avoid silent fallback. Do not hide errors.Expose failures clearly.it does not solve the root problem and only increases debugging cost.
 - Prefer **full exposure**: let failures surface clearly (explicit errors, exceptions, logs, failing tests) so bugs are visible and can be fixed at the root cause.
 - If a boundary rule or fallback is truly necessary (security/safety/privacy, or the user explicitly requests it), it must be:
   - explicit (never silent),
@@ -30,10 +30,10 @@ Do not propose follow-up tasks or enhancement at the end of your final answer.
 
 ## Code Metrics (Hard Limits)
 
-- **Function length**: 50 lines (excluding blanks). Exceeded extract helper immediately.
+- **Function length**: Soft limit: 80,Hard limit: 120
 - **File size**: 300 lines. Exceeded split by responsibility.
-- **Nesting depth**: 3 levels. Use early returns / guard clauses to flatten.
-- **Parameters**: 3 positional. More use a config/options object.
+- **Nesting depth**: Soft limit: 4
+- **Parameters**: 5 positional. More -> config/options object.
 - **Cyclomatic complexity**: 10 per function. More decompose branching logic.
 - **No magic numbers**: extract to named constants (`MAX_RETRIES = 3`, not bare `3`).
 

@@ -1,4 +1,11 @@
 import type { CircuitModel, Operation } from "../model/types";
+import {
+  applyControlledPhase,
+  applyControlledX,
+  applyControlledZ,
+  applyDoubleControlledX,
+  applySwap,
+} from "./simulation-controlled";
 
 type Complex = readonly [number, number];
 type Matrix2 = readonly [Complex, Complex, Complex, Complex];
@@ -128,6 +135,10 @@ function matrixForParamGate(operation: Operation): Matrix2 {
         [Math.cos(phi + lambda) * c, Math.sin(phi + lambda) * c],
       ];
     }
+    case "p": {
+      const lambda = operation.params?.[0] ?? 0;
+      return [[1, 0], [0, 0], [0, 0], [Math.cos(lambda), Math.sin(lambda)]];
+    }
     default:
       throw new Error(`unsupported single-qubit gate ${operation.gate}`);
   }
@@ -139,77 +150,6 @@ function matrixForGate(operation: Operation): Matrix2 {
     return fixed;
   }
   return matrixForParamGate(operation);
-}
-
-function applyControlledX(
-  real: Float64Array,
-  imag: Float64Array,
-  numQubits: number,
-  control: number,
-  target: number,
-): void {
-  const dimension = 1 << numQubits;
-  const controlMask = 1 << control;
-  const targetMask = 1 << target;
-
-  for (let basis = 0; basis < dimension; basis += 1) {
-    if ((basis & controlMask) === 0 || (basis & targetMask) !== 0) {
-      continue;
-    }
-    const paired = basis | targetMask;
-    const tempReal = real[basis];
-    const tempImag = imag[basis];
-    real[basis] = real[paired];
-    imag[basis] = imag[paired];
-    real[paired] = tempReal;
-    imag[paired] = tempImag;
-  }
-}
-
-function applyControlledZ(
-  real: Float64Array,
-  imag: Float64Array,
-  numQubits: number,
-  control: number,
-  target: number,
-): void {
-  const dimension = 1 << numQubits;
-  const controlMask = 1 << control;
-  const targetMask = 1 << target;
-
-  for (let basis = 0; basis < dimension; basis += 1) {
-    if ((basis & controlMask) !== 0 && (basis & targetMask) !== 0) {
-      real[basis] = -real[basis];
-      imag[basis] = -imag[basis];
-    }
-  }
-}
-
-function applySwap(
-  real: Float64Array,
-  imag: Float64Array,
-  numQubits: number,
-  left: number,
-  right: number,
-): void {
-  const dimension = 1 << numQubits;
-  const leftMask = 1 << left;
-  const rightMask = 1 << right;
-
-  for (let basis = 0; basis < dimension; basis += 1) {
-    const leftBit = (basis & leftMask) !== 0;
-    const rightBit = (basis & rightMask) !== 0;
-    if (leftBit || !rightBit) {
-      continue;
-    }
-    const paired = basis ^ leftMask ^ rightMask;
-    const tempReal = real[basis];
-    const tempImag = imag[basis];
-    real[basis] = real[paired];
-    imag[basis] = imag[paired];
-    real[paired] = tempReal;
-    imag[paired] = tempImag;
-  }
 }
 
 function applyOperation(
@@ -227,6 +167,28 @@ function applyOperation(
   }
   if (operation.gate === "cz") {
     applyControlledZ(real, imag, numQubits, operation.controls?.[0] ?? 0, operation.targets[0]);
+    return;
+  }
+  if (operation.gate === "cp") {
+    applyControlledPhase(
+      real,
+      imag,
+      numQubits,
+      operation.controls?.[0] ?? 0,
+      operation.targets[0],
+      operation.params?.[0] ?? 0,
+    );
+    return;
+  }
+  if (operation.gate === "ccx") {
+    applyDoubleControlledX(
+      real,
+      imag,
+      numQubits,
+      operation.controls?.[0] ?? 0,
+      operation.controls?.[1] ?? 1,
+      operation.targets[0],
+    );
     return;
   }
   if (operation.gate === "swap") {

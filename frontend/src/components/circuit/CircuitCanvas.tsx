@@ -1,4 +1,4 @@
-import { useEffect, useState, type DragEvent, type MouseEvent } from "react";
+﻿import { useEffect, useState, type DragEvent, type MouseEvent } from "react";
 
 import {
   addOperation,
@@ -13,13 +13,20 @@ import {
 } from "../../features/circuit/ui/message-catalog";
 import OperationParameterPanel from "./OperationParameterPanel";
 import {
+  GateLabel,
+  MessageBlock,
+  computeLayerCount,
+  findOperationAtCell,
+  toPendingPlacementMessage,
+} from "./circuit-canvas-helpers";
+import {
+  advancePendingPlacement,
   buildSingleQubitOperation,
-  buildTwoQubitOperation,
+  createPendingPlacement,
   getParameterValues,
   isParameterizedGate,
   isSupportedGate,
-  isTwoQubitGate,
-  type PendingTwoQubitPlacement,
+  type PendingPlacement,
 } from "./canvas-gate-utils";
 
 const DEFAULT_MIN_LAYERS = 8;
@@ -30,58 +37,12 @@ interface CircuitCanvasProps {
   readonly minLayers?: number;
 }
 
-function includesQubit(operation: Operation, qubit: number): boolean {
-  return operation.targets.includes(qubit) || operation.controls?.includes(qubit) === true;
-}
-
-function findOperationAtCell(
-  operations: readonly Operation[],
-  qubit: number,
-  layer: number,
-): Operation | undefined {
-  return operations.find(
-    (operation) => operation.layer === layer && includesQubit(operation, qubit),
-  );
-}
-
-function computeLayerCount(circuit: CircuitModel, minLayers: number): number {
-  const maxLayer = circuit.operations.reduce(
-    (max, operation) => Math.max(max, operation.layer),
-    0,
-  );
-  return Math.max(minLayers, maxLayer + 2);
-}
-
-function GateLabel({ operation }: { operation: Operation }) {
-  if (operation.controls && operation.controls.length > 0) {
-    return (
-      <span>
-        {operation.gate.toUpperCase()} c{operation.controls[0]}{"->"}t{operation.targets[0]}
-      </span>
-    );
-  }
-  return <span>{operation.gate.toUpperCase()}</span>;
-}
-
-function MessageBlock({ message }: { message: LocalizedMessage }) {
-  return (
-    <div data-testid="canvas-message" style={{ marginBottom: 8, color: "#cf1322" }}>
-      <strong>{message.title}</strong>
-      <p style={{ margin: "4px 0 0 0" }}>{message.detail}</p>
-      {message.suggestion ? (
-        <p style={{ margin: "4px 0 0 0", color: "#595959" }}>建议: {message.suggestion}</p>
-      ) : null}
-    </div>
-  );
-}
-
 function CircuitCanvas({
   circuit,
   onCircuitChange,
   minLayers = DEFAULT_MIN_LAYERS,
 }: CircuitCanvasProps) {
-  const [pendingPlacement, setPendingPlacement] =
-    useState<PendingTwoQubitPlacement | null>(null);
+  const [pendingPlacement, setPendingPlacement] = useState<PendingPlacement | null>(null);
   const [interactionMessage, setInteractionMessage] =
     useState<LocalizedMessage | null>(null);
   const [selectedOperationId, setSelectedOperationId] = useState<string | null>(null);
@@ -132,18 +93,25 @@ function CircuitCanvas({
       setOccupiedMessage(qubit, layer);
       return;
     }
-    if (isTwoQubitGate(rawGate)) {
-      setPendingPlacement({ gate: rawGate, sourceQubit: qubit, layer });
+
+    const pending = createPendingPlacement(rawGate, qubit, layer);
+    if (pending) {
+      setPendingPlacement(pending);
       setSelectedOperationId(null);
-      setInteractionMessage(
-        toCanvasMessage("PENDING_TWO_QUBIT", {
-          gate: rawGate,
-          sourceQubit: qubit,
-          layer,
-        }),
-      );
+      if (pending.requiredQubits === 2) {
+        setInteractionMessage(
+          toCanvasMessage("PENDING_TWO_QUBIT", {
+            gate: rawGate,
+            sourceQubit: qubit,
+            layer,
+          }),
+        );
+      } else {
+        setInteractionMessage(toPendingPlacementMessage(pending));
+      }
       return;
     }
+
     setPendingPlacement(null);
     const next = addOperation(circuit, buildSingleQubitOperation(rawGate, qubit, layer));
     commitCircuit(next);
@@ -167,15 +135,23 @@ function CircuitCanvas({
       setInteractionMessage(toCanvasMessage("LAYER_MISMATCH"));
       return;
     }
-    if (qubit === pendingPlacement.sourceQubit) {
-      setInteractionMessage(toCanvasMessage("SAME_QUBIT"));
-      return;
-    }
     if (findOperationAtCell(circuit.operations, qubit, layer)) {
       setOccupiedMessage(qubit, layer);
       return;
     }
-    const next = addOperation(circuit, buildTwoQubitOperation(pendingPlacement, qubit));
+
+    const advanced = advancePendingPlacement(pendingPlacement, qubit);
+    if (advanced.kind === "error") {
+      setInteractionMessage(toCanvasMessage(advanced.code));
+      return;
+    }
+    if (advanced.kind === "continue") {
+      setPendingPlacement(advanced.pending);
+      setInteractionMessage(toPendingPlacementMessage(advanced.pending));
+      return;
+    }
+
+    const next = addOperation(circuit, advanced.operation);
     if (commitCircuit(next)) {
       setPendingPlacement(null);
       setInteractionMessage(null);
@@ -216,13 +192,13 @@ function CircuitCanvas({
 
   return (
     <section style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}>
-      <h3 style={{ marginTop: 0 }}>量子线路</h3>
+      <h3 style={{ marginTop: 0 }}>电路画布</h3>
       {interactionMessage ? <MessageBlock message={interactionMessage} /> : null}
       {pendingPlacement ? (
         <div style={{ marginBottom: 8, display: "flex", gap: 8, alignItems: "center" }}>
           <span>
-            待放置 {pendingPlacement.gate.toUpperCase()}：源位 q
-            {pendingPlacement.sourceQubit}，层 {pendingPlacement.layer}
+            待放置 {pendingPlacement.gate.toUpperCase()}：已选择 {pendingPlacement.selectedQubits.length}/
+            {pendingPlacement.requiredQubits}，层 {pendingPlacement.layer}
           </span>
           <button type="button" onClick={cancelPendingPlacement}>
             取消放置
@@ -256,11 +232,7 @@ function CircuitCanvas({
                       background: getCellBackground(operation, layer),
                     }}
                   >
-                    {operation ? (
-                      <GateLabel operation={operation} />
-                    ) : (
-                      <span style={{ color: "#999" }}>-</span>
-                    )}
+                    {operation ? <GateLabel operation={operation} /> : <span style={{ color: "#999" }}>-</span>}
                     {operation ? (
                       <button
                         type="button"

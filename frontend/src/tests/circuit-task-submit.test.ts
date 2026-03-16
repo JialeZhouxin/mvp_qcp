@@ -51,6 +51,39 @@ describe("circuit task submit utility", () => {
     expect(code).toContain("circuit.add(gates.RZ(0, theta=3))");
   });
 
+  it("maps p/cp/ccx to deterministic qibo decomposition", () => {
+    const model: CircuitModel = {
+      numQubits: 3,
+      operations: [
+        { id: "1", gate: "p", targets: [0], params: [0.4], layer: 0 },
+        { id: "2", gate: "cp", controls: [0], targets: [1], params: [0.4], layer: 1 },
+        { id: "3", gate: "ccx", controls: [0, 1], targets: [2], layer: 2 },
+      ],
+    };
+
+    const code = buildQiboTaskCode(model);
+
+    expect(code).toContain("circuit.add(gates.RZ(0, theta=0.4))");
+
+    const cpLines = [
+      "circuit.add(gates.RZ(0, theta=0.2))",
+      "circuit.add(gates.CNOT(0, 1))",
+      "circuit.add(gates.RZ(1, theta=-0.2))",
+      "circuit.add(gates.CNOT(0, 1))",
+      "circuit.add(gates.RZ(1, theta=0.2))",
+    ];
+    let cursor = 0;
+    for (const line of cpLines) {
+      const nextIndex = code.indexOf(line, cursor);
+      expect(nextIndex).toBeGreaterThanOrEqual(cursor);
+      cursor = nextIndex + line.length;
+    }
+
+    expect(code).toContain("circuit.add(gates.H(2))");
+    expect(code).toContain("circuit.add(gates.TDG(1))");
+    expect(code).toContain("circuit.add(gates.M(0, 1, 2))");
+  });
+
   it("throws explicit error when controlled gate lacks control bit", () => {
     const model: CircuitModel = {
       numQubits: 2,
@@ -67,6 +100,24 @@ describe("circuit task submit utility", () => {
     } as unknown as CircuitModel;
 
     expect(() => buildQiboTaskCode(model)).toThrowError("unsupported single-qubit gate: foo");
+  });
+
+  it("throws explicit error when cp parameter is missing", () => {
+    const model: CircuitModel = {
+      numQubits: 2,
+      operations: [{ id: "1", gate: "cp", controls: [0], targets: [1], layer: 0 }],
+    };
+
+    expect(() => buildQiboTaskCode(model)).toThrowError("gate cp expects 1 parameters");
+  });
+
+  it("throws explicit error when ccx controls are incomplete", () => {
+    const model: CircuitModel = {
+      numQubits: 3,
+      operations: [{ id: "1", gate: "ccx", controls: [0], targets: [2], layer: 0 }],
+    };
+
+    expect(() => buildQiboTaskCode(model)).toThrowError("gate ccx expects 2 controls");
   });
 
   it("builds stable fingerprint regardless of operation array order", () => {

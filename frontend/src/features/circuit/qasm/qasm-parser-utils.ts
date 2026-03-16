@@ -131,7 +131,7 @@ function toAliasGateSpec(
   return {
     gate,
     params,
-    spec: { gate, paramCount: 3, operandCount: 1, controlled: false },
+    spec: { gate, paramCount: 3, operandCount: 1, controlCount: 0 },
   };
 }
 
@@ -168,13 +168,15 @@ export function toOperation(
   operandIndexes: number[],
   opIndex: number,
 ): Operation {
-  if (spec.controlled) {
+  if (spec.controlCount > 0) {
+    const controls = operandIndexes.slice(0, spec.controlCount);
+    const targets = operandIndexes.slice(spec.controlCount);
     return {
       id: `op-${opIndex}`,
       gate,
       layer: opIndex - 1,
-      controls: [operandIndexes[0]],
-      targets: [operandIndexes[1]],
+      controls,
+      targets,
       params: params.length > 0 ? params : undefined,
     };
   }
@@ -196,4 +198,3 @@ export function toOperation(
     params: params.length > 0 ? params : undefined,
   };
 }
-

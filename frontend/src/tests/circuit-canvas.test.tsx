@@ -77,6 +77,47 @@ describe("CircuitCanvas", () => {
     expect(nextModel.operations[0].targets).toEqual([1]);
   });
 
+  it("places cp gate in two steps with default lambda parameter", () => {
+    const model: CircuitModel = { numQubits: 2, operations: [] };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    fireEvent.drop(screen.getByTestId("canvas-cell-0-0"), {
+      dataTransfer: {
+        getData: () => "cp",
+      },
+    });
+    fireEvent.click(screen.getByTestId("canvas-cell-1-0"));
+
+    expect(onCircuitChange).toHaveBeenCalledTimes(1);
+    const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
+    expect(nextModel.operations[0].gate).toBe("cp");
+    expect(nextModel.operations[0].controls).toEqual([0]);
+    expect(nextModel.operations[0].targets).toEqual([1]);
+    expect(nextModel.operations[0].params).toEqual([0]);
+  });
+
+  it("places ccx gate in three steps", () => {
+    const model: CircuitModel = { numQubits: 3, operations: [] };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    fireEvent.drop(screen.getByTestId("canvas-cell-0-0"), {
+      dataTransfer: {
+        getData: () => "ccx",
+      },
+    });
+    fireEvent.click(screen.getByTestId("canvas-cell-1-0"));
+    expect(onCircuitChange).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId("canvas-cell-2-0"));
+
+    expect(onCircuitChange).toHaveBeenCalledTimes(1);
+    const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
+    expect(nextModel.operations[0].gate).toBe("ccx");
+    expect(nextModel.operations[0].controls).toEqual([0, 1]);
+    expect(nextModel.operations[0].targets).toEqual([2]);
+  });
+
   it("shows actionable guidance when two-qubit second step uses invalid layer", () => {
     const model: CircuitModel = { numQubits: 2, operations: [] };
     const onCircuitChange = vi.fn();

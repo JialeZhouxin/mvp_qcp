@@ -28,7 +28,7 @@ export interface GateSpec {
   readonly gate: GateName;
   readonly paramCount: number;
   readonly operandCount: number;
-  readonly controlled: boolean;
+  readonly controlCount: number;
 }
 
 export interface ParseException {
@@ -44,22 +44,24 @@ export const GATE_RE = /^([A-Za-z_]\w*)(?:\(([^)]*)\))?\s+(.+)$/;
 export const OPERAND_RE = /^([A-Za-z_]\w*)\[(\d+)\]$/;
 
 export const GATE_SPECS: Record<string, GateSpec> = {
-  i: { gate: "i", paramCount: 0, operandCount: 1, controlled: false },
-  x: { gate: "x", paramCount: 0, operandCount: 1, controlled: false },
-  y: { gate: "y", paramCount: 0, operandCount: 1, controlled: false },
-  z: { gate: "z", paramCount: 0, operandCount: 1, controlled: false },
-  h: { gate: "h", paramCount: 0, operandCount: 1, controlled: false },
-  s: { gate: "s", paramCount: 0, operandCount: 1, controlled: false },
-  sdg: { gate: "sdg", paramCount: 0, operandCount: 1, controlled: false },
-  t: { gate: "t", paramCount: 0, operandCount: 1, controlled: false },
-  tdg: { gate: "tdg", paramCount: 0, operandCount: 1, controlled: false },
-  rx: { gate: "rx", paramCount: 1, operandCount: 1, controlled: false },
-  ry: { gate: "ry", paramCount: 1, operandCount: 1, controlled: false },
-  rz: { gate: "rz", paramCount: 1, operandCount: 1, controlled: false },
-  u: { gate: "u", paramCount: 3, operandCount: 1, controlled: false },
-  cx: { gate: "cx", paramCount: 0, operandCount: 2, controlled: true },
-  cnot: { gate: "cx", paramCount: 0, operandCount: 2, controlled: true },
-  cz: { gate: "cz", paramCount: 0, operandCount: 2, controlled: true },
-  swap: { gate: "swap", paramCount: 0, operandCount: 2, controlled: false },
+  i: { gate: "i", paramCount: 0, operandCount: 1, controlCount: 0 },
+  x: { gate: "x", paramCount: 0, operandCount: 1, controlCount: 0 },
+  y: { gate: "y", paramCount: 0, operandCount: 1, controlCount: 0 },
+  z: { gate: "z", paramCount: 0, operandCount: 1, controlCount: 0 },
+  h: { gate: "h", paramCount: 0, operandCount: 1, controlCount: 0 },
+  s: { gate: "s", paramCount: 0, operandCount: 1, controlCount: 0 },
+  sdg: { gate: "sdg", paramCount: 0, operandCount: 1, controlCount: 0 },
+  t: { gate: "t", paramCount: 0, operandCount: 1, controlCount: 0 },
+  tdg: { gate: "tdg", paramCount: 0, operandCount: 1, controlCount: 0 },
+  rx: { gate: "rx", paramCount: 1, operandCount: 1, controlCount: 0 },
+  ry: { gate: "ry", paramCount: 1, operandCount: 1, controlCount: 0 },
+  rz: { gate: "rz", paramCount: 1, operandCount: 1, controlCount: 0 },
+  u: { gate: "u", paramCount: 3, operandCount: 1, controlCount: 0 },
+  p: { gate: "p", paramCount: 1, operandCount: 1, controlCount: 0 },
+  cx: { gate: "cx", paramCount: 0, operandCount: 2, controlCount: 1 },
+  cnot: { gate: "cx", paramCount: 0, operandCount: 2, controlCount: 1 },
+  cp: { gate: "cp", paramCount: 1, operandCount: 2, controlCount: 1 },
+  cz: { gate: "cz", paramCount: 0, operandCount: 2, controlCount: 1 },
+  ccx: { gate: "ccx", paramCount: 0, operandCount: 3, controlCount: 2 },
+  swap: { gate: "swap", paramCount: 0, operandCount: 2, controlCount: 0 },
 };
-
