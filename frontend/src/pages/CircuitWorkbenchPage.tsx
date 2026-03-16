@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import CircuitCanvas from "../components/circuit/CircuitCanvas";
@@ -112,7 +112,7 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
     setSimulationState("RUNNING");
     const validation = validateCircuitModel(model);
     if (!validation.ok) {
-      setSimError(`线路校验失败：${validation.error.message}`);
+      setSimError(`绾胯矾鏍￠獙澶辫触锛?{validation.error.message}`);
       setProbabilityView(null);
       setSimulationState("ERROR");
       return;
@@ -126,7 +126,7 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
     }
     const complexity = evaluateComplexity(model);
     if (!complexity.ok) {
-      setSimError(`线路复杂度超限：${complexity.message ?? ""}`.trim());
+      setSimError(`绾胯矾澶嶆潅搴﹁秴闄愶細${complexity.message ?? ""}`.trim());
       setProbabilityView(null);
       setSimulationState("ERROR");
       return;
@@ -142,7 +142,7 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
       if (error instanceof SimulationScheduleError && error.code === "SIM_STALE") {
         return;
       }
-      setSimError(`仿真失败：${error instanceof Error ? error.message : String(error)}`);
+      setSimError(`浠跨湡澶辫触锛?{error instanceof Error ? error.message : String(error)}`);
       setSimulationState("ERROR");
     }
   };
@@ -192,13 +192,13 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
     clearWorkbenchDraft();
   };
 
-  const onIncreaseQubits = () => {
+    const onIncreaseQubits = () => {
     const result = increaseQubits(circuit, {
       minQubits: EDITOR_MIN_QUBITS,
       maxQubits: EDITOR_MAX_QUBITS,
     });
     if (!result.ok) {
-      setQubitMessage("已达到可编辑的最大量子比特数。");
+      setQubitMessage("已达到最大量子比特限制，无法继续增加。");
       return;
     }
     setQubitMessage(null);
@@ -212,9 +212,9 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
     });
     if (!result.ok) {
       if (result.code === "QUBIT_SHRINK_BLOCKED_BY_OPERATION") {
-        setQubitMessage("无法减少量子比特：高位量子比特上仍有门操作。");
+        setQubitMessage("当前电路中存在使用高位量子比特的操作，请先删除相关门再减少 qubit。");
       } else {
-        setQubitMessage("已达到可编辑的最小量子比特数。");
+        setQubitMessage("已达到最小量子比特限制，无法继续减少。");
       }
       return;
     }
@@ -237,12 +237,12 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
   return (
     <main style={{ maxWidth: 1320, margin: "24px auto", display: "grid", gap: 16 }}>
       <header>
-        <h1 style={{ marginBottom: 8 }}>图形化量子工作台</h1>
+        <h1 style={{ marginBottom: 8 }}>图形化编程（拖拽构建量子电路）</h1>
         <p style={{ margin: 0, color: "#666" }}>
-          左侧拖拽量子门构建线路，右侧可编辑 OpenQASM 3，变更后自动本地仿真并更新概率图。
+          通过门库拖拽与 OpenQASM 3 双向编辑快速搭建电路，并在本地实时查看概率分布结果。
         </p>
         <p style={{ margin: "8px 0 0 0" }}>
-          <Link to="/tasks/code">切换到代码提交模式</Link> · <Link to="/tasks/center">进入任务中心</Link>
+          <Link to="/tasks/code">切换到代码提交</Link> · <Link to="/tasks/center">进入任务中心</Link>
         </p>
       </header>
 
@@ -324,3 +324,5 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
 }
 
 export default CircuitWorkbenchPage;
+
+

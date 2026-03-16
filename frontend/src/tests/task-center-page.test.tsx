@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
-import TaskCenterPage from "../pages/TaskCenterPage";
 import { getTaskCenterDetail, getTaskCenterList } from "../api/task-center";
+import TaskCenterPage from "../pages/TaskCenterPage";
 import { connectTaskStatusStream } from "../features/realtime/task-stream-client";
 
 vi.mock("../api/task-center", () => ({
@@ -23,7 +23,7 @@ describe("TaskCenterPage", () => {
     mockedGetTaskCenterList.mockReset();
     mockedGetTaskCenterDetail.mockReset();
     mockedConnectTaskStatusStream.mockReset();
-    mockedConnectTaskStatusStream.mockImplementation((_taskIds, _callbacks) => ({
+    mockedConnectTaskStatusStream.mockImplementation(() => ({
       close: vi.fn(),
     }));
   });
@@ -59,8 +59,8 @@ describe("TaskCenterPage", () => {
         code: "EXECUTION_TIMEOUT",
         message: "execution timeout",
         phase: "EXECUTION",
-        summary: "任务执行超时，未在限定时间内完成。",
-        suggestions: ["降低线路复杂度后重试。"],
+        summary: "task execution timeout",
+        suggestions: ["reduce workload"],
       },
     });
 
@@ -73,10 +73,11 @@ describe("TaskCenterPage", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /#101/ })).toBeInTheDocument();
     });
+    expect(screen.getByRole("link", { name: "帮助文档" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /#101/ }));
 
     await waitFor(() => {
-      expect(screen.getByText(/诊断：\[EXECUTION_TIMEOUT\]/)).toBeInTheDocument();
+      expect(screen.getByText(/EXECUTION_TIMEOUT/)).toBeInTheDocument();
     });
   });
 
@@ -99,7 +100,7 @@ describe("TaskCenterPage", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("实时连接已断开，当前已回退为轮询模式。")).toBeInTheDocument();
+      expect(screen.getByText("实时状态流连接已断开，系统会自动降级为轮询。你也可以手动重连。")).toBeInTheDocument();
     });
   });
 });

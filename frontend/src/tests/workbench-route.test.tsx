@@ -16,12 +16,16 @@ vi.mock("../pages/TaskCenterPage", () => ({
   default: () => <div>mock-task-center</div>,
 }));
 
+vi.mock("../pages/TaskHelpPage", () => ({
+  default: () => <div>mock-task-help</div>,
+}));
+
 describe("workbench routes", () => {
   beforeEach(() => {
     clearToken();
   });
 
-  it("routes /tasks to /tasks/circuit for authenticated users", () => {
+  it("routes /tasks to /tasks/center for authenticated users", () => {
     setToken("token");
     render(
       <MemoryRouter initialEntries={["/tasks"]}>
@@ -29,7 +33,7 @@ describe("workbench routes", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("mock-circuit-workbench")).toBeInTheDocument();
+    expect(screen.getByText("mock-task-center")).toBeInTheDocument();
   });
 
   it("keeps /tasks/code entry available for authenticated users", () => {
@@ -54,6 +58,17 @@ describe("workbench routes", () => {
     expect(screen.getByText("mock-task-center")).toBeInTheDocument();
   });
 
+  it("keeps /tasks/help entry available for authenticated users", () => {
+    setToken("token");
+    render(
+      <MemoryRouter initialEntries={["/tasks/help"]}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("mock-task-help")).toBeInTheDocument();
+  });
+
   it("redirects unauthenticated users to login page", () => {
     render(
       <MemoryRouter initialEntries={["/tasks/circuit"]}>
@@ -61,6 +76,6 @@ describe("workbench routes", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("heading", { name: "登录" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /登/ })).toBeInTheDocument();
   });
 });

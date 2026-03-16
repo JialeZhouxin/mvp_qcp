@@ -10,7 +10,20 @@ import CodeEditor from "../components/CodeEditor";
 import ResultChart from "../components/ResultChart";
 import ProjectPanel from "../components/task-center/ProjectPanel";
 
-const SAMPLE_CODE = `from qibo import Circuit, gates\n\n\nSHOTS = 1024\n\n\ndef main():\n    # 1) 创建两量子比特线路\n    circuit = Circuit(2)\n\n    # 2) H + CNOT 制备 Bell 态 (|00> + |11>) / sqrt(2)\n    circuit.add(gates.H(0))\n    circuit.add(gates.CNOT(0, 1))\n\n    # 3) 在计算基测量两个量子比特\n    circuit.add(gates.M(0, 1))\n\n    # 4) 运行并统计测量结果\n    result = circuit(nshots=SHOTS)\n    counts = result.frequencies(binary=True)\n\n    # 5) 返回后端约定格式，前端可直接渲染概率柱状图\n    return {"counts": dict(counts)}\n`;
+const SAMPLE_CODE = `from qibo import Circuit, gates
+
+SHOTS = 1024
+
+def main():
+    circuit = Circuit(2)
+    circuit.add(gates.H(0))
+    circuit.add(gates.CNOT(0, 1))
+    circuit.add(gates.M(0, 1))
+
+    result = circuit(nshots=SHOTS)
+    counts = result.frequencies(binary=True)
+    return {"counts": dict(counts)}
+`;
 
 function TasksPage() {
   const navigate = useNavigate();
@@ -41,7 +54,7 @@ function TasksPage() {
       setResultText(JSON.stringify(data, null, 2));
       setProbabilities(data.result?.probabilities ?? null);
     } catch (err) {
-      setError(toErrorMessage(err, "result query failed"));
+      setError(toErrorMessage(err, "结果查询失败"));
     }
   }
 
@@ -73,7 +86,7 @@ function TasksPage() {
         const data = await getTaskStatus(taskId);
         setStatus(data.status);
       } catch (err) {
-        setError(toErrorMessage(err, "status query failed"));
+        setError(toErrorMessage(err, "状态查询失败"));
       }
     }, 1500);
 
@@ -101,7 +114,7 @@ function TasksPage() {
       const response = await getProjectList(50, 0);
       setProjects(response.projects);
     } catch (err) {
-      setProjectError(toErrorMessage(err, "项目列表加载失败"));
+      setProjectError(toErrorMessage(err, "加载项目列表失败"));
     } finally {
       setProjectLoading(false);
     }
@@ -124,7 +137,7 @@ function TasksPage() {
       setTaskId(data.task_id);
       setStatus(data.status);
     } catch (err) {
-      setError(toErrorMessage(err, "submit failed"));
+      setError(toErrorMessage(err, "提交失败"));
     } finally {
       setLoading(false);
     }
@@ -139,7 +152,7 @@ function TasksPage() {
       const data = await getTaskStatus(taskId);
       setStatus(data.status);
     } catch (err) {
-      setError(toErrorMessage(err, "status query failed"));
+      setError(toErrorMessage(err, "状态查询失败"));
     }
   }
 
@@ -150,7 +163,7 @@ function TasksPage() {
 
   async function onSaveProject(name: string) {
     if (!name.trim()) {
-      setProjectError("项目名不能为空");
+      setProjectError("项目名称不能为空");
       return;
     }
     setProjectSaving(true);
@@ -162,10 +175,10 @@ function TasksPage() {
         payload: { code },
         last_task_id: taskId,
       });
-      setProjectSuccess("项目已保存");
+      setProjectSuccess("项目保存成功");
       await loadProjects();
     } catch (err) {
-      setProjectError(toErrorMessage(err, "项目保存失败"));
+      setProjectError(toErrorMessage(err, "保存项目失败"));
     } finally {
       setProjectSaving(false);
     }
@@ -183,7 +196,7 @@ function TasksPage() {
       setCode(loadedCode);
       setProjectSuccess(`已加载项目：${detail.name}`);
     } catch (err) {
-      setProjectError(toErrorMessage(err, "项目加载失败"));
+      setProjectError(toErrorMessage(err, "加载项目失败"));
     }
   }
 
@@ -191,7 +204,7 @@ function TasksPage() {
     <main style={{ maxWidth: 980, margin: "24px auto", fontFamily: "Segoe UI, sans-serif" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1>
-          任务提交
+          代码提交（Python/Qibo）
           <span style={{ marginLeft: 12, fontSize: 14, fontWeight: 400 }}>
             <Link to="/tasks/center">进入任务中心</Link>
           </span>
@@ -201,12 +214,18 @@ function TasksPage() {
 
       <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
         <CodeEditor value={code} onChange={setCode} />
-        <button type="submit" disabled={loading}>{loading ? "提交中..." : "提交任务"}</button>
+        <button type="submit" disabled={loading}>
+          {loading ? "提交中..." : "提交任务"}
+        </button>
       </form>
 
       <section style={{ marginTop: 16, display: "flex", gap: 8, alignItems: "center" }}>
-        <button onClick={onRefreshStatus} disabled={!taskId}>刷新状态</button>
-        <button onClick={onLoadResult} disabled={!taskId}>获取结果</button>
+        <button onClick={onRefreshStatus} disabled={!taskId}>
+          刷新状态
+        </button>
+        <button onClick={onLoadResult} disabled={!taskId}>
+          加载结果
+        </button>
         <label>
           <input
             type="checkbox"
@@ -244,7 +263,7 @@ function TasksPage() {
         </section>
       ) : (
         <section style={{ marginTop: 16, padding: 12, background: "#f7f7f7" }}>
-          <p style={{ margin: 0, color: "#666" }}>暂无概率图，请提交任务并等待执行完成。</p>
+          <p style={{ margin: 0, color: "#666" }}>尚未获得可视化结果，请先提交并等待任务完成。</p>
         </section>
       )}
 

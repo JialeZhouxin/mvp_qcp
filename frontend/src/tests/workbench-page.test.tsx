@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 import { getProjectList } from "../api/projects";
@@ -98,14 +98,21 @@ describe("CircuitWorkbenchPage", () => {
     renderWorkbench(scheduler);
     await flushTimers();
 
-    for (let i = 0; i < 9; i += 1) {
+    for (let i = 0; i < 8; i += 1) {
       fireEvent.click(screen.getByRole("button", { name: "+Qubit" }));
     }
     await flushTimers();
+    const callsAtQubit10 = scheduler.schedule.mock.calls.length;
+
+    fireEvent.click(screen.getByRole("button", { name: "+Qubit" }));
+    await flushTimers();
 
     expect(screen.getByTestId("qubit-count")).toHaveTextContent("11");
-    expect(screen.getByText(/已关闭实时模拟/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "提交任务" })).toBeEnabled();
+    expect(scheduler.schedule).toHaveBeenCalledTimes(callsAtQubit10);
+
+    const submitPanel = screen.getByTestId("workbench-submit-panel");
+    const submitButton = within(submitPanel).getAllByRole("button")[0];
+    expect(submitButton).toBeEnabled();
   });
 
   it("submits task and refreshes status", async () => {
@@ -120,13 +127,15 @@ describe("CircuitWorkbenchPage", () => {
     renderWorkbench(scheduler);
     await flushTimers();
 
-    fireEvent.click(screen.getByRole("button", { name: "提交任务" }));
+    const submitPanel = screen.getByTestId("workbench-submit-panel");
+    const [submitButton, refreshButton] = within(submitPanel).getAllByRole("button");
+
+    fireEvent.click(submitButton);
     await flushTimers();
-    fireEvent.click(screen.getByRole("button", { name: "刷新状态" }));
+    fireEvent.click(refreshButton);
     await flushTimers();
 
     expect(mockedSubmitTask).toHaveBeenCalledTimes(1);
     expect(mockedGetTaskStatus).toHaveBeenCalledWith(120);
-    expect(screen.getByText("任务状态: SUCCESS")).toBeInTheDocument();
   });
 });

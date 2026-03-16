@@ -2,10 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { toErrorMessage } from "../api/errors";
-import { getTaskCenterDetail, getTaskCenterList, type TaskCenterDetailResponse, type TaskCenterListItem } from "../api/task-center";
+import {
+  getTaskCenterDetail,
+  getTaskCenterList,
+  type TaskCenterDetailResponse,
+  type TaskCenterListItem,
+} from "../api/task-center";
 import TaskDetailPanel from "../components/task-center/TaskDetailPanel";
 import TaskListPanel from "../components/task-center/TaskListPanel";
-import { connectTaskStatusStream, type TaskStatusStreamEvent, type TaskStreamConnection } from "../features/realtime/task-stream-client";
+import {
+  connectTaskStatusStream,
+  type TaskStatusStreamEvent,
+  type TaskStreamConnection,
+} from "../features/realtime/task-stream-client";
 
 function TaskCenterPage() {
   const [tasks, setTasks] = useState<TaskCenterListItem[]>([]);
@@ -35,7 +44,7 @@ function TaskCenterPage() {
       });
       setTasks(response.items);
     } catch (error) {
-      setListError(toErrorMessage(error, "任务列表加载失败"));
+      setListError(toErrorMessage(error, "加载任务列表失败"));
     } finally {
       setListLoading(false);
     }
@@ -48,7 +57,7 @@ function TaskCenterPage() {
       const response = await getTaskCenterDetail(taskId);
       setDetail(response);
     } catch (error) {
-      setDetailError(toErrorMessage(error, "任务详情加载失败"));
+      setDetailError(toErrorMessage(error, "加载任务详情失败"));
     } finally {
       setDetailLoading(false);
     }
@@ -126,22 +135,27 @@ function TaskCenterPage() {
   }, [streamDisconnected, statusFilter]);
 
   return (
-    <main style={{ maxWidth: 1280, margin: "24px auto", display: "grid", gap: 12 }}>
+    <main style={{ maxWidth: 1280, margin: "20px auto 24px", display: "grid", gap: 12 }}>
       <header>
-        <h1 style={{ marginBottom: 8 }}>任务中心</h1>
+        <h1 style={{ marginBottom: 8 }}>任务中心（状态跟踪与结果诊断）</h1>
         <p style={{ margin: 0, color: "#666" }}>
-          在同一页面查看任务历史、实时状态变化和失败诊断建议。
+          在这里统一查看任务状态、执行结果与失败诊断，快速定位问题并回到对应模块继续处理。
         </p>
         <p style={{ marginTop: 8 }}>
-          <Link to="/tasks/circuit">图形化工作台</Link> · <Link to="/tasks/code">代码提交页</Link>
+          <Link to="/tasks/circuit">图形化编程</Link> · <Link to="/tasks/code">代码提交</Link> ·{" "}
+          <Link to="/tasks/help">帮助文档</Link>
         </p>
       </header>
 
       {streamDisconnected ? (
         <section style={{ border: "1px solid #ffccc7", background: "#fff2f0", padding: 10, borderRadius: 8 }}>
-          实时连接已断开，当前已回退为轮询模式。
-          <button type="button" onClick={() => setStreamVersion((previous) => previous + 1)} style={{ marginLeft: 8 }}>
-            重连实时通道
+          实时状态流连接已断开，系统会自动降级为轮询。你也可以手动重连。
+          <button
+            type="button"
+            onClick={() => setStreamVersion((previous) => previous + 1)}
+            style={{ marginLeft: 8 }}
+          >
+            立即重连
           </button>
         </section>
       ) : null}

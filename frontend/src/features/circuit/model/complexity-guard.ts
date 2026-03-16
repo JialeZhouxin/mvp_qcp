@@ -19,11 +19,7 @@ function createExceededResult(
   };
 }
 
-function createOkResult(
-  model: CircuitModel,
-  depth: number,
-  totalGates: number,
-): ComplexityReport {
+function createOkResult(model: CircuitModel, depth: number, totalGates: number): ComplexityReport {
   return {
     ok: true,
     qubits: model.numQubits,
@@ -59,7 +55,7 @@ export function evaluateComplexity(model: CircuitModel): ComplexityReport {
 
 export function getLocalSimulationGuardMessage(model: CircuitModel): string | null {
   if (model.numQubits > LOCAL_SIM_MAX_QUBITS) {
-    return `量子比特数量过多（>${LOCAL_SIM_MAX_QUBITS}），已关闭实时模拟；仍可提交后端执行。`;
+    return `当前 qubit 数量超过 ${LOCAL_SIM_MAX_QUBITS}，已关闭实时模拟；你仍可继续提交任务到后端执行。`;
   }
   return null;
 }
