@@ -7,8 +7,10 @@
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run --config vitest.config.mjs",
-    "test:node": "node tests-node/run-tests.mjs"
+    "test": "npm run test:no-mock && vitest run --config vitest.config.mjs",
+    "test:no-mock": "node tests-node/no-mock-tests.mjs",
+    "test:node": "node tests-node/run-tests.mjs",
+    "test:e2e": "playwright test --config playwright.config.ts"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -19,6 +21,7 @@
     "react-router-dom": "^6.28.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@types/react": "^18.3.12",

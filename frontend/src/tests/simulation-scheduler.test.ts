@@ -32,10 +32,13 @@ describe("simulation scheduler", () => {
 
     const first = scheduler.schedule(MODEL);
     const second = scheduler.schedule(MODEL);
+    const firstRejected = expect(first).rejects.toMatchObject({ code: "SIM_STALE" });
+    const secondResolved = expect(second).resolves.toMatchObject({ requestId: "sim-2" });
+
     await vi.runAllTimersAsync();
 
-    await expect(first).rejects.toMatchObject({ code: "SIM_STALE" });
-    await expect(second).resolves.toMatchObject({ requestId: "sim-2" });
+    await firstRejected;
+    await secondResolved;
   });
 
   it("raises timeout when runner does not resolve", async () => {
@@ -52,10 +55,12 @@ describe("simulation scheduler", () => {
     });
 
     const pending = scheduler.schedule(MODEL);
+    const timeoutRejected = expect(pending).rejects.toMatchObject({ code: "SIM_TIMEOUT" });
+    const timeoutError = expect(pending).rejects.toBeInstanceOf(SimulationScheduleError);
+
     await vi.advanceTimersByTimeAsync(500);
 
-    await expect(pending).rejects.toBeInstanceOf(SimulationScheduleError);
-    await expect(pending).rejects.toMatchObject({ code: "SIM_TIMEOUT" });
+    await timeoutError;
+    await timeoutRejected;
   });
 });
-

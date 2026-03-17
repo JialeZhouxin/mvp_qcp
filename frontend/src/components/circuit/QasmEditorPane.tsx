@@ -1,10 +1,23 @@
+import Editor from "@monaco-editor/react";
 import { useEffect, useRef } from "react";
 
 import type { CircuitModel } from "../../features/circuit/model/types";
 import type { QasmParseError } from "../../features/circuit/qasm/qasm-errors";
 import { fromQasm3, toQasm3 } from "../../features/circuit/qasm/qasm-bridge";
+import {
+  buildQasmErrorMarkers,
+  QASM_LANGUAGE_ID,
+  QASM_MARKER_OWNER,
+  registerQasmLanguage,
+} from "../../features/circuit/qasm/qasm-monaco";
 
 const DEFAULT_DEBOUNCE_MS = 200;
+const QASM_EDITOR_HEIGHT = 280;
+const MONACO_ERROR_SEVERITY_FALLBACK = 8;
+
+type MonacoApi = typeof import("monaco-editor");
+type MonacoCodeEditor = import("monaco-editor").editor.IStandaloneCodeEditor;
+type MonacoModel = import("monaco-editor").editor.ITextModel;
 
 interface QasmEditorPaneProps {
   readonly value: string;
@@ -24,6 +37,9 @@ function QasmEditorPane({
   const onValidQasmChangeRef = useRef(onValidQasmChange);
   const onParseErrorRef = useRef(onParseError);
   const lastSyncedSignatureRef = useRef<string | null>(null);
+  const latestParseErrorRef = useRef<QasmParseError | null>(null);
+  const monacoRef = useRef<MonacoApi | null>(null);
+  const modelRef = useRef<MonacoModel | null>(null);
 
   useEffect(() => {
     onValidQasmChangeRef.current = onValidQasmChange;
@@ -33,11 +49,46 @@ function QasmEditorPane({
     onParseErrorRef.current = onParseError;
   }, [onParseError]);
 
+  const applyErrorMarkers = (error: QasmParseError | null) => {
+    latestParseErrorRef.current = error;
+    const monaco = monacoRef.current;
+    const model = modelRef.current;
+    if (!monaco || !model) {
+      return;
+    }
+    const markerSeverity = monaco.MarkerSeverity?.Error ?? MONACO_ERROR_SEVERITY_FALLBACK;
+    monaco.editor.setModelMarkers(
+      model,
+      QASM_MARKER_OWNER,
+      buildQasmErrorMarkers(error, markerSeverity),
+    );
+  };
+
+  const onEditorMount = (editor: MonacoCodeEditor, monaco: MonacoApi) => {
+    registerQasmLanguage(monaco);
+    monacoRef.current = monaco;
+    modelRef.current = editor.getModel();
+    applyErrorMarkers(latestParseErrorRef.current);
+  };
+
+  useEffect(
+    () => () => {
+      const monaco = monacoRef.current;
+      const model = modelRef.current;
+      if (!monaco || !model) {
+        return;
+      }
+      monaco.editor.setModelMarkers(model, QASM_MARKER_OWNER, []);
+    },
+    [],
+  );
+
   useEffect(() => {
     const timerId = window.setTimeout(() => {
       const parsed = fromQasm3(value);
       if (parsed.ok) {
         onParseErrorRef.current(null);
+        applyErrorMarkers(null);
         const signature = toQasm3(parsed.model).trim();
         if (lastSyncedSignatureRef.current === signature) {
           return;
@@ -47,6 +98,7 @@ function QasmEditorPane({
         return;
       }
       onParseErrorRef.current(parsed.error);
+      applyErrorMarkers(parsed.error);
     }, debounceMs);
 
     return () => window.clearTimeout(timerId);
@@ -58,12 +110,28 @@ function QasmEditorPane({
       style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}
     >
       <h3 style={{ marginTop: 0 }}>OpenQASM 3</h3>
-      <textarea
+      <div
         data-testid="qasm-editor-input"
-        value={value}
-        onChange={(event) => onValueChange(event.target.value)}
-        style={{ width: "100%", minHeight: 260, fontFamily: "Consolas, monospace", fontSize: 14 }}
-      />
+        style={{ border: "1px solid #d9d9d9", borderRadius: 6, overflow: "hidden" }}
+      >
+        <Editor
+          height={`${QASM_EDITOR_HEIGHT}px`}
+          language={QASM_LANGUAGE_ID}
+          path="workbench-qasm.openqasm"
+          value={value}
+          theme="vs"
+          options={{
+            minimap: { enabled: false },
+            fontSize: 14,
+            wordWrap: "on",
+            automaticLayout: true,
+            scrollBeyondLastLine: false,
+            quickSuggestions: true,
+          }}
+          onMount={onEditorMount}
+          onChange={(next) => onValueChange(next ?? "")}
+        />
+      </div>
     </section>
   );
 }

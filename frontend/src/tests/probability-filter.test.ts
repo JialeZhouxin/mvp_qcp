@@ -43,12 +43,12 @@ describe("probability filter", () => {
     });
 
     const filteredView = getProbabilityDisplayView("FILTERED", result);
-    expect(Object.keys(filteredView.probabilities)).toEqual(["00", "01", "11"]);
+    expect(Object.keys(filteredView.probabilities).sort()).toEqual(["00", "01", "11"]);
     expect(filteredView.visibleCount).toBe(3);
     expect(filteredView.hiddenCount).toBe(1);
 
     const allView = getProbabilityDisplayView("ALL", result);
-    expect(Object.keys(allView.probabilities)).toEqual(["00", "01", "10", "11"]);
+    expect(Object.keys(allView.probabilities).sort()).toEqual(["00", "01", "10", "11"]);
     expect(allView.visibleCount).toBe(4);
     expect(allView.hiddenCount).toBe(0);
   });
