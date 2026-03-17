@@ -101,9 +101,13 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
     submittingTask,
     submittedTaskId,
     submittedTaskStatus,
+    taskStatusLabel,
     submitError,
     deduplicatedSubmit,
     canSubmit,
+    trackingMode,
+    isTracking,
+    elapsedSeconds,
     onSubmitTask,
     onRefreshTaskStatus,
   } = useWorkbenchTaskSubmit({ circuit, parseError });
@@ -322,8 +326,12 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
         canSubmit={canSubmit}
         taskId={submittedTaskId}
         taskStatus={submittedTaskStatus}
+        taskStatusLabel={taskStatusLabel}
         submitError={submitError}
         deduplicated={deduplicatedSubmit}
+        trackingMode={trackingMode}
+        isTracking={isTracking}
+        elapsedSeconds={elapsedSeconds}
         onSubmit={() => void onSubmitTask()}
         onRefreshStatus={() => void onRefreshTaskStatus()}
       />
