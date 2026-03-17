@@ -29,6 +29,7 @@ import {
   type PendingPlacement,
 } from "./canvas-gate-utils";
 import { useCircuitCanvasHotkeys } from "./use-circuit-canvas-hotkeys";
+import { useCircuitCanvasViewport } from "./use-circuit-canvas-viewport";
 import "./CircuitCanvas.css";
 
 const DEFAULT_MIN_LAYERS = 8;
@@ -56,6 +57,23 @@ function CircuitCanvas({
   const [selectedOperationId, setSelectedOperationId] = useState<string | null>(null);
   const [isGateDragging, setIsGateDragging] = useState(false);
   const [hoveredCellKey, setHoveredCellKey] = useState<string | null>(null);
+  const {
+    zoomPercentText,
+    canZoomIn,
+    canZoomOut,
+    isPanReady,
+    isPanning,
+    viewportRef,
+    viewportContentStyle,
+    onZoomIn,
+    onZoomOut,
+    onZoomReset,
+    onViewportWheel,
+    onViewportPointerDown,
+    onViewportPointerMove,
+    onViewportPointerUp,
+    onViewportPointerCancel,
+  } = useCircuitCanvasViewport();
 
   const layers = computeLayerCount(circuit, minLayers);
   const qubits = Array.from({ length: circuit.numQubits }).map((_, index) => index);
@@ -291,6 +309,13 @@ function CircuitCanvas({
 
     return classNames.join(" ");
   };
+  const viewportClassName = [
+    "canvas-viewport",
+    isPanning ? "canvas-viewport--panning" : "",
+    !isPanning && isPanReady ? "canvas-viewport--pan-ready" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <section
@@ -310,11 +335,51 @@ function CircuitCanvas({
           </button>
         </div>
       ) : null}
-      <div style={{ overflowX: "auto" }}>
-        <div style={{ display: "grid", gap: 6 }}>
+      <div className="canvas-viewport-toolbar" data-testid="canvas-zoom-toolbar">
+        <span className="canvas-zoom-percent" data-testid="canvas-zoom-percent">
+          {zoomPercentText}
+        </span>
+        <button
+          type="button"
+          data-testid="canvas-zoom-out"
+          onClick={onZoomOut}
+          disabled={!canZoomOut}
+          aria-label="缩小画布"
+        >
+          -
+        </button>
+        <button
+          type="button"
+          data-testid="canvas-zoom-in"
+          onClick={onZoomIn}
+          disabled={!canZoomIn}
+          aria-label="放大画布"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          data-testid="canvas-zoom-reset"
+          onClick={onZoomReset}
+          aria-label="重置画布缩放"
+        >
+          100%
+        </button>
+      </div>
+      <div
+        ref={viewportRef}
+        className={viewportClassName}
+        onWheel={onViewportWheel}
+        onPointerDown={onViewportPointerDown}
+        onPointerMove={onViewportPointerMove}
+        onPointerUp={onViewportPointerUp}
+        onPointerCancel={onViewportPointerCancel}
+        data-testid="canvas-viewport"
+      >
+        <div className="canvas-grid" style={viewportContentStyle}>
           {qubits.map((qubit) => (
-            <div key={qubit} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <strong style={{ width: 36 }}>q{qubit}</strong>
+            <div key={qubit} className="canvas-row">
+              <strong className="canvas-row-label">q{qubit}</strong>
               {layerIndexes.map((layer) => {
                 const operation = findOperationAtCell(circuit.operations, qubit, layer);
                 return (
@@ -329,7 +394,11 @@ function CircuitCanvas({
                     tabIndex={operation ? 0 : undefined}
                     data-testid={`canvas-cell-${qubit}-${layer}`}
                   >
-                    {operation ? <GateLabel operation={operation} /> : <span style={{ color: "#999" }}>-</span>}
+                    {operation ? (
+                      <GateLabel operation={operation} />
+                    ) : (
+                      <span className="canvas-empty-placeholder">-</span>
+                    )}
                     {operation ? (
                       <button
                         type="button"

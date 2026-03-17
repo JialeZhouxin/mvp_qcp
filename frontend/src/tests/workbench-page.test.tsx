@@ -83,7 +83,9 @@ describe("CircuitWorkbenchPage", () => {
 
     const primaryLayout = screen.getByTestId("workbench-primary-layout");
     expect(within(primaryLayout).getByTestId("gate-palette-panel")).toBeInTheDocument();
-    expect(within(primaryLayout).getByTestId("circuit-canvas-panel")).toBeInTheDocument();
+    const canvasPanel = within(primaryLayout).getByTestId("circuit-canvas-panel");
+    expect(canvasPanel).toBeInTheDocument();
+    expect(within(canvasPanel).getByTestId("canvas-zoom-toolbar")).toBeInTheDocument();
     expect(within(primaryLayout).getByTestId("qasm-editor-panel")).toBeInTheDocument();
 
     const resultPanel = screen.getByTestId("workbench-result-panel");

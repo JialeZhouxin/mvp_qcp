@@ -162,6 +162,82 @@ describe("CircuitCanvas", () => {
     expect(onCircuitChange).not.toHaveBeenCalled();
   });
 
+  it("renders zoom controls and updates zoom percentage", () => {
+    const model: CircuitModel = { numQubits: 2, operations: [] };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    const zoomInButton = screen.getByTestId("canvas-zoom-in");
+    const zoomOutButton = screen.getByTestId("canvas-zoom-out");
+    const zoomResetButton = screen.getByTestId("canvas-zoom-reset");
+    const zoomPercent = screen.getByTestId("canvas-zoom-percent");
+
+    expect(zoomPercent).toHaveTextContent("100%");
+    fireEvent.click(zoomInButton);
+    expect(zoomPercent).toHaveTextContent("110%");
+    fireEvent.click(zoomResetButton);
+    expect(zoomPercent).toHaveTextContent("100%");
+
+    for (let i = 0; i < 20; i += 1) {
+      fireEvent.click(zoomOutButton);
+    }
+    expect(zoomPercent).toHaveTextContent("50%");
+    expect(zoomOutButton).toBeDisabled();
+  });
+
+  it("supports zoom by wheel and keyboard shortcuts", () => {
+    const model: CircuitModel = { numQubits: 2, operations: [] };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    const viewport = screen.getByTestId("canvas-viewport");
+    const zoomPercent = screen.getByTestId("canvas-zoom-percent");
+
+    fireEvent.wheel(viewport, { deltaY: -120, ctrlKey: true, clientX: 120, clientY: 120 });
+    expect(zoomPercent).toHaveTextContent("110%");
+
+    fireEvent.wheel(viewport, { deltaY: -120, clientX: 120, clientY: 120 });
+    expect(zoomPercent).toHaveTextContent("110%");
+
+    fireEvent.keyDown(window, { key: "-", ctrlKey: true });
+    expect(zoomPercent).toHaveTextContent("100%");
+
+    fireEvent.keyDown(window, { key: "=", ctrlKey: true });
+    expect(zoomPercent).toHaveTextContent("110%");
+
+    fireEvent.keyDown(window, { key: "0", ctrlKey: true });
+    expect(zoomPercent).toHaveTextContent("100%");
+  });
+
+  it("ignores zoom shortcuts when focus is in editable element", () => {
+    const model: CircuitModel = { numQubits: 2, operations: [] };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    const zoomPercent = screen.getByTestId("canvas-zoom-percent");
+    const input = document.createElement("textarea");
+    document.body.appendChild(input);
+    input.focus();
+    fireEvent.keyDown(input, { key: "=", ctrlKey: true });
+    input.remove();
+
+    expect(zoomPercent).toHaveTextContent("100%");
+  });
+
+  it("toggles pan-ready state when Space is pressed", () => {
+    const model: CircuitModel = { numQubits: 2, operations: [] };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={20} />);
+
+    const viewport = screen.getByTestId("canvas-viewport");
+
+    fireEvent.keyDown(window, { code: "Space", key: " " });
+    expect(viewport).toHaveClass("canvas-viewport--pan-ready");
+
+    fireEvent.keyUp(window, { code: "Space", key: " " });
+    expect(viewport).not.toHaveClass("canvas-viewport--pan-ready");
+  });
+
   it("blocks drop when cell is already occupied", () => {
     const model: CircuitModel = {
       numQubits: 1,

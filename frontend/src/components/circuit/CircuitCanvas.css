@@ -1,10 +1,68 @@
+.canvas-viewport-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.canvas-zoom-percent {
+  min-width: 56px;
+  text-align: right;
+  font-size: 12px;
+  color: #475569;
+}
+
+.canvas-viewport {
+  overflow: auto;
+  max-width: 100%;
+  max-height: 480px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.canvas-viewport--pan-ready {
+  cursor: grab;
+}
+
+.canvas-viewport--panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.canvas-grid {
+  --canvas-scale: 1;
+  display: grid;
+  gap: calc(6px * var(--canvas-scale));
+  width: max-content;
+  padding: calc(6px * var(--canvas-scale));
+}
+
+.canvas-row {
+  display: flex;
+  gap: calc(6px * var(--canvas-scale));
+  align-items: center;
+}
+
+.canvas-row-label {
+  width: calc(36px * var(--canvas-scale));
+  font-size: calc(14px * var(--canvas-scale));
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.canvas-empty-placeholder {
+  color: #999;
+}
+
 .canvas-cell {
   position: relative;
-  width: 120px;
-  min-height: 42px;
+  width: calc(120px * var(--canvas-scale));
+  min-height: calc(42px * var(--canvas-scale));
   border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 4px 6px;
+  border-radius: calc(6px * var(--canvas-scale));
+  padding: calc(4px * var(--canvas-scale)) calc(6px * var(--canvas-scale));
   display: flex;
   justify-content: center;
   align-items: center;
@@ -53,18 +111,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 22px;
+  min-height: calc(22px * var(--canvas-scale));
   max-width: 100%;
-  padding: 1px 7px;
+  padding: calc(1px * var(--canvas-scale)) calc(7px * var(--canvas-scale));
   border: 1px solid #1f2937;
-  border-radius: 2px;
+  border-radius: calc(2px * var(--canvas-scale));
   background: #ffffff;
   box-shadow: inset 0 -1px 0 rgba(31, 41, 55, 0.18);
 }
 
 .canvas-gate-text {
   font-family: "Consolas", "Courier New", monospace;
-  font-size: 11px;
+  font-size: calc(11px * var(--canvas-scale));
   font-weight: 600;
   color: #111827;
   line-height: 1.2;
@@ -74,15 +132,15 @@
 
 .canvas-delete-btn {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 18px;
-  height: 18px;
+  top: calc(2px * var(--canvas-scale));
+  right: calc(2px * var(--canvas-scale));
+  width: calc(18px * var(--canvas-scale));
+  height: calc(18px * var(--canvas-scale));
   border: 1px solid #cbd5e1;
   border-radius: 999px;
   background: #ffffff;
   color: #475569;
-  font-size: 13px;
+  font-size: calc(13px * var(--canvas-scale));
   line-height: 1;
   display: inline-flex;
   align-items: center;

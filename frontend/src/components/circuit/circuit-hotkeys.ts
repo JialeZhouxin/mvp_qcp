@@ -1,4 +1,6 @@
 const EDITABLE_SELECTOR = "input, textarea, select, [contenteditable='true'], [contenteditable='']";
+const ZOOM_IN_KEYS = new Set(["=", "+", "Add"]);
+const ZOOM_OUT_KEYS = new Set(["-", "_", "Subtract"]);
 
 function hasPrimaryModifier(event: KeyboardEvent): boolean {
   return event.ctrlKey || event.metaKey;
@@ -39,4 +41,25 @@ export function isDeleteShortcut(event: KeyboardEvent): boolean {
     return false;
   }
   return event.key === "Delete" || event.key === "Backspace";
+}
+
+export function isZoomInShortcut(event: KeyboardEvent): boolean {
+  if (!hasPrimaryModifier(event) || event.altKey) {
+    return false;
+  }
+  return ZOOM_IN_KEYS.has(event.key) || event.code === "NumpadAdd";
+}
+
+export function isZoomOutShortcut(event: KeyboardEvent): boolean {
+  if (!hasPrimaryModifier(event) || event.altKey) {
+    return false;
+  }
+  return ZOOM_OUT_KEYS.has(event.key) || event.code === "NumpadSubtract";
+}
+
+export function isZoomResetShortcut(event: KeyboardEvent): boolean {
+  if (!hasPrimaryModifier(event) || event.altKey) {
+    return false;
+  }
+  return event.key === "0" || event.code === "Numpad0";
 }
