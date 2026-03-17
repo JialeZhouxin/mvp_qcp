@@ -228,6 +228,12 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
       minQubits: EDITOR_MIN_QUBITS,
       maxQubits: EDITOR_MAX_QUBITS,
     }).ok;
+  const handleUndo = () => {
+    setHistory((previous) => undoHistoryState(previous));
+  };
+  const handleRedo = () => {
+    setHistory((previous) => redoHistoryState(previous));
+  };
 
   const probabilityDisplayView = probabilityView
     ? getProbabilityDisplayView(displayMode, probabilityView)
@@ -261,8 +267,8 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
         canDecreaseQubits={canDecreaseQubits}
         qubitMessage={qubitMessage}
         templates={templates}
-        onUndo={() => setHistory((previous) => undoHistoryState(previous))}
-        onRedo={() => setHistory((previous) => redoHistoryState(previous))}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
         onIncreaseQubits={onIncreaseQubits}
         onDecreaseQubits={onDecreaseQubits}
         onClearCircuit={onClearCircuit}
@@ -283,7 +289,12 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
           <GatePalette />
         </div>
         <div data-testid="workbench-canvas-column" style={{ minWidth: 0 }}>
-          <CircuitCanvas circuit={circuit} onCircuitChange={(next) => pushCircuit(next)} />
+          <CircuitCanvas
+            circuit={circuit}
+            onCircuitChange={(next) => pushCircuit(next)}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+          />
         </div>
         <div data-testid="workbench-qasm-column" style={{ display: "grid", gap: 12, minWidth: 0 }}>
           <QasmEditorPane

@@ -28,21 +28,27 @@ import {
   isSupportedGate,
   type PendingPlacement,
 } from "./canvas-gate-utils";
+import { useCircuitCanvasHotkeys } from "./use-circuit-canvas-hotkeys";
 import "./CircuitCanvas.css";
 
 const DEFAULT_MIN_LAYERS = 8;
 const GATE_DRAG_MIME = "application/x-qcp-gate";
+const NOOP_HANDLER = () => {};
 
 interface CircuitCanvasProps {
   readonly circuit: CircuitModel;
   readonly onCircuitChange: (next: CircuitModel) => void;
   readonly minLayers?: number;
+  readonly onUndo?: () => void;
+  readonly onRedo?: () => void;
 }
 
 function CircuitCanvas({
   circuit,
   onCircuitChange,
   minLayers = DEFAULT_MIN_LAYERS,
+  onUndo = NOOP_HANDLER,
+  onRedo = NOOP_HANDLER,
 }: CircuitCanvasProps) {
   const [pendingPlacement, setPendingPlacement] = useState<PendingPlacement | null>(null);
   const [interactionMessage, setInteractionMessage] =
@@ -244,6 +250,18 @@ function CircuitCanvas({
     setPendingPlacement(null);
     setInteractionMessage(null);
   };
+
+  useCircuitCanvasHotkeys({
+    selectedOperationId,
+    onUndo,
+    onRedo,
+    onDeleteSelected: () => {
+      if (!selectedOperationId) {
+        return;
+      }
+      onDelete(selectedOperationId);
+    },
+  });
 
   const getCellClassName = (operation: Operation | undefined, qubit: number, layer: number) => {
     const key = toCellKey(qubit, layer);

@@ -82,6 +82,86 @@ describe("CircuitCanvas", () => {
     expect(nextModel.operations).toHaveLength(0);
   });
 
+  it("deletes selected operation when Delete key is pressed", () => {
+    const model: CircuitModel = {
+      numQubits: 1,
+      operations: [{ id: "op-1", gate: "x", targets: [0], layer: 0 }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    fireEvent.click(screen.getByTestId("canvas-cell-0-0"));
+    fireEvent.keyDown(window, { key: "Delete" });
+
+    expect(onCircuitChange).toHaveBeenCalledTimes(1);
+    const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
+    expect(nextModel.operations).toHaveLength(0);
+  });
+
+  it("does not delete operation when no gate is selected", () => {
+    const model: CircuitModel = {
+      numQubits: 1,
+      operations: [{ id: "op-1", gate: "x", targets: [0], layer: 0 }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    fireEvent.keyDown(window, { key: "Delete" });
+
+    expect(onCircuitChange).not.toHaveBeenCalled();
+  });
+
+  it("calls undo and redo callbacks when shortcut is pressed", () => {
+    const model: CircuitModel = { numQubits: 1, operations: [] };
+    const onCircuitChange = vi.fn();
+    const onUndo = vi.fn();
+    const onRedo = vi.fn();
+    render(
+      <CircuitCanvas
+        circuit={model}
+        onCircuitChange={onCircuitChange}
+        minLayers={2}
+        onUndo={onUndo}
+        onRedo={onRedo}
+      />,
+    );
+
+    fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "y", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "z", metaKey: true, shiftKey: true });
+
+    expect(onUndo).toHaveBeenCalledTimes(1);
+    expect(onRedo).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignores canvas shortcuts when focus is in editable element", () => {
+    const model: CircuitModel = { numQubits: 1, operations: [] };
+    const onCircuitChange = vi.fn();
+    const onUndo = vi.fn();
+    const onRedo = vi.fn();
+    render(
+      <CircuitCanvas
+        circuit={model}
+        onCircuitChange={onCircuitChange}
+        minLayers={2}
+        onUndo={onUndo}
+        onRedo={onRedo}
+      />,
+    );
+
+    const input = document.createElement("textarea");
+    document.body.appendChild(input);
+    input.focus();
+    fireEvent.keyDown(input, { key: "z", ctrlKey: true });
+    fireEvent.keyDown(input, { key: "y", ctrlKey: true });
+    fireEvent.keyDown(input, { key: "Delete" });
+    input.remove();
+
+    expect(onUndo).not.toHaveBeenCalled();
+    expect(onRedo).not.toHaveBeenCalled();
+    expect(onCircuitChange).not.toHaveBeenCalled();
+  });
+
   it("blocks drop when cell is already occupied", () => {
     const model: CircuitModel = {
       numQubits: 1,

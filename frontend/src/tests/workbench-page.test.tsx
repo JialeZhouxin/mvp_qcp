@@ -108,6 +108,27 @@ describe("CircuitWorkbenchPage", () => {
     expect(screen.getByTestId("qubit-count")).toHaveTextContent("2");
   });
 
+  it("supports undo and redo via keyboard shortcuts", async () => {
+    const scheduler = {
+      schedule: vi.fn(async () => ({
+        requestId: "sim-hotkey-undo-redo",
+        probabilities: { "00": 0.5, "01": 0, "10": 0, "11": 0.5 },
+      })),
+    };
+    renderWorkbench(scheduler);
+    await flushTimers();
+
+    expect(screen.getByTestId("qubit-count")).toHaveTextContent("2");
+    fireEvent.click(screen.getByRole("button", { name: "+Qubit" }));
+    expect(screen.getByTestId("qubit-count")).toHaveTextContent("3");
+
+    fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+    expect(screen.getByTestId("qubit-count")).toHaveTextContent("2");
+
+    fireEvent.keyDown(window, { key: "y", ctrlKey: true });
+    expect(screen.getByTestId("qubit-count")).toHaveTextContent("3");
+  });
+
   it("disables local simulation when qubits exceed 10 but keeps submit enabled", async () => {
     const scheduler = {
       schedule: vi.fn(async () => ({
