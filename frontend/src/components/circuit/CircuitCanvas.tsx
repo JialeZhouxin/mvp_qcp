@@ -28,6 +28,10 @@ import {
   isSupportedGate,
   type PendingPlacement,
 } from "./canvas-gate-utils";
+import {
+  validateParameterValue,
+  type ParameterValidationResult,
+} from "./parameter-validation";
 import { useCircuitCanvasHotkeys } from "./use-circuit-canvas-hotkeys";
 import { useCircuitCanvasViewport } from "./use-circuit-canvas-viewport";
 import "./CircuitCanvas.css";
@@ -57,6 +61,10 @@ function CircuitCanvas({
   const [selectedOperationId, setSelectedOperationId] = useState<string | null>(null);
   const [isGateDragging, setIsGateDragging] = useState(false);
   const [hoveredCellKey, setHoveredCellKey] = useState<string | null>(null);
+  const [parameterDraft, setParameterDraft] = useState<readonly number[] | null>(null);
+  const [parameterFeedback, setParameterFeedback] = useState<
+    Readonly<Record<number, ParameterValidationResult>>
+  >({});
   const {
     zoomPercentText,
     canZoomIn,
@@ -93,6 +101,16 @@ function CircuitCanvas({
       setSelectedOperationId(null);
     }
   }, [circuit.operations, selectedOperationId]);
+
+  useEffect(() => {
+    if (!selectedOperation || !isParameterizedGate(selectedOperation.gate)) {
+      setParameterDraft(null);
+      setParameterFeedback({});
+      return;
+    }
+    setParameterDraft(getParameterValues(selectedOperation));
+    setParameterFeedback({});
+  }, [selectedOperationId]);
 
   useEffect(() => {
     const clearDragPreview = () => {
@@ -250,19 +268,54 @@ function CircuitCanvas({
     }
   };
 
+  const updateParameterFeedback = (index: number, result: ParameterValidationResult) => {
+    setParameterFeedback((previous) => ({
+      ...previous,
+      [index]: result,
+    }));
+  };
+
   const onParamChange = (index: number, value: number) => {
     if (!selectedOperation || !isParameterizedGate(selectedOperation.gate)) {
       return;
     }
-    if (!Number.isFinite(value)) {
+    if (!parameterDraft || index < 0 || index >= parameterDraft.length) {
+      return;
+    }
+
+    const result = validateParameterValue(value);
+    updateParameterFeedback(index, result);
+
+    if (result.level === "error") {
       setInteractionMessage(toCanvasMessage("INVALID_PARAM"));
       return;
     }
-    const nextParams = [...getParameterValues(selectedOperation)];
+
+    const nextParams = [...parameterDraft];
     nextParams[index] = value;
+    setParameterDraft(nextParams);
     const next = updateOperation(circuit, selectedOperation.id, { params: nextParams });
     commitCircuit(next);
   };
+
+  const onNormalizeParam = (index: number) => {
+    const current = parameterFeedback[index];
+    if (!current || current.level !== "warning" || current.normalizedValue === null) {
+      return;
+    }
+    onParamChange(index, current.normalizedValue);
+  };
+
+  const isInlineAnchorCell = (operation: Operation, qubit: number): boolean => {
+    const touchedQubits = [...operation.targets, ...(operation.controls ?? [])];
+    const anchorQubit = Math.min(...touchedQubits);
+    return qubit === anchorQubit;
+  };
+
+  const activeParameterValues =
+    selectedOperation && isParameterizedGate(selectedOperation.gate)
+      ? parameterDraft ?? getParameterValues(selectedOperation)
+      : [];
 
   const cancelPendingPlacement = () => {
     setPendingPlacement(null);
@@ -382,6 +435,8 @@ function CircuitCanvas({
               <strong className="canvas-row-label">q{qubit}</strong>
               {layerIndexes.map((layer) => {
                 const operation = findOperationAtCell(circuit.operations, qubit, layer);
+                const isSelectedOperation =
+                  selectedOperationId !== null && operation?.id === selectedOperationId;
                 return (
                   <div
                     key={`${qubit}-${layer}`}
@@ -399,6 +454,37 @@ function CircuitCanvas({
                     ) : (
                       <span className="canvas-empty-placeholder">-</span>
                     )}
+                    {operation &&
+                    isSelectedOperation &&
+                    isParameterizedGate(operation.gate) &&
+                    isInlineAnchorCell(operation, qubit) ? (
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: "calc(100% + 8px)",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          zIndex: 3,
+                          width: 220,
+                          padding: 8,
+                          borderRadius: 6,
+                          border: "1px solid #d9e2ec",
+                          background: "#fff",
+                          boxShadow: "0 6px 18px rgba(15, 23, 42, 0.12)",
+                        }}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <OperationParameterPanel
+                          operation={operation}
+                          values={activeParameterValues}
+                          feedback={parameterFeedback}
+                          onParamChange={onParamChange}
+                          onNormalizeParam={onNormalizeParam}
+                          compact
+                          testId="inline-operation-params-panel"
+                        />
+                      </div>
+                    ) : null}
                     {operation ? (
                       <button
                         type="button"
@@ -428,7 +514,13 @@ function CircuitCanvas({
           <h4 style={{ margin: "0 0 8px 0" }}>
             选中门: {selectedOperation.gate.toUpperCase()} (layer {selectedOperation.layer})
           </h4>
-          <OperationParameterPanel operation={selectedOperation} onParamChange={onParamChange} />
+          <OperationParameterPanel
+            operation={selectedOperation}
+            values={activeParameterValues}
+            feedback={parameterFeedback}
+            onParamChange={onParamChange}
+            onNormalizeParam={onNormalizeParam}
+          />
         </section>
       ) : null}
     </section>

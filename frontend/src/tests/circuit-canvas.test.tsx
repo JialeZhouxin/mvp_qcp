@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 import CircuitCanvas from "../components/circuit/CircuitCanvas";
 import type { CircuitModel } from "../features/circuit/model/types";
@@ -346,12 +346,91 @@ describe("CircuitCanvas", () => {
     render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
 
     fireEvent.click(screen.getByTestId("canvas-cell-0-0"));
-    fireEvent.change(screen.getByLabelText("param-theta"), {
+    const sidePanel = screen.getByTestId("operation-params-panel");
+    fireEvent.change(within(sidePanel).getByLabelText("param-theta"), {
       target: { value: "1.57" },
     });
 
     expect(onCircuitChange).toHaveBeenCalledTimes(1);
     const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
     expect(nextModel.operations[0].params?.[0]).toBeCloseTo(1.57, 6);
+  });
+
+  it("shows inline parameter editor for selected parameterized gate", () => {
+    const model: CircuitModel = {
+      numQubits: 1,
+      operations: [{ id: "op-rx", gate: "rx", targets: [0], layer: 0, params: [0] }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    fireEvent.click(screen.getByTestId("canvas-cell-0-0"));
+
+    expect(screen.getByTestId("inline-operation-params-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("operation-params-panel")).toBeInTheDocument();
+  });
+
+  it("keeps inline editor and side panel parameter values in sync", () => {
+    const model: CircuitModel = {
+      numQubits: 1,
+      operations: [{ id: "op-rx", gate: "rx", targets: [0], layer: 0, params: [0] }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    fireEvent.click(screen.getByTestId("canvas-cell-0-0"));
+    const inlinePanel = screen.getByTestId("inline-operation-params-panel");
+    const sidePanel = screen.getByTestId("operation-params-panel");
+
+    fireEvent.change(within(inlinePanel).getByLabelText("param-theta"), {
+      target: { value: "1.2" },
+    });
+
+    expect(onCircuitChange).toHaveBeenCalledTimes(1);
+    const sideInput = within(sidePanel).getByLabelText("param-theta") as HTMLInputElement;
+    expect(sideInput.value).toBe("1.2");
+  });
+
+  it("shows soft boundary warning and supports normalize action", () => {
+    const model: CircuitModel = {
+      numQubits: 1,
+      operations: [{ id: "op-rx", gate: "rx", targets: [0], layer: 0, params: [0] }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    fireEvent.click(screen.getByTestId("canvas-cell-0-0"));
+    const inlinePanel = screen.getByTestId("inline-operation-params-panel");
+
+    fireEvent.change(within(inlinePanel).getByLabelText("param-theta"), {
+      target: { value: "20" },
+    });
+
+    expect(onCircuitChange).toHaveBeenCalledTimes(1);
+    expect(within(inlinePanel).getByTestId("param-warning-0")).toBeInTheDocument();
+
+    fireEvent.click(within(inlinePanel).getByTestId("param-normalize-0"));
+    expect(onCircuitChange).toHaveBeenCalledTimes(2);
+    const normalizedModel = onCircuitChange.mock.calls[1][0] as CircuitModel;
+    expect(normalizedModel.operations[0].params?.[0]).toBeGreaterThan(-6.3);
+    expect(normalizedModel.operations[0].params?.[0]).toBeLessThan(6.3);
+  });
+
+  it("blocks non-finite parameter input and keeps previous value", () => {
+    const model: CircuitModel = {
+      numQubits: 1,
+      operations: [{ id: "op-rx", gate: "rx", targets: [0], layer: 0, params: [0.5] }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    fireEvent.click(screen.getByTestId("canvas-cell-0-0"));
+    const inlinePanel = screen.getByTestId("inline-operation-params-panel");
+    fireEvent.change(within(inlinePanel).getByLabelText("param-theta"), {
+      target: { value: "" },
+    });
+
+    expect(onCircuitChange).not.toHaveBeenCalled();
+    expect(within(inlinePanel).getByTestId("param-error-0")).toBeInTheDocument();
   });
 });
