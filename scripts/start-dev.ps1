@@ -130,12 +130,12 @@ Pop-Location
 Write-Host "[3/7] Checking backend dependencies..."
 Push-Location $backend
 try {
-  uv run python -c "import fastapi, sqlmodel, redis, rq, qibo; print('backend deps ok')"
+  uv run python -c "import fastapi, sqlmodel, redis, rq, qibo, docker, requests; print('backend deps ok')"
 } catch {
   if ($InstallDeps) {
     Write-Host "Installing backend dependencies..."
     uv pip install -r requirements.txt
-    uv run python -c "import fastapi, sqlmodel, redis, rq, qibo; print('backend deps ok')"
+    uv run python -c "import fastapi, sqlmodel, redis, rq, qibo, docker, requests; print('backend deps ok')"
   } else {
     Write-Error "Backend dependencies missing. Run: cd `"$backend`"; uv pip install -r requirements.txt"
     Pop-Location

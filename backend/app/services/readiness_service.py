@@ -11,11 +11,12 @@ class ReadinessService:
         return {"status": "ok", "app": settings.app_name, "env": settings.env}
 
     def check_ready(self) -> tuple[bool, dict[str, object]]:
-        checks = {
+        raw_checks = {
             "database": self._check_database(),
             "redis": self._check_redis(),
             "execution_backend": self._check_execution_backend(),
         }
+        checks = {name: self._sanitize_check(check) for name, check in raw_checks.items()}
         is_ready = all(bool(check["ok"]) for check in checks.values())
         payload: dict[str, object] = {
             "status": "ok" if is_ready else "degraded",
@@ -24,6 +25,12 @@ class ReadinessService:
             "checks": checks,
         }
         return is_ready, payload
+
+    def _sanitize_check(self, check: dict[str, object]) -> dict[str, object]:
+        sanitized = dict(check)
+        if not bool(sanitized.get("ok")) and "error" in sanitized:
+            sanitized["error"] = "dependency unavailable"
+        return sanitized
 
     def _check_database(self) -> dict[str, object]:
         try:
