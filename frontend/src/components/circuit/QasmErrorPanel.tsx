@@ -7,13 +7,7 @@ interface QasmErrorPanelProps {
 
 function QasmErrorPanel({ error }: QasmErrorPanelProps) {
   if (!error) {
-    return (
-      <section
-        style={{ border: "1px solid #d9f7be", background: "#f6ffed", padding: 12, borderRadius: 8 }}
-      >
-        <strong style={{ color: "#389e0d" }}>QASM 校验通过</strong>
-      </section>
-    );
+    return null;
   }
 
   const localized = toQasmErrorMessage(error);
