@@ -45,6 +45,8 @@ import {
 import { useWorkbenchProjects } from "../features/circuit/ui/use-workbench-projects";
 
 const DEFAULT_DISPLAY_MODE: ProbabilityDisplayMode = "FILTERED";
+const SUBMIT_RAIL_TOP_OFFSET = 12;
+const SUBMIT_RAIL_Z_INDEX = 20;
 
 type SimulationViewState = "IDLE" | "RUNNING" | "READY" | "ERROR";
 
@@ -281,6 +283,32 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
       />
 
       <section
+        data-testid="workbench-submit-rail"
+        style={{
+          position: "sticky",
+          top: SUBMIT_RAIL_TOP_OFFSET,
+          zIndex: SUBMIT_RAIL_Z_INDEX,
+          background: "#f5f7fb",
+          borderRadius: 8,
+        }}
+      >
+        <WorkbenchSubmitPanel
+          submitting={submittingTask}
+          canSubmit={canSubmit}
+          taskId={submittedTaskId}
+          taskStatus={submittedTaskStatus}
+          taskStatusLabel={taskStatusLabel}
+          submitError={submitError}
+          deduplicated={deduplicatedSubmit}
+          trackingMode={trackingMode}
+          isTracking={isTracking}
+          elapsedSeconds={elapsedSeconds}
+          onSubmit={() => void onSubmitTask()}
+          onRefreshStatus={() => void onRefreshTaskStatus()}
+        />
+      </section>
+
+      <section
         data-testid="workbench-primary-layout"
         style={{
           display: "grid",
@@ -319,21 +347,6 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
         probabilityView={probabilityView}
         probabilityDisplayView={probabilityDisplayView}
         onDisplayModeChange={setDisplayMode}
-      />
-
-      <WorkbenchSubmitPanel
-        submitting={submittingTask}
-        canSubmit={canSubmit}
-        taskId={submittedTaskId}
-        taskStatus={submittedTaskStatus}
-        taskStatusLabel={taskStatusLabel}
-        submitError={submitError}
-        deduplicated={deduplicatedSubmit}
-        trackingMode={trackingMode}
-        isTracking={isTracking}
-        elapsedSeconds={elapsedSeconds}
-        onSubmit={() => void onSubmitTask()}
-        onRefreshStatus={() => void onRefreshTaskStatus()}
       />
 
       <ProjectPanel
