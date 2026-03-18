@@ -102,16 +102,12 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
   const {
     submittingTask,
     submittedTaskId,
-    submittedTaskStatus,
     taskStatusLabel,
     submitError,
     deduplicatedSubmit,
     canSubmit,
-    trackingMode,
-    isTracking,
     elapsedSeconds,
     onSubmitTask,
-    onRefreshTaskStatus,
   } = useWorkbenchTaskSubmit({ circuit, parseError });
 
   const runSimulation = async (model: CircuitModel) => {
@@ -296,15 +292,11 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
           submitting={submittingTask}
           canSubmit={canSubmit}
           taskId={submittedTaskId}
-          taskStatus={submittedTaskStatus}
           taskStatusLabel={taskStatusLabel}
           submitError={submitError}
           deduplicated={deduplicatedSubmit}
-          trackingMode={trackingMode}
-          isTracking={isTracking}
           elapsedSeconds={elapsedSeconds}
           onSubmit={() => void onSubmitTask()}
-          onRefreshStatus={() => void onRefreshTaskStatus()}
         />
       </section>
 
