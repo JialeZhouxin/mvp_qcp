@@ -34,13 +34,15 @@ function WorkbenchResultPanel({
   const [sortMode, setSortMode] = useState<ResultChartSortMode>(DEFAULT_SORT_MODE);
 
   return (
-    <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }} data-testid="workbench-result-panel">
-      <h3 style={{ marginTop: 0 }}>概率分布</h3>
-      <p style={{ margin: "0 0 8px 0", color: "#666" }}>模拟状态：{toSimulationStateLabel(simulationState)}</p>
-      {simError ? <p style={{ color: "#cf1322" }}>{simError}</p> : null}
+    <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 10 }} data-testid="workbench-result-panel">
+      <h3 style={{ margin: "0 0 6px 0", fontSize: 16 }}>测量直方图</h3>
+      <p style={{ margin: "0 0 6px 0", color: "#666", fontSize: 13 }}>
+        状态：{toSimulationStateLabel(simulationState)} · ε={epsilonText}
+      </p>
+      {simError ? <p style={{ margin: "0 0 6px 0", color: "#cf1322" }}>{simError}</p> : null}
 
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 8 }}>
-        <span>显示模式:</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", marginBottom: 6, fontSize: 13 }}>
+        <span>显示</span>
         <label>
           <input
             type="radio"
@@ -48,67 +50,54 @@ function WorkbenchResultPanel({
             checked={displayMode === "FILTERED"}
             onChange={() => onDisplayModeChange("FILTERED")}
           />
-          过滤后状态
+          过滤后
+        </label>
+        <label>
+          <input type="radio" name="displayMode" checked={displayMode === "ALL"} onChange={() => onDisplayModeChange("ALL")} />
+          全部
+        </label>
+
+        <span>排序</span>
+        <label>
+          <input
+            type="radio"
+            name="probabilitySortMode"
+            data-testid="sort-mode-basis"
+            checked={sortMode === "BASIS"}
+            onChange={() => setSortMode("BASIS")}
+          />
+          基态序
         </label>
         <label>
           <input
             type="radio"
-            name="displayMode"
-            checked={displayMode === "ALL"}
-            onChange={() => onDisplayModeChange("ALL")}
+            name="probabilitySortMode"
+            data-testid="sort-mode-prob-desc"
+            checked={sortMode === "PROB_DESC"}
+            onChange={() => setSortMode("PROB_DESC")}
           />
-          全部状态
+          概率序
         </label>
       </div>
 
-      <p style={{ margin: "0 0 8px 0", color: "#666" }}>过滤阈值 epsilon = 2^-(n+2) = {epsilonText}</p>
-
       {probabilityView && probabilityDisplayView ? (
-        <>
-          <p style={{ margin: "0 0 8px 0", color: "#666" }}>
-            总状态数: {probabilityView.totalCount} | 可见: {probabilityDisplayView.visibleCount} | 隐藏: {" "}
-            {probabilityDisplayView.hiddenCount} | 概率和: {probabilityView.probabilitySum.toFixed(6)}
-          </p>
-
-          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 8 }}>
-            <span>排序:</span>
-            <label>
-              <input
-                type="radio"
-                name="probabilitySortMode"
-                data-testid="sort-mode-basis"
-                checked={sortMode === "BASIS"}
-                onChange={() => setSortMode("BASIS")}
-              />
-              基态顺序
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="probabilitySortMode"
-                data-testid="sort-mode-prob-desc"
-                checked={sortMode === "PROB_DESC"}
-                onChange={() => setSortMode("PROB_DESC")}
-              />
-              概率降序
-            </label>
-          </div>
-
-          {probabilityDisplayView.visibleCount > 0 ? (
-            <ResultChart
-              probabilities={probabilityDisplayView.probabilities}
-              title={displayMode === "ALL" ? "全状态概率分布" : "过滤后概率分布"}
-              sortMode={sortMode}
-              stateLabelFormatter={(state) => `|${state}>`}
-              valueDigits={3}
-              showBarValueLabel
-            />
-          ) : (
-            <p style={{ color: "#999" }}>当前显示模式下无可见状态，请切换到“全部状态”查看完整分布。</p>
-          )}
-        </>
+        probabilityDisplayView.visibleCount > 0 ? (
+          <ResultChart
+            probabilities={probabilityDisplayView.probabilities}
+            title={displayMode === "ALL" ? "全部状态" : "过滤后状态"}
+            sortMode={sortMode}
+            stateLabelFormatter={(state) => `|${state}>`}
+            valueDigits={3}
+            showBarValueLabel
+            compact
+            height={280}
+            showTitle={false}
+          />
+        ) : (
+          <p style={{ margin: 0, color: "#999" }}>当前模式无可见状态，切换到“全部”可查看完整分布。</p>
+        )
       ) : (
-        <p style={{ color: "#999" }}>等待模拟结果...</p>
+        <p style={{ margin: 0, color: "#999" }}>等待仿真结果...</p>
       )}
     </section>
   );

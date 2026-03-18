@@ -259,7 +259,7 @@ function TasksPage() {
 
       {probabilities ? (
         <section style={{ marginTop: 16 }}>
-          <ResultChart probabilities={probabilities} />
+          <ResultChart probabilities={probabilities} compact height={280} showTitle={false} />
         </section>
       ) : (
         <section style={{ marginTop: 16, padding: 12, background: "#f7f7f7" }}>
