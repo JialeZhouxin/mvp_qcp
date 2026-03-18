@@ -8,7 +8,6 @@ import QasmErrorPanel from "../components/circuit/QasmErrorPanel";
 import WorkbenchGuide from "../components/circuit/WorkbenchGuide";
 import WorkbenchResultPanel from "../components/circuit/WorkbenchResultPanel";
 import WorkbenchSubmitPanel from "../components/circuit/WorkbenchSubmitPanel";
-import WorkbenchToolbar from "../components/circuit/WorkbenchToolbar";
 import ProjectPanel from "../components/task-center/ProjectPanel";
 import { EDITOR_MAX_QUBITS, EDITOR_MIN_QUBITS } from "../features/circuit/model/constants";
 import { evaluateComplexity, getLocalSimulationGuardMessage } from "../features/circuit/model/complexity-guard";
@@ -22,7 +21,7 @@ import {
   undoHistoryState,
   type EditorHistoryState,
 } from "../features/circuit/model/history";
-import { listCircuitTemplates, loadCircuitTemplate } from "../features/circuit/model/templates";
+import { loadCircuitTemplate } from "../features/circuit/model/templates";
 import type { CircuitModel } from "../features/circuit/model/types";
 import { toQasm3 } from "../features/circuit/qasm/qasm-bridge";
 import type { QasmParseError } from "../features/circuit/qasm/qasm-errors";
@@ -78,7 +77,6 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
   const schedulerRef = useRef<SimulationSchedulerLike>(scheduler ?? createSimulationScheduler());
 
   const circuit = history.present;
-  const templates = listCircuitTemplates();
   const {
     projectLoading,
     projectSaving,
@@ -261,22 +259,6 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
           setWorkbenchGuideDismissed(true);
         }}
       />
-      <WorkbenchToolbar
-        canUndo={canUndoHistory(history)}
-        canRedo={canRedoHistory(history)}
-        currentQubits={circuit.numQubits}
-        canIncreaseQubits={canIncreaseQubits}
-        canDecreaseQubits={canDecreaseQubits}
-        qubitMessage={qubitMessage}
-        templates={templates}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onIncreaseQubits={onIncreaseQubits}
-        onDecreaseQubits={onDecreaseQubits}
-        onClearCircuit={onClearCircuit}
-        onResetWorkbench={onResetWorkbench}
-        onLoadTemplate={(templateId) => pushCircuit(loadCircuitTemplate(templateId))}
-      />
 
       <section
         data-testid="workbench-submit-rail"
@@ -318,6 +300,19 @@ function CircuitWorkbenchPage({ scheduler }: CircuitWorkbenchPageProps) {
             onCircuitChange={(next) => pushCircuit(next)}
             onUndo={handleUndo}
             onRedo={handleRedo}
+            controls={{
+              canUndo: canUndoHistory(history),
+              canRedo: canRedoHistory(history),
+              currentQubits: circuit.numQubits,
+              canIncreaseQubits,
+              canDecreaseQubits,
+              qubitMessage,
+              onIncreaseQubits,
+              onDecreaseQubits,
+              onClearCircuit,
+              onResetWorkbench,
+              onLoadTemplate: (templateId) => pushCircuit(loadCircuitTemplate(templateId)),
+            }}
           />
         </div>
         <div data-testid="workbench-qasm-column" style={{ display: "grid", gap: 12, minWidth: 0 }}>

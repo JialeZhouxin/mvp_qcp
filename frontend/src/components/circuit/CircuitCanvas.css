@@ -1,9 +1,55 @@
-.canvas-viewport-toolbar {
+.canvas-workbench-toolbar {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
-  align-items: center;
+  align-items: stretch;
   margin-bottom: 8px;
+}
+
+.canvas-workbench-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px;
+  border: 1px solid #d9e2ec;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.canvas-workbench-group--zoom {
+  margin-left: auto;
+}
+
+.canvas-workbench-label {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.canvas-workbench-value {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.canvas-workbench-btn {
+  height: 32px;
+  min-width: 84px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.canvas-workbench-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.canvas-workbench-btn--small {
+  min-width: 72px;
 }
 
 .canvas-zoom-percent {
@@ -11,6 +57,12 @@
   text-align: right;
   font-size: 12px;
   color: #475569;
+}
+
+@media (max-width: 1200px) {
+  .canvas-workbench-group--zoom {
+    margin-left: 0;
+  }
 }
 
 .canvas-viewport {

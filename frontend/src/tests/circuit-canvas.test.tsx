@@ -134,6 +134,68 @@ describe("CircuitCanvas", () => {
     expect(onRedo).toHaveBeenCalledTimes(2);
   });
 
+  it("renders workbench controls inside canvas and triggers callbacks", () => {
+    const model: CircuitModel = { numQubits: 3, operations: [] };
+    const onCircuitChange = vi.fn();
+    const onUndo = vi.fn();
+    const onRedo = vi.fn();
+    const onIncreaseQubits = vi.fn();
+    const onDecreaseQubits = vi.fn();
+    const onClearCircuit = vi.fn();
+    const onResetWorkbench = vi.fn();
+    const onLoadTemplate = vi.fn();
+
+    render(
+      <CircuitCanvas
+        circuit={model}
+        onCircuitChange={onCircuitChange}
+        minLayers={2}
+        onUndo={onUndo}
+        onRedo={onRedo}
+        controls={{
+          canUndo: true,
+          canRedo: true,
+          currentQubits: 3,
+          canIncreaseQubits: true,
+          canDecreaseQubits: true,
+          qubitMessage: "Qubit test warning",
+          onIncreaseQubits,
+          onDecreaseQubits,
+          onClearCircuit,
+          onResetWorkbench,
+          onLoadTemplate,
+        }}
+      />,
+    );
+
+    const toolbar = screen.getByTestId("canvas-workbench-toolbar");
+    const viewport = screen.getByTestId("canvas-viewport");
+    const isBeforeViewport = Boolean(
+      toolbar.compareDocumentPosition(viewport) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+    fireEvent.click(screen.getByRole("button", { name: "重做" }));
+    fireEvent.click(screen.getByRole("button", { name: "清空电路" }));
+    fireEvent.click(screen.getByRole("button", { name: "重置工作台" }));
+    fireEvent.click(screen.getByRole("button", { name: "-Qubit" }));
+    fireEvent.click(screen.getByRole("button", { name: "+Qubit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bell 态" }));
+    fireEvent.click(screen.getByRole("button", { name: "均匀叠加态" }));
+
+    expect(isBeforeViewport).toBe(true);
+    expect(screen.getByTestId("canvas-qubit-count")).toHaveTextContent("3");
+    expect(screen.getByTestId("qubit-message")).toHaveTextContent("Qubit test warning");
+    expect(onUndo).toHaveBeenCalledTimes(1);
+    expect(onRedo).toHaveBeenCalledTimes(1);
+    expect(onClearCircuit).toHaveBeenCalledTimes(1);
+    expect(onResetWorkbench).toHaveBeenCalledTimes(1);
+    expect(onIncreaseQubits).toHaveBeenCalledTimes(1);
+    expect(onDecreaseQubits).toHaveBeenCalledTimes(1);
+    expect(onLoadTemplate).toHaveBeenNthCalledWith(1, "bell");
+    expect(onLoadTemplate).toHaveBeenNthCalledWith(2, "superposition");
+  });
+
   it("ignores canvas shortcuts when focus is in editable element", () => {
     const model: CircuitModel = { numQubits: 1, operations: [] };
     const onCircuitChange = vi.fn();

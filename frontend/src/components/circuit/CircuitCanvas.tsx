@@ -39,6 +39,26 @@ import "./CircuitCanvas.css";
 const DEFAULT_MIN_LAYERS = 8;
 const GATE_DRAG_MIME = "application/x-qcp-gate";
 const NOOP_HANDLER = () => {};
+const BELL_TEMPLATE_ID = "bell";
+const SUPERPOSITION_TEMPLATE_ID = "superposition";
+
+type CanvasTemplateId = typeof BELL_TEMPLATE_ID | typeof SUPERPOSITION_TEMPLATE_ID;
+
+const NOOP_TEMPLATE_HANDLER = (_templateId: CanvasTemplateId) => {};
+
+interface CircuitCanvasControls {
+  readonly canUndo: boolean;
+  readonly canRedo: boolean;
+  readonly currentQubits: number;
+  readonly canIncreaseQubits: boolean;
+  readonly canDecreaseQubits: boolean;
+  readonly qubitMessage: string | null;
+  readonly onIncreaseQubits: () => void;
+  readonly onDecreaseQubits: () => void;
+  readonly onClearCircuit: () => void;
+  readonly onResetWorkbench: () => void;
+  readonly onLoadTemplate: (templateId: CanvasTemplateId) => void;
+}
 
 interface CircuitCanvasProps {
   readonly circuit: CircuitModel;
@@ -46,6 +66,7 @@ interface CircuitCanvasProps {
   readonly minLayers?: number;
   readonly onUndo?: () => void;
   readonly onRedo?: () => void;
+  readonly controls?: CircuitCanvasControls;
 }
 
 function CircuitCanvas({
@@ -54,6 +75,7 @@ function CircuitCanvas({
   minLayers = DEFAULT_MIN_LAYERS,
   onUndo = NOOP_HANDLER,
   onRedo = NOOP_HANDLER,
+  controls,
 }: CircuitCanvasProps) {
   const [pendingPlacement, setPendingPlacement] = useState<PendingPlacement | null>(null);
   const [interactionMessage, setInteractionMessage] =
@@ -82,6 +104,18 @@ function CircuitCanvas({
     onViewportPointerUp,
     onViewportPointerCancel,
   } = useCircuitCanvasViewport();
+  const hasWorkbenchControls = controls !== undefined;
+  const canUndoAction = controls?.canUndo ?? false;
+  const canRedoAction = controls?.canRedo ?? false;
+  const canIncreaseQubits = controls?.canIncreaseQubits ?? false;
+  const canDecreaseQubits = controls?.canDecreaseQubits ?? false;
+  const currentQubits = controls?.currentQubits ?? circuit.numQubits;
+  const qubitMessage = controls?.qubitMessage ?? null;
+  const onIncreaseQubits = controls?.onIncreaseQubits ?? NOOP_HANDLER;
+  const onDecreaseQubits = controls?.onDecreaseQubits ?? NOOP_HANDLER;
+  const onClearCircuit = controls?.onClearCircuit ?? NOOP_HANDLER;
+  const onResetWorkbench = controls?.onResetWorkbench ?? NOOP_HANDLER;
+  const onLoadTemplate = controls?.onLoadTemplate ?? NOOP_TEMPLATE_HANDLER;
 
   const layers = computeLayerCount(circuit, minLayers);
   const qubits = Array.from({ length: circuit.numQubits }).map((_, index) => index);
@@ -388,37 +422,109 @@ function CircuitCanvas({
           </button>
         </div>
       ) : null}
-      <div className="canvas-viewport-toolbar" data-testid="canvas-zoom-toolbar">
-        <span className="canvas-zoom-percent" data-testid="canvas-zoom-percent">
-          {zoomPercentText}
-        </span>
-        <button
-          type="button"
-          data-testid="canvas-zoom-out"
-          onClick={onZoomOut}
-          disabled={!canZoomOut}
-          aria-label="缩小画布"
+      <div className="canvas-workbench-toolbar" data-testid="canvas-workbench-toolbar">
+        {hasWorkbenchControls ? (
+          <div className="canvas-workbench-group" data-testid="canvas-workbench-actions">
+            <button type="button" className="canvas-workbench-btn" onClick={onUndo} disabled={!canUndoAction}>
+              撤销
+            </button>
+            <button type="button" className="canvas-workbench-btn" onClick={onRedo} disabled={!canRedoAction}>
+              重做
+            </button>
+            <button type="button" className="canvas-workbench-btn" onClick={onClearCircuit}>
+              清空电路
+            </button>
+            <button type="button" className="canvas-workbench-btn" onClick={onResetWorkbench}>
+              重置工作台
+            </button>
+          </div>
+        ) : null}
+        {hasWorkbenchControls ? (
+          <div className="canvas-workbench-group" data-testid="canvas-workbench-qubits">
+            <span className="canvas-workbench-label">Qubits</span>
+            <button
+              type="button"
+              className="canvas-workbench-btn canvas-workbench-btn--small"
+              onClick={onDecreaseQubits}
+              disabled={!canDecreaseQubits}
+            >
+              -Qubit
+            </button>
+            <span className="canvas-workbench-value" data-testid="canvas-qubit-count">
+              {currentQubits}
+            </span>
+            <button
+              type="button"
+              className="canvas-workbench-btn canvas-workbench-btn--small"
+              onClick={onIncreaseQubits}
+              disabled={!canIncreaseQubits}
+            >
+              +Qubit
+            </button>
+          </div>
+        ) : null}
+        {hasWorkbenchControls ? (
+          <div className="canvas-workbench-group" data-testid="canvas-workbench-templates">
+            <span className="canvas-workbench-label">模板</span>
+            <button
+              type="button"
+              className="canvas-workbench-btn"
+              onClick={() => onLoadTemplate(BELL_TEMPLATE_ID)}
+            >
+              Bell 态
+            </button>
+            <button
+              type="button"
+              className="canvas-workbench-btn"
+              onClick={() => onLoadTemplate(SUPERPOSITION_TEMPLATE_ID)}
+            >
+              均匀叠加态
+            </button>
+          </div>
+        ) : null}
+        <div
+          className="canvas-workbench-group canvas-workbench-group--zoom"
+          data-testid="canvas-zoom-toolbar"
         >
-          -
-        </button>
-        <button
-          type="button"
-          data-testid="canvas-zoom-in"
-          onClick={onZoomIn}
-          disabled={!canZoomIn}
-          aria-label="放大画布"
-        >
-          +
-        </button>
-        <button
-          type="button"
-          data-testid="canvas-zoom-reset"
-          onClick={onZoomReset}
-          aria-label="重置画布缩放"
-        >
-          100%
-        </button>
+          <span className="canvas-zoom-percent" data-testid="canvas-zoom-percent">
+            {zoomPercentText}
+          </span>
+          <button
+            type="button"
+            className="canvas-workbench-btn canvas-workbench-btn--small"
+            data-testid="canvas-zoom-out"
+            onClick={onZoomOut}
+            disabled={!canZoomOut}
+            aria-label="缩小画布"
+          >
+            -
+          </button>
+          <button
+            type="button"
+            className="canvas-workbench-btn canvas-workbench-btn--small"
+            data-testid="canvas-zoom-in"
+            onClick={onZoomIn}
+            disabled={!canZoomIn}
+            aria-label="放大画布"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            className="canvas-workbench-btn canvas-workbench-btn--small"
+            data-testid="canvas-zoom-reset"
+            onClick={onZoomReset}
+            aria-label="重置画布缩放"
+          >
+            100%
+          </button>
+        </div>
       </div>
+      {hasWorkbenchControls && qubitMessage ? (
+        <p style={{ margin: "0 0 8px 0", color: "#cf1322" }} data-testid="qubit-message">
+          {qubitMessage}
+        </p>
+      ) : null}
       <div
         ref={viewportRef}
         className={viewportClassName}
