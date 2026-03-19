@@ -144,6 +144,21 @@ describe("CircuitCanvas", () => {
     expect(screen.queryByText("CX")).not.toBeInTheDocument();
   });
 
+  it("renders one row-level wire for each qubit row", () => {
+    const model: CircuitModel = {
+      numQubits: 3,
+      operations: [{ id: "op-1", gate: "h", targets: [1], layer: 1 }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={3} />);
+
+    const wires = screen.getAllByTestId(/canvas-row-wire-/);
+    expect(wires).toHaveLength(3);
+    expect(within(screen.getByTestId("canvas-row-track-0")).getByTestId("canvas-row-wire-0")).toBeInTheDocument();
+    expect(within(screen.getByTestId("canvas-row-track-1")).getByTestId("canvas-row-wire-1")).toBeInTheDocument();
+    expect(within(screen.getByTestId("canvas-row-track-2")).getByTestId("canvas-row-wire-2")).toBeInTheDocument();
+  });
+
   it("deletes selected operation when Delete key is pressed", () => {
     const model: CircuitModel = {
       numQubits: 1,

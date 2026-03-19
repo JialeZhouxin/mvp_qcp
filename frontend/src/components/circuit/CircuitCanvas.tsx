@@ -558,9 +558,15 @@ function CircuitCanvas({
       >
         <div className="canvas-grid" style={viewportContentStyle}>
           {qubits.map((qubit) => (
-            <div key={qubit} className="canvas-row">
+            <div key={qubit} className="canvas-row" data-testid={`canvas-row-${qubit}`}>
               <strong className="canvas-row-label">q{qubit}</strong>
-              {layerIndexes.map((layer) => {
+              <div className="canvas-row-track" data-testid={`canvas-row-track-${qubit}`}>
+                <span
+                  className="canvas-row-wire"
+                  data-testid={`canvas-row-wire-${qubit}`}
+                  aria-hidden="true"
+                />
+                {layerIndexes.map((layer) => {
                 const operation = findOperationAtCell(circuit.operations, qubit, layer);
                 const isSelectedOperation =
                   selectedOperationId !== null && operation?.id === selectedOperationId;
@@ -628,7 +634,8 @@ function CircuitCanvas({
                     ) : null}
                   </div>
                 );
-              })}
+                })}
+              </div>
             </div>
           ))}
         </div>
