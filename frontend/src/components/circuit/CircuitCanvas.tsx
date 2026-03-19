@@ -16,6 +16,7 @@ import {
   GateLabel,
   MessageBlock,
   computeLayerCount,
+  estimateGateBodyWidthPx,
   findConnectorOperationAtCell,
   findOperationAtCell,
   getConnectorSegment,
@@ -43,10 +44,24 @@ const GATE_DRAG_MIME = "application/x-qcp-gate";
 const NOOP_HANDLER = () => {};
 const BELL_TEMPLATE_ID = "bell";
 const SUPERPOSITION_TEMPLATE_ID = "superposition";
+const CELL_WIDTH_PADDING_PX = 10;
+const MIN_CELL_WIDTH_PX = 40;
 
 type CanvasTemplateId = typeof BELL_TEMPLATE_ID | typeof SUPERPOSITION_TEMPLATE_ID;
 
 const NOOP_TEMPLATE_HANDLER = (_templateId: CanvasTemplateId) => {};
+
+function computeLayerCellWidths(operations: readonly Operation[], layerCount: number): readonly number[] {
+  const widths = Array.from({ length: layerCount }, () => MIN_CELL_WIDTH_PX);
+  for (const operation of operations) {
+    const candidate = Math.max(
+      MIN_CELL_WIDTH_PX,
+      estimateGateBodyWidthPx(operation) + CELL_WIDTH_PADDING_PX,
+    );
+    widths[operation.layer] = Math.max(widths[operation.layer] ?? MIN_CELL_WIDTH_PX, candidate);
+  }
+  return widths;
+}
 
 interface CircuitCanvasControls {
   readonly canUndo: boolean;
@@ -122,6 +137,7 @@ function CircuitCanvas({
   const layers = computeLayerCount(circuit, minLayers);
   const qubits = Array.from({ length: circuit.numQubits }).map((_, index) => index);
   const layerIndexes = Array.from({ length: layers }).map((_, index) => index);
+  const layerCellWidths = computeLayerCellWidths(circuit.operations, layers);
   const selectedOperation = selectedOperationId
     ? circuit.operations.find((operation) => operation.id === selectedOperationId) ?? null
     : null;
@@ -579,6 +595,9 @@ function CircuitCanvas({
                     onDragLeave={(event) => onDragLeaveCell(event, qubit, layer)}
                     onClick={() => onCellClick(qubit, layer)}
                     className={getCellClassName(operation, qubit, layer)}
+                    style={{
+                      "--canvas-cell-width": `${layerCellWidths[layer] ?? MIN_CELL_WIDTH_PX}px`,
+                    }}
                     tabIndex={operation ? 0 : undefined}
                     data-testid={`canvas-cell-${qubit}-${layer}`}
                   >

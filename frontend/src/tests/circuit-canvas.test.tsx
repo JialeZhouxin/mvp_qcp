@@ -69,8 +69,9 @@ describe("CircuitCanvas", () => {
     render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
 
     const gateText = screen.getByText("X");
-    expect(gateText).toHaveClass("canvas-gate-text");
-    expect(gateText.parentElement).toHaveClass("canvas-gate-box");
+    expect(gateText).toHaveClass("canvas-gate-text-line");
+    expect(gateText.closest(".canvas-gate-text")).toHaveClass("canvas-gate-text");
+    expect(gateText.closest(".canvas-gate-box")).toHaveClass("canvas-gate-box");
 
     const removeButton = screen.getByTestId("remove-op-op-1");
     expect(removeButton).toHaveTextContent("×");
@@ -111,16 +112,19 @@ describe("CircuitCanvas", () => {
     const cpTargetCell = screen.getByTestId("canvas-cell-1-5");
     const cpControlCell = screen.getByTestId("canvas-cell-3-5");
 
-    expect(singleGate.parentElement).toHaveClass("canvas-gate-box--single");
-    expect(measurementGate.parentElement).toHaveClass("canvas-gate-box--measurement");
+    expect(singleGate.closest(".canvas-gate-box")).toHaveClass("canvas-gate-box--single");
+    expect(measurementGate.closest(".canvas-gate-box")).toHaveClass("canvas-gate-box--measurement");
     expect(cxControlCell.querySelector(".canvas-gate-box--symbol-control")).toBeInTheDocument();
     expect(cxTargetCell.querySelector(".canvas-gate-box--symbol-target-x")).toBeInTheDocument();
+    expect(cxTargetCell.querySelector(".canvas-gate-box--symbol-target-x")).not.toHaveClass(
+      "canvas-gate-box--multi",
+    );
     expect(czTargetCell.querySelector(".canvas-gate-box--symbol-target-z")).toBeInTheDocument();
     expect(ccxControlCell.querySelector(".canvas-gate-box--symbol-control")).toBeInTheDocument();
     expect(ccxTargetCell.querySelector(".canvas-gate-box--symbol-target-x")).toBeInTheDocument();
     expect(within(swapStartCell).getByTitle(swapTitle)).toHaveClass("canvas-gate-box--symbol-swap");
     expect(within(swapEndCell).getByTitle(swapTitle)).toHaveClass("canvas-gate-box--symbol-swap");
-    expect(within(cpTargetCell).getByText("P(0.40)").parentElement).toHaveClass(
+    expect(within(cpTargetCell).getByText("P(0.40)").closest(".canvas-gate-box")).toHaveClass(
       "canvas-gate-box--symbol-target-p",
     );
     expect(cpControlCell.querySelector(".canvas-gate-box--symbol-control")).toBeInTheDocument();
@@ -506,10 +510,42 @@ describe("CircuitCanvas", () => {
     const onCircuitChange = vi.fn();
     render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={3} />);
 
-    expect(within(screen.getByTestId("canvas-cell-0-0")).getByText("RX(1.23)")).toBeInTheDocument();
-    expect(within(screen.getByTestId("canvas-cell-1-0")).getByText("U(1.00,0.00,3.14)")).toBeInTheDocument();
-    expect(within(screen.getByTestId("canvas-cell-0-1")).getByText("P(0.40)")).toBeInTheDocument();
+    const rxCell = screen.getByTestId("canvas-cell-0-0");
+    const uCell = screen.getByTestId("canvas-cell-1-0");
+    const pCell = screen.getByTestId("canvas-cell-0-1");
+    const cpTargetCell = screen.getByTestId("canvas-cell-1-1");
+
+    expect(within(rxCell).getByText("RX")).toBeInTheDocument();
+    expect(within(rxCell).getByText("(1.23)")).toBeInTheDocument();
+    expect(within(uCell).getByText("U")).toBeInTheDocument();
+    expect(within(uCell).getByText("(1.00,0.00,3.14)")).toBeInTheDocument();
+    expect(within(pCell).getByText("P")).toBeInTheDocument();
+    expect(within(pCell).getByText("(0.40)")).toBeInTheDocument();
     expect(within(screen.getByTestId("canvas-cell-1-1")).getByText("P(0.25)")).toBeInTheDocument();
+    expect(within(rxCell).getByText("RX").closest(".canvas-gate-text")).toHaveClass(
+      "canvas-gate-text--stacked",
+    );
+    expect(cpTargetCell.querySelector(".canvas-gate-box--symbol-target-p")).toBeInTheDocument();
+  });
+
+  it("uses compact cell width per layer based on gate body width", () => {
+    const model: CircuitModel = {
+      numQubits: 2,
+      operations: [
+        { id: "op-x", gate: "x", targets: [0], layer: 0 },
+        { id: "op-u", gate: "u", targets: [1], layer: 1, params: [1, 0, Math.PI] },
+        { id: "op-cx", gate: "cx", controls: [0], targets: [1], layer: 2 },
+      ],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={4} />);
+
+    expect(screen.getByTestId("canvas-cell-0-0")).toHaveStyle("--canvas-cell-width: 40px");
+    expect(screen.getByTestId("canvas-cell-1-0")).toHaveStyle("--canvas-cell-width: 40px");
+    expect(screen.getByTestId("canvas-cell-0-1")).toHaveStyle("--canvas-cell-width: 62px");
+    expect(screen.getByTestId("canvas-cell-1-1")).toHaveStyle("--canvas-cell-width: 62px");
+    expect(screen.getByTestId("canvas-cell-0-2")).toHaveStyle("--canvas-cell-width: 40px");
+    expect(screen.getByTestId("canvas-cell-1-2")).toHaveStyle("--canvas-cell-width: 40px");
   });
 
   it("shows inline parameter editor for selected parameterized gate", () => {

@@ -4,9 +4,17 @@ import { getParameterValues, isParameterizedGate } from "./canvas-gate-utils";
 import type { PendingPlacement } from "./canvas-gate-utils";
 
 const INLINE_PARAM_PRECISION = 2;
+const SINGLE_GATE_BODY_WIDTH_PX = 30;
+const SYMBOLIC_RECT_GATE_BODY_WIDTH_PX = 34;
+const MULTI_GATE_BODY_WIDTH_PX = 48;
+const PARAMETERIZED_GATE_BODY_WIDTH_PX = 52;
 
 function formatInlineParam(value: number): string {
   return value.toFixed(INLINE_PARAM_PRECISION);
+}
+
+function formatGateParams(operation: Operation): string {
+  return getParameterValues(operation).map(formatInlineParam).join(",");
 }
 
 function formatGateText(operation: Operation): string {
@@ -14,8 +22,16 @@ function formatGateText(operation: Operation): string {
   if (!isParameterizedGate(operation.gate)) {
     return gate;
   }
-  const paramText = getParameterValues(operation).map(formatInlineParam).join(",");
+  const paramText = formatGateParams(operation);
   return `${gate}(${paramText})`;
+}
+
+function getGateLabelLines(operation: Operation): readonly string[] {
+  const gate = operation.gate.toUpperCase();
+  if (!isParameterizedGate(operation.gate)) {
+    return [gate];
+  }
+  return [gate, `(${formatGateParams(operation)})`];
 }
 
 export function includesQubit(operation: Operation, qubit: number): boolean {
@@ -111,6 +127,22 @@ export function isMultiQubitOperation(operation: Operation): boolean {
   return getTouchedQubits(operation).length > 1;
 }
 
+export function estimateGateBodyWidthPx(operation: Operation): number {
+  if (operation.gate === "cx" || operation.gate === "ccx" || operation.gate === "swap") {
+    return SINGLE_GATE_BODY_WIDTH_PX;
+  }
+  if (operation.gate === "cz" || operation.gate === "cp") {
+    return SYMBOLIC_RECT_GATE_BODY_WIDTH_PX;
+  }
+  if (isParameterizedGate(operation.gate)) {
+    return PARAMETERIZED_GATE_BODY_WIDTH_PX;
+  }
+  if (isMultiQubitOperation(operation)) {
+    return MULTI_GATE_BODY_WIDTH_PX;
+  }
+  return SINGLE_GATE_BODY_WIDTH_PX;
+}
+
 export function getConnectorSegment(
   operation: Operation,
   qubit: number,
@@ -169,13 +201,14 @@ export function GateLabel({ operation, qubit }: { operation: Operation; qubit: n
   const detailLabel = getOperationDetailLabel(operation);
   const symbolRole = getSymbolRole(operation, qubit);
   const accessibleLabel = symbolRole ? `${detailLabel} (${symbolRole.roleText})` : detailLabel;
+  const labelLines = symbolRole ? [symbolRole.label] : getGateLabelLines(operation);
 
   const variantClassName = (() => {
     if (operation.gate === "m") {
       return "canvas-gate-box--measurement";
     }
     if (symbolRole) {
-      return `canvas-gate-box--multi canvas-gate-box--symbolic ${symbolRole.className}`;
+      return `canvas-gate-box--symbolic ${symbolRole.className}`;
     }
     if (isMultiQubitOperation(operation)) {
       return "canvas-gate-box--multi";
@@ -192,7 +225,13 @@ export function GateLabel({ operation, qubit }: { operation: Operation; qubit: n
       title={accessibleLabel}
       aria-label={accessibleLabel}
     >
-      <span className="canvas-gate-text">{symbolRole ? symbolRole.label : shortLabel}</span>
+      <span className={`canvas-gate-text ${labelLines.length > 1 ? "canvas-gate-text--stacked" : ""}`}>
+        {labelLines.map((line, index) => (
+          <span key={`${shortLabel}-${index}`} className="canvas-gate-text-line">
+            {line}
+          </span>
+        ))}
+      </span>
     </span>
   );
 }
