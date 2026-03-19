@@ -82,6 +82,29 @@ describe("CircuitCanvas", () => {
     expect(nextModel.operations).toHaveLength(0);
   });
 
+  it("renders compact gate labels with visual variants", () => {
+    const model: CircuitModel = {
+      numQubits: 3,
+      operations: [
+        { id: "op-x", gate: "x", targets: [0], layer: 0 },
+        { id: "op-cx", gate: "cx", controls: [0], targets: [1], layer: 1 },
+        { id: "op-m", gate: "m", targets: [2], layer: 2 },
+      ],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={4} />);
+
+    const singleGate = screen.getByText("X");
+    const [multiGate] = screen.getAllByText("CX");
+    const measurementGate = screen.getByText("M");
+
+    expect(singleGate.parentElement).toHaveClass("canvas-gate-box--single");
+    expect(multiGate.parentElement).toHaveClass("canvas-gate-box--multi");
+    expect(measurementGate.parentElement).toHaveClass("canvas-gate-box--measurement");
+    expect(multiGate.parentElement).toHaveAttribute("title", "CX c0 -> t1");
+    expect(screen.queryByText("CX c0 -> t1")).not.toBeInTheDocument();
+  });
+
   it("deletes selected operation when Delete key is pressed", () => {
     const model: CircuitModel = {
       numQubits: 1,

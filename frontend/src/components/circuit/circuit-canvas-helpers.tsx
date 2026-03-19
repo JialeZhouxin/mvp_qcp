@@ -34,19 +34,33 @@ export function toPendingPlacementMessage(pending: PendingPlacement): LocalizedM
 }
 
 export function GateLabel({ operation }: { operation: Operation }) {
-  let label: string;
+  const shortLabel = operation.gate.toUpperCase();
+  let detailLabel: string;
   if (operation.controls && operation.controls.length > 0) {
     const controls = operation.controls.map((value) => `c${value}`).join(",");
-    label = `${operation.gate.toUpperCase()} ${controls} -> t${operation.targets[0]}`;
+    detailLabel = `${shortLabel} ${controls} -> t${operation.targets[0]}`;
   } else if (operation.targets.length === 2) {
-    label = `${operation.gate.toUpperCase()} q${operation.targets[0]} <-> q${operation.targets[1]}`;
+    detailLabel = `${shortLabel} q${operation.targets[0]} <-> q${operation.targets[1]}`;
   } else {
-    label = operation.gate.toUpperCase();
+    detailLabel = `${shortLabel} q${operation.targets[0]}`;
   }
 
+  const variantClassName =
+    operation.gate === "m"
+      ? "canvas-gate-box--measurement"
+      : operation.controls && operation.controls.length > 0
+        ? "canvas-gate-box--multi"
+        : operation.targets.length > 1
+          ? "canvas-gate-box--multi"
+          : "canvas-gate-box--single";
+
   return (
-    <span className="canvas-gate-box">
-      <span className="canvas-gate-text">{label}</span>
+    <span
+      className={`canvas-gate-box ${variantClassName}`}
+      title={detailLabel}
+      aria-label={detailLabel}
+    >
+      <span className="canvas-gate-text">{shortLabel}</span>
     </span>
   );
 }
