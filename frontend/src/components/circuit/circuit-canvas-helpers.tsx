@@ -16,6 +16,119 @@ export function findOperationAtCell(
   );
 }
 
+function getTouchedQubits(operation: Operation): readonly number[] {
+  return [...operation.targets, ...(operation.controls ?? [])];
+}
+
+function getControlText(operation: Operation): string {
+  if (!operation.controls || operation.controls.length === 0) {
+    return "";
+  }
+  return operation.controls.map((value) => `c${value}`).join(",");
+}
+
+function getOperationDetailLabel(operation: Operation): string {
+  const shortLabel = operation.gate.toUpperCase();
+  if (operation.controls && operation.controls.length > 0) {
+    return `${shortLabel} ${getControlText(operation)} -> t${operation.targets[0]}`;
+  }
+  if (operation.targets.length === 2) {
+    return `${shortLabel} q${operation.targets[0]} <-> q${operation.targets[1]}`;
+  }
+  return `${shortLabel} q${operation.targets[0]}`;
+}
+
+function getSymbolRole(operation: Operation, qubit: number) {
+  const isControl = operation.controls?.includes(qubit) === true;
+  const isTarget = operation.targets.includes(qubit);
+
+  if (isControl) {
+    return {
+      label: "●",
+      className: "canvas-gate-box--symbol-control",
+      roleText: "control",
+    };
+  }
+
+  if (operation.gate === "swap" && isTarget) {
+    return {
+      label: "×",
+      className: "canvas-gate-box--symbol-swap",
+      roleText: "swap endpoint",
+    };
+  }
+
+  if (!isTarget) {
+    return null;
+  }
+
+  if (operation.gate === "cx" || operation.gate === "ccx") {
+    return {
+      label: "⊕",
+      className: "canvas-gate-box--symbol-target-x",
+      roleText: "target ⊕",
+    };
+  }
+
+  if (operation.gate === "cz") {
+    return {
+      label: "[Z]",
+      className: "canvas-gate-box--symbol-target-z",
+      roleText: "target [Z]",
+    };
+  }
+
+  if (operation.gate === "cp") {
+    return {
+      label: "[P(λ)]",
+      className: "canvas-gate-box--symbol-target-p",
+      roleText: "target [P(lambda)]",
+    };
+  }
+
+  return null;
+}
+
+export function isMultiQubitOperation(operation: Operation): boolean {
+  return getTouchedQubits(operation).length > 1;
+}
+
+export function getConnectorSegment(
+  operation: Operation,
+  qubit: number,
+): "start" | "middle" | "end" | null {
+  const touched = getTouchedQubits(operation);
+  if (touched.length < 2) {
+    return null;
+  }
+
+  const minQubit = Math.min(...touched);
+  const maxQubit = Math.max(...touched);
+  if (qubit < minQubit || qubit > maxQubit) {
+    return null;
+  }
+  if (qubit === minQubit) {
+    return "start";
+  }
+  if (qubit === maxQubit) {
+    return "end";
+  }
+  return "middle";
+}
+
+export function findConnectorOperationAtCell(
+  operations: readonly Operation[],
+  qubit: number,
+  layer: number,
+): Operation | undefined {
+  return operations.find((operation) => {
+    if (operation.layer !== layer || !isMultiQubitOperation(operation)) {
+      return false;
+    }
+    return getConnectorSegment(operation, qubit) !== null;
+  });
+}
+
 export function computeLayerCount(circuit: CircuitModel, minLayers: number): number {
   const maxLayer = circuit.operations.reduce(
     (max, operation) => Math.max(max, operation.layer),
@@ -33,34 +146,32 @@ export function toPendingPlacementMessage(pending: PendingPlacement): LocalizedM
   };
 }
 
-export function GateLabel({ operation }: { operation: Operation }) {
+export function GateLabel({ operation, qubit }: { operation: Operation; qubit: number }) {
   const shortLabel = operation.gate.toUpperCase();
-  let detailLabel: string;
-  if (operation.controls && operation.controls.length > 0) {
-    const controls = operation.controls.map((value) => `c${value}`).join(",");
-    detailLabel = `${shortLabel} ${controls} -> t${operation.targets[0]}`;
-  } else if (operation.targets.length === 2) {
-    detailLabel = `${shortLabel} q${operation.targets[0]} <-> q${operation.targets[1]}`;
-  } else {
-    detailLabel = `${shortLabel} q${operation.targets[0]}`;
-  }
+  const detailLabel = getOperationDetailLabel(operation);
+  const symbolRole = getSymbolRole(operation, qubit);
+  const accessibleLabel = symbolRole ? `${detailLabel} (${symbolRole.roleText})` : detailLabel;
 
-  const variantClassName =
-    operation.gate === "m"
-      ? "canvas-gate-box--measurement"
-      : operation.controls && operation.controls.length > 0
-        ? "canvas-gate-box--multi"
-        : operation.targets.length > 1
-          ? "canvas-gate-box--multi"
-          : "canvas-gate-box--single";
+  const variantClassName = (() => {
+    if (operation.gate === "m") {
+      return "canvas-gate-box--measurement";
+    }
+    if (symbolRole) {
+      return `canvas-gate-box--multi canvas-gate-box--symbolic ${symbolRole.className}`;
+    }
+    if (isMultiQubitOperation(operation)) {
+      return "canvas-gate-box--multi";
+    }
+    return "canvas-gate-box--single";
+  })();
 
   return (
     <span
       className={`canvas-gate-box ${variantClassName}`}
-      title={detailLabel}
-      aria-label={detailLabel}
+      title={accessibleLabel}
+      aria-label={accessibleLabel}
     >
-      <span className="canvas-gate-text">{shortLabel}</span>
+      <span className="canvas-gate-text">{symbolRole ? symbolRole.label : shortLabel}</span>
     </span>
   );
 }

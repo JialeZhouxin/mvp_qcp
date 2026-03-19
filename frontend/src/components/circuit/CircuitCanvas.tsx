@@ -16,7 +16,9 @@ import {
   GateLabel,
   MessageBlock,
   computeLayerCount,
+  findConnectorOperationAtCell,
   findOperationAtCell,
+  getConnectorSegment,
   toPendingPlacementMessage,
 } from "./circuit-canvas-helpers";
 import {
@@ -368,9 +370,21 @@ function CircuitCanvas({
     },
   });
 
-  const getCellClassName = (operation: Operation | undefined, qubit: number, layer: number) => {
+  const getCellClassName = (
+    operation: Operation | undefined,
+    qubit: number,
+    layer: number,
+  ) => {
+    const connectorOperation = findConnectorOperationAtCell(circuit.operations, qubit, layer);
+    const connectorSegment =
+      connectorOperation &&
+      (!operation || operation.id === connectorOperation.id)
+        ? getConnectorSegment(connectorOperation, qubit)
+        : null;
     const key = toCellKey(qubit, layer);
     const isSelected = selectedOperationId !== null && operation?.id === selectedOperationId;
+    const isConnectorSelected =
+      selectedOperationId !== null && connectorOperation?.id === selectedOperationId;
     const isHovered = hoveredCellKey === key;
     const classNames = ["canvas-cell"];
 
@@ -391,6 +405,13 @@ function CircuitCanvas({
         if (isHovered) {
           classNames.push("canvas-cell--drop-hover");
         }
+      }
+    }
+
+    if (connectorSegment) {
+      classNames.push("canvas-cell--connector", `canvas-cell--connector-${connectorSegment}`);
+      if (isConnectorSelected) {
+        classNames.push("canvas-cell--connector-selected");
       }
     }
 
@@ -556,7 +577,7 @@ function CircuitCanvas({
                     data-testid={`canvas-cell-${qubit}-${layer}`}
                   >
                     {operation ? (
-                      <GateLabel operation={operation} />
+                      <GateLabel operation={operation} qubit={qubit} />
                     ) : (
                       <span className="canvas-empty-placeholder">-</span>
                     )}

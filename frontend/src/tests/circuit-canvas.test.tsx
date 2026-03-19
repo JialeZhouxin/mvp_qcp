@@ -82,27 +82,66 @@ describe("CircuitCanvas", () => {
     expect(nextModel.operations).toHaveLength(0);
   });
 
-  it("renders compact gate labels with visual variants", () => {
+  it("renders symbolic controlled gates and connector lines", () => {
     const model: CircuitModel = {
-      numQubits: 3,
+      numQubits: 4,
       operations: [
         { id: "op-x", gate: "x", targets: [0], layer: 0 },
         { id: "op-cx", gate: "cx", controls: [0], targets: [1], layer: 1 },
-        { id: "op-m", gate: "m", targets: [2], layer: 2 },
+        { id: "op-cz", gate: "cz", controls: [0], targets: [2], layer: 2 },
+        { id: "op-ccx", gate: "ccx", controls: [0, 1], targets: [3], layer: 3 },
+        { id: "op-swap", gate: "swap", targets: [0, 2], layer: 4 },
+        { id: "op-cp", gate: "cp", controls: [3], targets: [1], params: [0.4], layer: 5 },
+        { id: "op-m", gate: "m", targets: [2], layer: 6 },
       ],
     };
     const onCircuitChange = vi.fn();
-    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={4} />);
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={7} />);
 
     const singleGate = screen.getByText("X");
-    const [multiGate] = screen.getAllByText("CX");
     const measurementGate = screen.getByText("M");
+    const cxControlCell = screen.getByTestId("canvas-cell-0-1");
+    const cxTargetCell = screen.getByTestId("canvas-cell-1-1");
+    const czTargetCell = screen.getByTestId("canvas-cell-2-2");
+    const ccxControlCell = screen.getByTestId("canvas-cell-1-3");
+    const ccxTargetCell = screen.getByTestId("canvas-cell-3-3");
+    const swapStartCell = screen.getByTestId("canvas-cell-0-4");
+    const swapEndCell = screen.getByTestId("canvas-cell-2-4");
+    const swapTitle = "SWAP q0 <-> q2 (swap endpoint)";
+    const cpTargetCell = screen.getByTestId("canvas-cell-1-5");
+    const cpControlCell = screen.getByTestId("canvas-cell-3-5");
 
     expect(singleGate.parentElement).toHaveClass("canvas-gate-box--single");
-    expect(multiGate.parentElement).toHaveClass("canvas-gate-box--multi");
     expect(measurementGate.parentElement).toHaveClass("canvas-gate-box--measurement");
-    expect(multiGate.parentElement).toHaveAttribute("title", "CX c0 -> t1");
-    expect(screen.queryByText("CX c0 -> t1")).not.toBeInTheDocument();
+    expect(within(cxControlCell).getByText("●").parentElement).toHaveClass(
+      "canvas-gate-box--symbol-control",
+    );
+    expect(within(cxTargetCell).getByText("⊕").parentElement).toHaveClass(
+      "canvas-gate-box--symbol-target-x",
+    );
+    expect(within(czTargetCell).getByText("[Z]").parentElement).toHaveClass(
+      "canvas-gate-box--symbol-target-z",
+    );
+    expect(within(ccxControlCell).getByText("●")).toBeInTheDocument();
+    expect(within(ccxTargetCell).getByText("⊕")).toBeInTheDocument();
+    expect(within(swapStartCell).getByTitle(swapTitle)).toHaveClass("canvas-gate-box--symbol-swap");
+    expect(within(swapEndCell).getByTitle(swapTitle)).toHaveClass("canvas-gate-box--symbol-swap");
+    expect(within(cpTargetCell).getByText("[P(λ)]").parentElement).toHaveClass(
+      "canvas-gate-box--symbol-target-p",
+    );
+    expect(within(cpControlCell).getByText("●")).toBeInTheDocument();
+
+    expect(screen.getByTestId("canvas-cell-1-2")).toHaveClass("canvas-cell--connector-middle");
+    expect(screen.getByTestId("canvas-cell-1-4")).toHaveClass("canvas-cell--connector-middle");
+    expect(screen.getByTestId("canvas-cell-2-5")).toHaveClass("canvas-cell--connector-middle");
+    expect(cpTargetCell).toHaveClass("canvas-cell--connector-start");
+    expect(cpControlCell).toHaveClass("canvas-cell--connector-end");
+
+    expect(within(cxTargetCell).getByText("⊕").parentElement).toHaveAttribute(
+      "title",
+      expect.stringContaining("target ⊕"),
+    );
+    expect(screen.queryByText("CX")).not.toBeInTheDocument();
   });
 
   it("deletes selected operation when Delete key is pressed", () => {
