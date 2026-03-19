@@ -255,6 +255,20 @@
   border-color: #274d74;
 }
 
+.canvas-gate-box--parameterized {
+  min-width: calc(88px * var(--canvas-scale));
+  height: calc(30px * var(--canvas-scale));
+  padding: 0 calc(8px * var(--canvas-scale));
+  border-radius: calc(999px * var(--canvas-scale));
+  background: linear-gradient(145deg, #4a90d9 0%, #2e5c8a 100%);
+  border-color: #274d74;
+}
+
+.canvas-gate-box--parameterized .canvas-gate-text {
+  font-size: calc(10px * var(--canvas-scale));
+  letter-spacing: 0;
+}
+
 .canvas-gate-box--multi {
   min-width: calc(48px * var(--canvas-scale));
   height: calc(30px * var(--canvas-scale));

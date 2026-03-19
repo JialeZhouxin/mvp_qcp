@@ -1,6 +1,22 @@
 import type { CircuitModel, Operation } from "../../features/circuit/model/types";
 import type { LocalizedMessage } from "../../features/circuit/ui/message-catalog";
+import { getParameterValues, isParameterizedGate } from "./canvas-gate-utils";
 import type { PendingPlacement } from "./canvas-gate-utils";
+
+const INLINE_PARAM_PRECISION = 2;
+
+function formatInlineParam(value: number): string {
+  return value.toFixed(INLINE_PARAM_PRECISION);
+}
+
+function formatGateText(operation: Operation): string {
+  const gate = operation.gate.toUpperCase();
+  if (!isParameterizedGate(operation.gate)) {
+    return gate;
+  }
+  const paramText = getParameterValues(operation).map(formatInlineParam).join(",");
+  return `${gate}(${paramText})`;
+}
 
 export function includesQubit(operation: Operation, qubit: number): boolean {
   return operation.targets.includes(qubit) || operation.controls?.includes(qubit) === true;
@@ -28,7 +44,7 @@ function getControlText(operation: Operation): string {
 }
 
 function getOperationDetailLabel(operation: Operation): string {
-  const shortLabel = operation.gate.toUpperCase();
+  const shortLabel = formatGateText(operation);
   if (operation.controls && operation.controls.length > 0) {
     return `${shortLabel} ${getControlText(operation)} -> t${operation.targets[0]}`;
   }
@@ -44,7 +60,7 @@ function getSymbolRole(operation: Operation, qubit: number) {
 
   if (isControl) {
     return {
-      label: "●",
+      label: "•",
       className: "canvas-gate-box--symbol-control",
       roleText: "control",
     };
@@ -66,7 +82,7 @@ function getSymbolRole(operation: Operation, qubit: number) {
     return {
       label: "⊕",
       className: "canvas-gate-box--symbol-target-x",
-      roleText: "target ⊕",
+      roleText: "target [X]",
     };
   }
 
@@ -79,10 +95,12 @@ function getSymbolRole(operation: Operation, qubit: number) {
   }
 
   if (operation.gate === "cp") {
+    const [lambda] = getParameterValues(operation);
+    const inlinePhaseLabel = `P(${formatInlineParam(lambda)})`;
     return {
-      label: "[P(λ)]",
+      label: inlinePhaseLabel,
       className: "canvas-gate-box--symbol-target-p",
-      roleText: "target [P(lambda)]",
+      roleText: `target [${inlinePhaseLabel}]`,
     };
   }
 
@@ -140,14 +158,14 @@ export function computeLayerCount(circuit: CircuitModel, minLayers: number): num
 export function toPendingPlacementMessage(pending: PendingPlacement): LocalizedMessage {
   const selected = pending.selectedQubits.map((qubit) => `q${qubit}`).join(", ");
   return {
-    title: "继续选择量子位",
-    detail: `正在放置 ${pending.gate.toUpperCase()}，已选择 ${pending.selectedQubits.length}/${pending.requiredQubits}（${selected}）`,
-    suggestion: "请在同一层点击其他空白量子位完成放置。",
+    title: "继续放置量子门",
+    detail: `已选择 ${pending.gate.toUpperCase()} 的 ${pending.selectedQubits.length}/${pending.requiredQubits} 个比特：${selected}`,
+    suggestion: "点击同一层的其他线路完成放置，或点击取消。",
   };
 }
 
 export function GateLabel({ operation, qubit }: { operation: Operation; qubit: number }) {
-  const shortLabel = operation.gate.toUpperCase();
+  const shortLabel = formatGateText(operation);
   const detailLabel = getOperationDetailLabel(operation);
   const symbolRole = getSymbolRole(operation, qubit);
   const accessibleLabel = symbolRole ? `${detailLabel} (${symbolRole.roleText})` : detailLabel;
@@ -161,6 +179,9 @@ export function GateLabel({ operation, qubit }: { operation: Operation; qubit: n
     }
     if (isMultiQubitOperation(operation)) {
       return "canvas-gate-box--multi";
+    }
+    if (isParameterizedGate(operation.gate)) {
+      return "canvas-gate-box--parameterized";
     }
     return "canvas-gate-box--single";
   })();

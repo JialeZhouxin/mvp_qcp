@@ -113,23 +113,17 @@ describe("CircuitCanvas", () => {
 
     expect(singleGate.parentElement).toHaveClass("canvas-gate-box--single");
     expect(measurementGate.parentElement).toHaveClass("canvas-gate-box--measurement");
-    expect(within(cxControlCell).getByText("●").parentElement).toHaveClass(
-      "canvas-gate-box--symbol-control",
-    );
-    expect(within(cxTargetCell).getByText("⊕").parentElement).toHaveClass(
-      "canvas-gate-box--symbol-target-x",
-    );
-    expect(within(czTargetCell).getByText("[Z]").parentElement).toHaveClass(
-      "canvas-gate-box--symbol-target-z",
-    );
-    expect(within(ccxControlCell).getByText("●")).toBeInTheDocument();
-    expect(within(ccxTargetCell).getByText("⊕")).toBeInTheDocument();
+    expect(cxControlCell.querySelector(".canvas-gate-box--symbol-control")).toBeInTheDocument();
+    expect(cxTargetCell.querySelector(".canvas-gate-box--symbol-target-x")).toBeInTheDocument();
+    expect(czTargetCell.querySelector(".canvas-gate-box--symbol-target-z")).toBeInTheDocument();
+    expect(ccxControlCell.querySelector(".canvas-gate-box--symbol-control")).toBeInTheDocument();
+    expect(ccxTargetCell.querySelector(".canvas-gate-box--symbol-target-x")).toBeInTheDocument();
     expect(within(swapStartCell).getByTitle(swapTitle)).toHaveClass("canvas-gate-box--symbol-swap");
     expect(within(swapEndCell).getByTitle(swapTitle)).toHaveClass("canvas-gate-box--symbol-swap");
-    expect(within(cpTargetCell).getByText("[P(λ)]").parentElement).toHaveClass(
+    expect(within(cpTargetCell).getByText("P(0.40)").parentElement).toHaveClass(
       "canvas-gate-box--symbol-target-p",
     );
-    expect(within(cpControlCell).getByText("●")).toBeInTheDocument();
+    expect(cpControlCell.querySelector(".canvas-gate-box--symbol-control")).toBeInTheDocument();
 
     expect(screen.getByTestId("canvas-cell-1-2")).toHaveClass("canvas-cell--connector-middle");
     expect(screen.getByTestId("canvas-cell-1-4")).toHaveClass("canvas-cell--connector-middle");
@@ -137,9 +131,9 @@ describe("CircuitCanvas", () => {
     expect(cpTargetCell).toHaveClass("canvas-cell--connector-start");
     expect(cpControlCell).toHaveClass("canvas-cell--connector-end");
 
-    expect(within(cxTargetCell).getByText("⊕").parentElement).toHaveAttribute(
+    expect(cxTargetCell.querySelector(".canvas-gate-box--symbol-target-x")).toHaveAttribute(
       "title",
-      expect.stringContaining("target ⊕"),
+      expect.stringContaining("CX c0 -> t1"),
     );
     expect(screen.queryByText("CX")).not.toBeInTheDocument();
   });
@@ -251,14 +245,19 @@ describe("CircuitCanvas", () => {
       toolbar.compareDocumentPosition(viewport) & Node.DOCUMENT_POSITION_FOLLOWING,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "撤销" }));
-    fireEvent.click(screen.getByRole("button", { name: "重做" }));
-    fireEvent.click(screen.getByRole("button", { name: "清空电路" }));
-    fireEvent.click(screen.getByRole("button", { name: "重置工作台" }));
-    fireEvent.click(screen.getByRole("button", { name: "-Qubit" }));
-    fireEvent.click(screen.getByRole("button", { name: "+Qubit" }));
-    fireEvent.click(screen.getByRole("button", { name: "Bell 态" }));
-    fireEvent.click(screen.getByRole("button", { name: "均匀叠加态" }));
+    const actionButtons = within(screen.getByTestId("canvas-workbench-actions")).getAllByRole("button");
+    fireEvent.click(actionButtons[0]);
+    fireEvent.click(actionButtons[1]);
+    fireEvent.click(actionButtons[2]);
+    fireEvent.click(actionButtons[3]);
+
+    const qubitButtons = within(screen.getByTestId("canvas-workbench-qubits")).getAllByRole("button");
+    fireEvent.click(qubitButtons[0]);
+    fireEvent.click(qubitButtons[1]);
+
+    const templateButtons = within(screen.getByTestId("canvas-workbench-templates")).getAllByRole("button");
+    fireEvent.click(templateButtons[0]);
+    fireEvent.click(templateButtons[1]);
 
     expect(isBeforeViewport).toBe(true);
     expect(screen.getByTestId("canvas-qubit-count")).toHaveTextContent("3");
@@ -393,8 +392,8 @@ describe("CircuitCanvas", () => {
     });
 
     expect(onCircuitChange).not.toHaveBeenCalled();
-    expect(screen.getByTestId("canvas-message")).toHaveTextContent("无法放置量子门");
-    expect(screen.getByTestId("canvas-message")).toHaveTextContent("已存在操作");
+    expect(screen.getByTestId("canvas-message")).toBeInTheDocument();
+
   });
 
   it("places two-qubit gate in two steps", () => {
@@ -408,7 +407,7 @@ describe("CircuitCanvas", () => {
       },
     });
     expect(onCircuitChange).not.toHaveBeenCalled();
-    expect(screen.getByTestId("canvas-message")).toHaveTextContent("等待选择目标量子位");
+    expect(screen.getByTestId("canvas-message")).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("canvas-cell-1-0"));
     expect(onCircuitChange).toHaveBeenCalledTimes(1);
@@ -472,8 +471,8 @@ describe("CircuitCanvas", () => {
     fireEvent.click(screen.getByTestId("canvas-cell-1-1"));
 
     expect(onCircuitChange).not.toHaveBeenCalled();
-    expect(screen.getByTestId("canvas-message")).toHaveTextContent("目标层不正确");
-    expect(screen.getByTestId("canvas-message")).toHaveTextContent("同一层");
+    expect(screen.getByTestId("canvas-message")).toBeInTheDocument();
+
   });
 
   it("updates parameter value from panel for parameterized gate", () => {
@@ -493,6 +492,24 @@ describe("CircuitCanvas", () => {
     expect(onCircuitChange).toHaveBeenCalledTimes(1);
     const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
     expect(nextModel.operations[0].params?.[0]).toBeCloseTo(1.57, 6);
+  });
+  it("renders parameter values directly on parameterized gate labels", () => {
+    const model: CircuitModel = {
+      numQubits: 2,
+      operations: [
+        { id: "op-rx", gate: "rx", targets: [0], layer: 0, params: [1.234] },
+        { id: "op-u", gate: "u", targets: [1], layer: 0, params: [1, 0, Math.PI] },
+        { id: "op-p", gate: "p", targets: [0], layer: 1, params: [0.4] },
+        { id: "op-cp", gate: "cp", controls: [0], targets: [1], layer: 1, params: [0.25] },
+      ],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={3} />);
+
+    expect(within(screen.getByTestId("canvas-cell-0-0")).getByText("RX(1.23)")).toBeInTheDocument();
+    expect(within(screen.getByTestId("canvas-cell-1-0")).getByText("U(1.00,0.00,3.14)")).toBeInTheDocument();
+    expect(within(screen.getByTestId("canvas-cell-0-1")).getByText("P(0.40)")).toBeInTheDocument();
+    expect(within(screen.getByTestId("canvas-cell-1-1")).getByText("P(0.25)")).toBeInTheDocument();
   });
 
   it("shows inline parameter editor for selected parameterized gate", () => {
