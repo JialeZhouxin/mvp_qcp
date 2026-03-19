@@ -92,6 +92,7 @@ function WorkbenchResultPanel({
             compact
             height={280}
             showTitle={false}
+            adaptiveBarWidth
           />
         ) : (
           <p style={{ margin: 0, color: "#999" }}>当前模式无可见状态，切换到“全部”可查看完整分布。</p>

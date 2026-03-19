@@ -13,6 +13,7 @@ interface ResultChartProps {
   readonly compact?: boolean;
   readonly showTitle?: boolean;
   readonly height?: number;
+  readonly adaptiveBarWidth?: boolean;
 }
 
 export interface ResultChartEntry {
@@ -29,17 +30,54 @@ export interface BuildResultChartOptionArgs {
   readonly valueDigits: number;
   readonly showBarValueLabel: boolean;
   readonly formatState: (state: string) => string;
+  readonly adaptiveBarWidth: boolean;
 }
 
 const DEFAULT_VALUE_DIGITS = 4;
 const DEFAULT_CHART_HEIGHT = 360;
 const COMPACT_CHART_HEIGHT = 280;
+const FIXED_BAR_MAX_WIDTH_COMPACT = 20;
+const FIXED_BAR_MAX_WIDTH_REGULAR = 26;
+const ADAPTIVE_AUTO_WIDTH_THRESHOLD = 4;
+const ADAPTIVE_SHRINK_START_COUNT = ADAPTIVE_AUTO_WIDTH_THRESHOLD + 1;
+const ADAPTIVE_SHRINK_END_COUNT = 32;
+const ADAPTIVE_BAR_MAX_WIDTH_COMPACT = 30;
+const ADAPTIVE_BAR_MAX_WIDTH_REGULAR = 36;
+const ADAPTIVE_BAR_MIN_WIDTH_COMPACT = 12;
+const ADAPTIVE_BAR_MIN_WIDTH_REGULAR = 16;
+
+export interface ResolveBarMaxWidthArgs {
+  readonly compact: boolean;
+  readonly barCount: number;
+  readonly adaptiveBarWidth: boolean;
+}
 
 function toGridTop(compact: boolean, showTitle: boolean): number {
   if (!showTitle) {
     return compact ? 12 : 20;
   }
   return compact ? 36 : 50;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+export function resolveBarMaxWidth({ compact, barCount, adaptiveBarWidth }: ResolveBarMaxWidthArgs): number | undefined {
+  if (!adaptiveBarWidth) {
+    return compact ? FIXED_BAR_MAX_WIDTH_COMPACT : FIXED_BAR_MAX_WIDTH_REGULAR;
+  }
+
+  if (barCount <= ADAPTIVE_AUTO_WIDTH_THRESHOLD) {
+    return undefined;
+  }
+
+  const maxWidth = compact ? ADAPTIVE_BAR_MAX_WIDTH_COMPACT : ADAPTIVE_BAR_MAX_WIDTH_REGULAR;
+  const minWidth = compact ? ADAPTIVE_BAR_MIN_WIDTH_COMPACT : ADAPTIVE_BAR_MIN_WIDTH_REGULAR;
+  const shrinkRange = ADAPTIVE_SHRINK_END_COUNT - ADAPTIVE_SHRINK_START_COUNT;
+  const progress = clamp((barCount - ADAPTIVE_SHRINK_START_COUNT) / shrinkRange, 0, 1);
+  const resolvedWidth = maxWidth - (maxWidth - minWidth) * progress;
+  return Math.round(resolvedWidth);
 }
 
 export function buildResultChartOption({
@@ -50,7 +88,14 @@ export function buildResultChartOption({
   valueDigits,
   showBarValueLabel,
   formatState,
+  adaptiveBarWidth,
 }: BuildResultChartOptionArgs) {
+  const barMaxWidth = resolveBarMaxWidth({
+    compact,
+    barCount: chartData.length,
+    adaptiveBarWidth,
+  });
+
   return {
     title: showTitle
       ? {
@@ -107,7 +152,7 @@ export function buildResultChartOption({
           stateLabel: entry.stateLabel,
         })),
         itemStyle: { color: "#1677ff" },
-        barMaxWidth: compact ? 20 : 26,
+        barMaxWidth,
         label: {
           show: showBarValueLabel,
           position: "top",
@@ -129,6 +174,7 @@ function ResultChart({
   compact = false,
   showTitle = true,
   height,
+  adaptiveBarWidth = false,
 }: ResultChartProps) {
   const formatState = (state: string) => (stateLabelFormatter ? stateLabelFormatter(state) : state);
   const chartHeight = height ?? (compact ? COMPACT_CHART_HEIGHT : DEFAULT_CHART_HEIGHT);
@@ -165,6 +211,7 @@ function ResultChart({
     valueDigits,
     showBarValueLabel,
     formatState,
+    adaptiveBarWidth,
   });
 
   return <ReactECharts option={option} style={{ height: chartHeight }} />;
