@@ -1,18 +1,24 @@
 from datetime import datetime
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import select
 
-from app.db.session import engine
+from app.db.session import SessionFactory, create_session
 from app.models.task import Task
 
 MAX_STREAM_TASKS = 200
 
 
 class TaskEventStreamService:
-    def __init__(self, poll_interval_seconds: float = 1.0, heartbeat_seconds: float = 10.0) -> None:
+    def __init__(
+        self,
+        poll_interval_seconds: float = 1.0,
+        heartbeat_seconds: float = 10.0,
+        session_factory: SessionFactory = create_session,
+    ) -> None:
         self.poll_interval_seconds = poll_interval_seconds
         self.heartbeat_seconds = heartbeat_seconds
+        self._session_factory = session_factory
 
     def list_changed_tasks(
         self,
@@ -40,7 +46,7 @@ class TaskEventStreamService:
         if watched_task_ids:
             statement = statement.where(Task.id.in_(watched_task_ids))
         statement = statement.order_by(Task.updated_at.desc()).limit(MAX_STREAM_TASKS)
-        with Session(engine) as session:
+        with self._session_factory() as session:
             return list(session.exec(statement).all())
 
     def _to_version(self, task: Task) -> str:

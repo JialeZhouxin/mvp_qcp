@@ -12,6 +12,7 @@ from app.models.user import User
 from app.schemas.task_center import TaskCenterDetailResponse, TaskCenterListResponse
 from app.services.task_event_stream_service import TaskEventStreamService
 from app.services.task_query_service import TaskQueryService
+from app.services.task_query_models import TaskDetailView, TaskDiagnosticView, TaskListView
 
 router = APIRouter(prefix="/api/tasks", tags=["task-center"])
 
@@ -37,6 +38,54 @@ def _to_sse(event: str, payload: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
+def _to_task_center_list_response(view: TaskListView) -> TaskCenterListResponse:
+    return TaskCenterListResponse(
+        items=[
+            {
+                "task_id": item.task_id,
+                "status": item.status,
+                "created_at": item.created_at,
+                "updated_at": item.updated_at,
+                "duration_ms": item.duration_ms,
+                "attempt_count": item.attempt_count,
+                "has_result": item.has_result,
+            }
+            for item in view.items
+        ],
+        total=view.total,
+        limit=view.limit,
+        offset=view.offset,
+    )
+
+
+def _to_task_center_detail_response(view: TaskDetailView) -> TaskCenterDetailResponse:
+    diagnostic = None
+    if view.diagnostic is not None:
+        diagnostic = _to_task_diagnostic(view.diagnostic)
+    return TaskCenterDetailResponse(
+        task_id=view.task_id,
+        status=view.status,
+        created_at=view.created_at,
+        updated_at=view.updated_at,
+        started_at=view.started_at,
+        finished_at=view.finished_at,
+        duration_ms=view.duration_ms,
+        attempt_count=view.attempt_count,
+        result=view.result,
+        diagnostic=diagnostic,
+    )
+
+
+def _to_task_diagnostic(view: TaskDiagnosticView) -> dict[str, object]:
+    return {
+        "code": view.code,
+        "message": view.message,
+        "phase": view.phase,
+        "summary": view.summary,
+        "suggestions": view.suggestions,
+    }
+
+
 @router.get("", response_model=TaskCenterListResponse)
 def get_task_list(
     status_filter: str | None = Query(default=None, alias="status"),
@@ -47,7 +96,7 @@ def get_task_list(
 ) -> TaskCenterListResponse:
     service = TaskQueryService(session)
     try:
-        return service.list_tasks(current_user.id, status_filter, limit, offset)
+        return _to_task_center_list_response(service.list_tasks(current_user.id, status_filter, limit, offset))
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -62,7 +111,7 @@ def get_task_detail(
     detail = service.get_task_detail(current_user.id, task_id)
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found")
-    return detail
+    return _to_task_center_detail_response(detail)
 
 
 @router.get("/stream")

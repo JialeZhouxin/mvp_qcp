@@ -1,21 +1,24 @@
-﻿import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
-import ProtectedRoute from "../components/ProtectedRoute";
+import { AuthSessionProvider } from "../auth/session";
 import { clearToken, setToken } from "../auth/token";
+import ProtectedRoute from "../components/ProtectedRoute";
 
 function renderWithRoutes(initialPath: string) {
   return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <Routes>
-        <Route element={<ProtectedRoute />}>
-          <Route path="/tasks/circuit" element={<div>circuit page</div>} />
-          <Route path="/tasks/code" element={<div>code page</div>} />
-        </Route>
-        <Route path="/login" element={<div>login page</div>} />
-      </Routes>
-    </MemoryRouter>
+    <AuthSessionProvider>
+      <MemoryRouter initialEntries={[initialPath]}>
+        <Routes>
+          <Route element={<ProtectedRoute />}>
+            <Route path="/tasks/circuit" element={<div>circuit page</div>} />
+            <Route path="/tasks/code" element={<div>code page</div>} />
+          </Route>
+          <Route path="/login" element={<div>login page</div>} />
+        </Routes>
+      </MemoryRouter>
+    </AuthSessionProvider>,
   );
 }
 

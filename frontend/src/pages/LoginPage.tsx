@@ -1,12 +1,13 @@
-ï»¿import { FormEvent, useState } from "react";
+import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { login } from "../api/auth";
 import { toErrorMessage } from "../api/errors";
-import { setToken } from "../auth/token";
+import { useAuthSession } from "../auth/session";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { login: loginSession } = useAuthSession();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +20,7 @@ function LoginPage() {
 
     try {
       const data = await login({ username, password });
-      setToken(data.access_token);
+      loginSession(data.access_token);
       navigate("/tasks", { replace: true });
     } catch (err) {
       setError(toErrorMessage(err, "login failed"));
@@ -30,21 +31,21 @@ function LoginPage() {
 
   return (
     <main style={{ maxWidth: 420, margin: "40px auto", fontFamily: "Segoe UI, sans-serif" }}>
-      <h1>ç™»å½•</h1>
+      <h1>µÇÂ¼</h1>
       <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
-        <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="ç”¨æˆ·å" required />
+        <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="ÓÃ»§Ãû" required />
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="å¯†ç "
+          placeholder="ÃÜÂë"
           required
         />
-        <button type="submit" disabled={loading}>{loading ? "ç™»å½•ä¸­..." : "ç™»å½•"}</button>
+        <button type="submit" disabled={loading}>{loading ? "µÇÂ¼ÖĞ..." : "µÇÂ¼"}</button>
       </form>
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
       <p>
-        æ²¡æœ‰è´¦å·ï¼Ÿ<Link to="/register">æ³¨å†Œ</Link>
+        Ã»ÓĞÕËºÅ£¿<Link to="/register">×¢²á</Link>
       </p>
     </main>
   );

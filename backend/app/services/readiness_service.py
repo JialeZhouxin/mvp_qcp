@@ -1,12 +1,15 @@
-from sqlmodel import Session, select
+from sqlmodel import select
 
 from app.core.config import settings
-from app.db.session import engine
+from app.db.session import SessionFactory, create_session
 from app.queue.redis_conn import get_redis_connection
 from app.services.execution.factory import get_execution_backend
 
 
 class ReadinessService:
+    def __init__(self, session_factory: SessionFactory = create_session) -> None:
+        self._session_factory = session_factory
+
     def check_live(self) -> dict[str, str]:
         return {"status": "ok", "app": settings.app_name, "env": settings.env}
 
@@ -34,7 +37,7 @@ class ReadinessService:
 
     def _check_database(self) -> dict[str, object]:
         try:
-            with Session(engine) as session:
+            with self._session_factory() as session:
                 session.exec(select(1)).one()
             return {"ok": True}
         except Exception as exc:

@@ -11,7 +11,7 @@ from app.schemas.project import (
     ProjectListResponse,
     ProjectSaveRequest,
 )
-from app.services.project_service import ProjectService
+from app.use_cases.project_use_cases import GetProjectUseCase, ListProjectsUseCase, ProjectDetailView, ProjectItemView, UpsertProjectUseCase
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -32,6 +32,14 @@ def _to_project_item(project_id: int, name: str, entry_type: str, last_task_id: 
     )
 
 
+def _to_project_item_response(view: ProjectItemView) -> ProjectItemResponse:
+    return _to_project_item(view.id, view.name, view.entry_type, view.last_task_id, view.updated_at)
+
+
+def _to_project_detail_response(view: ProjectDetailView) -> ProjectDetailResponse:
+    return ProjectDetailResponse(**_to_project_item_response(view).model_dump(), payload=view.payload)
+
+
 @router.put("/{name}", response_model=ProjectDetailResponse)
 def upsert_project(
     name: str,
@@ -39,28 +47,18 @@ def upsert_project(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> ProjectDetailResponse:
-    service = ProjectService(session)
+    use_case = UpsertProjectUseCase(session)
     try:
-        project = service.upsert_project(
-            user_id=current_user.id,
-            name=name,
-            entry_type=payload.entry_type,
-            payload=payload.payload,
-            last_task_id=payload.last_task_id,
+        project = use_case.execute(
+            current_user.id,
+            name,
+            payload.entry_type,
+            payload.payload,
+            payload.last_task_id,
         )
-        project_payload = service.decode_payload(project)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return ProjectDetailResponse(
-        **_to_project_item(
-            project_id=project.id or 0,
-            name=project.name,
-            entry_type=project.entry_type,
-            last_task_id=project.last_task_id,
-            updated_at=project.updated_at,
-        ).model_dump(),
-        payload=project_payload,
-    )
+    return _to_project_detail_response(project)
 
 
 @router.get("", response_model=ProjectListResponse)
@@ -70,19 +68,9 @@ def list_projects(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> ProjectListResponse:
-    service = ProjectService(session)
-    projects = service.list_projects(current_user.id, limit=limit, offset=offset)
+    projects = ListProjectsUseCase(session).execute(current_user.id, limit=limit, offset=offset)
     return ProjectListResponse(
-        projects=[
-            _to_project_item(
-                project_id=project.id or 0,
-                name=project.name,
-                entry_type=project.entry_type,
-                last_task_id=project.last_task_id,
-                updated_at=project.updated_at,
-            )
-            for project in projects
-        ]
+        projects=[_to_project_item_response(project) for project in projects]
     )
 
 
@@ -92,21 +80,8 @@ def get_project(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> ProjectDetailResponse:
-    service = ProjectService(session)
-    project = service.get_project(current_user.id, project_id)
+    use_case = GetProjectUseCase(session)
+    project = use_case.execute(current_user.id, project_id)
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
-    try:
-        payload = service.decode_payload(project)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
-    return ProjectDetailResponse(
-        **_to_project_item(
-            project_id=project.id or 0,
-            name=project.name,
-            entry_type=project.entry_type,
-            last_task_id=project.last_task_id,
-            updated_at=project.updated_at,
-        ).model_dump(),
-        payload=payload,
-    )
+    return _to_project_detail_response(project)

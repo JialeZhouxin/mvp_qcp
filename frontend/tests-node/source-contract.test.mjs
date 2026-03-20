@@ -1,4 +1,4 @@
-﻿import test from "node:test";
+import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -17,16 +17,16 @@ test("token storage source contains expected localStorage contract", () => {
   assert.match(src, /localStorage\.removeItem\(TOKEN_KEY\)/);
 });
 
-test("api client injects Bearer token when withAuth is enabled", () => {
+test("api client injects Bearer token via auth session store", () => {
   const src = read("src/api/client.ts");
-  assert.match(src, /withAuth/);
+  assert.match(src, /session-store/);
   assert.match(src, /Authorization/);
   assert.match(src, /Bearer \$\{token\}/);
 });
 
-test("protected route redirects to login when token is missing", () => {
+test("protected route redirects to login using auth session", () => {
   const src = read("src/components/ProtectedRoute.tsx");
-  assert.match(src, /Navigate/);
+  assert.match(src, /useAuthSession/);
   assert.match(src, /to="\/login"/);
   assert.match(src, /<Outlet\s*\/>/);
 });

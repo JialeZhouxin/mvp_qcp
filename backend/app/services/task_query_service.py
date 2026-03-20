@@ -5,11 +5,11 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.models.task import Task, TaskStatus
-from app.schemas.task_center import (
-    TaskCenterDetailResponse,
-    TaskCenterListItem,
-    TaskCenterListResponse,
-    TaskDiagnostic,
+from app.services.task_query_models import (
+    TaskDetailView,
+    TaskDiagnosticView,
+    TaskListItemView,
+    TaskListView,
 )
 from app.services.error_diagnostic_service import normalize_task_diagnostic
 
@@ -38,13 +38,13 @@ def _parse_task_status(status_filter: str | None) -> TaskStatus | None:
         raise ValueError(f"unsupported task status filter: {status_filter}") from exc
 
 
-def _build_diagnostic(raw_error: str | None) -> TaskDiagnostic | None:
+def _build_diagnostic(raw_error: str | None) -> TaskDiagnosticView | None:
     payload = _parse_json_or_none(raw_error)
     if payload is None:
         return None
     normalized = normalize_task_diagnostic(payload)
     suggestions = normalized.get("suggestions")
-    return TaskDiagnostic(
+    return TaskDiagnosticView(
         code=str(normalized["code"]),
         message=str(normalized["message"]),
         phase=str(normalized["phase"]),
@@ -63,7 +63,7 @@ class TaskQueryService:
         status_filter: str | None,
         limit: int,
         offset: int,
-    ) -> TaskCenterListResponse:
+    ) -> TaskListView:
         normalized_status = _parse_task_status(status_filter)
         query = select(Task).where(Task.user_id == user_id)
         count_query = select(func.count()).select_from(Task).where(Task.user_id == user_id)
@@ -75,9 +75,9 @@ class TaskQueryService:
             query.order_by(Task.created_at.desc()).offset(offset).limit(limit)
         ).all()
         total = int(self._session.exec(count_query).one())
-        return TaskCenterListResponse(
+        return TaskListView(
             items=[
-                TaskCenterListItem(
+                TaskListItemView(
                     task_id=task.id or 0,
                     status=task.status.value,
                     created_at=task.created_at,
@@ -93,12 +93,12 @@ class TaskQueryService:
             offset=offset,
         )
 
-    def get_task_detail(self, user_id: int, task_id: int) -> TaskCenterDetailResponse | None:
+    def get_task_detail(self, user_id: int, task_id: int) -> TaskDetailView | None:
         statement = select(Task).where(Task.id == task_id, Task.user_id == user_id)
         task = self._session.exec(statement).first()
         if task is None:
             return None
-        return TaskCenterDetailResponse(
+        return TaskDetailView(
             task_id=task.id or 0,
             status=task.status.value,
             created_at=task.created_at,

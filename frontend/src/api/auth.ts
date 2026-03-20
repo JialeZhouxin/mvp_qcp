@@ -1,21 +1,10 @@
-﻿import { apiRequest } from "./client";
+import { apiRequest } from "./client";
+import type { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse } from "./generated/contracts";
 
-export interface RegisterPayload {
-  username: string;
-  password: string;
-}
+export type RegisterPayload = RegisterRequest;
+export type LoginPayload = LoginRequest;
 
-export interface LoginPayload {
-  username: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  access_token: string;
-  token_type: string;
-}
-
-export function register(payload: RegisterPayload): Promise<{ user_id: number; username: string }> {
+export function register(payload: RegisterPayload): Promise<RegisterResponse> {
   return apiRequest("/api/auth/register", { method: "POST", body: payload });
 }
 

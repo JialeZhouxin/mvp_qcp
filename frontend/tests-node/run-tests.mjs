@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -31,16 +31,16 @@ run("token storage source contract", () => {
   assert.match(src, /localStorage\.removeItem\(TOKEN_KEY\)/);
 });
 
-run("api client bearer contract", () => {
+run("api client reads access token via auth session store", () => {
   const src = read("src/api/client.ts");
-  assert.match(src, /withAuth/);
+  assert.match(src, /session-store/);
   assert.match(src, /Authorization/);
   assert.match(src, /Bearer \$\{token\}/);
 });
 
-run("protected route redirect contract", () => {
+run("protected route redirects with auth session context", () => {
   const src = read("src/components/ProtectedRoute.tsx");
-  assert.match(src, /Navigate/);
+  assert.match(src, /useAuthSession/);
   assert.match(src, /to="\/login"/);
   assert.match(src, /<Outlet\s*\/>/);
 });
@@ -51,12 +51,14 @@ run("frontend key files exist", () => {
   assert.equal(exists("src/pages/TasksPage.tsx"), true);
   assert.equal(exists("src/components/CodeEditor.tsx"), true);
   assert.equal(exists("src/components/ResultChart.tsx"), true);
+  assert.equal(exists("src/api/generated/contracts.ts"), true);
 });
 
-run("package scripts contain test and test:node", () => {
+run("package scripts contain test, test:node and generate:contracts", () => {
   const pkg = JSON.parse(read("package.json"));
   assert.equal(typeof pkg.scripts.test, "string");
   assert.equal(typeof pkg.scripts["test:node"], "string");
+  assert.equal(typeof pkg.scripts["generate:contracts"], "string");
 });
 
 if (process.exitCode && process.exitCode !== 0) {

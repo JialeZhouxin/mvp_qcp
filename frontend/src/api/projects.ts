@@ -1,28 +1,14 @@
 import { apiRequest } from "./client";
+import type {
+  ProjectDetailResponse,
+  ProjectItemResponse,
+  ProjectListResponse,
+  ProjectSaveRequest,
+} from "./generated/contracts";
 
-export type ProjectEntryType = "code" | "circuit";
-
-export interface ProjectItem {
-  id: number;
-  name: string;
-  entry_type: ProjectEntryType;
-  last_task_id: number | null;
-  updated_at: string;
-}
-
-export interface ProjectDetail extends ProjectItem {
-  payload: Record<string, unknown>;
-}
-
-export interface ProjectListResponse {
-  projects: ProjectItem[];
-}
-
-export interface SaveProjectRequest {
-  entry_type: ProjectEntryType;
-  payload: Record<string, unknown>;
-  last_task_id?: number | null;
-}
+export type ProjectItem = ProjectItemResponse;
+export type ProjectDetail = ProjectDetailResponse;
+export type SaveProjectRequest = ProjectSaveRequest;
 
 export function saveProject(name: string, payload: SaveProjectRequest): Promise<ProjectDetail> {
   return apiRequest(`/api/projects/${encodeURIComponent(name)}`, {

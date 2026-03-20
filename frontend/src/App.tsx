@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
-import { getToken } from "./auth/token";
+import { useAuthSession } from "./auth/session";
 import TasksWorkspaceLayout from "./components/navigation/TasksWorkspaceLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CircuitWorkbenchPage from "./pages/CircuitWorkbenchPage";
@@ -11,7 +11,8 @@ import TaskCenterPage from "./pages/TaskCenterPage";
 import TaskHelpPage from "./pages/TaskHelpPage";
 
 function App() {
-  const defaultPath = getToken() ? "/tasks/center" : "/login";
+  const { isAuthenticated } = useAuthSession();
+  const defaultPath = isAuthenticated ? "/tasks/center" : "/login";
 
   return (
     <Routes>

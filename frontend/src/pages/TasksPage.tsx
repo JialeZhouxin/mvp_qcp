@@ -5,7 +5,7 @@ import { toErrorMessage } from "../api/errors";
 import { getProjectDetail, getProjectList, saveProject, type ProjectItem } from "../api/projects";
 import { getTaskCenterDetail } from "../api/task-center";
 import { getTaskResult, getTaskStatus, submitTask } from "../api/tasks";
-import { clearToken } from "../auth/token";
+import { useAuthSession } from "../auth/session";
 import CodeEditor from "../components/CodeEditor";
 import ResultChart from "../components/ResultChart";
 import ProjectPanel from "../components/task-center/ProjectPanel";
@@ -27,6 +27,7 @@ def main():
 
 function TasksPage() {
   const navigate = useNavigate();
+  const { logout } = useAuthSession();
   const [code, setCode] = useState(SAMPLE_CODE);
   const [taskId, setTaskId] = useState<number | null>(null);
   const [status, setStatus] = useState<string>("-");
@@ -52,9 +53,10 @@ function TasksPage() {
       const data = await getTaskResult(taskId);
       setStatus(data.status);
       setResultText(JSON.stringify(data, null, 2));
-      setProbabilities(data.result?.probabilities ?? null);
+      const probabilitiesPayload = data.result?.probabilities;
+      setProbabilities(typeof probabilitiesPayload === "object" && probabilitiesPayload !== null ? probabilitiesPayload as Record<string, number> : null);
     } catch (err) {
-      setError(toErrorMessage(err, "ç»“æœæŸ¥è¯¢å¤±è´¥"));
+      setError(toErrorMessage(err, "½á¹û²éÑ¯Ê§°Ü"));
     }
   }
 
@@ -66,8 +68,8 @@ function TasksPage() {
         return;
       }
       const line = `[${detail.diagnostic.code}] ${detail.diagnostic.summary ?? detail.diagnostic.message}`;
-      const tips = detail.diagnostic.suggestions.join("ï¼›");
-      setDiagnosticText(tips ? `${line} | å»ºè®®ï¼š${tips}` : line);
+      const tips = detail.diagnostic.suggestions.join("£»");
+      setDiagnosticText(tips ? `${line} | ½¨Òé£º${tips}` : line);
     } catch {
       setDiagnosticText(null);
     }
@@ -77,7 +79,7 @@ function TasksPage() {
     if (!taskId || !autoPolling) {
       return;
     }
-    if (status === "SUCCESS" || status === "FAILURE") {
+    if (["SUCCESS", "FAILURE", "TIMEOUT", "RETRY_EXHAUSTED"].includes(status)) {
       return;
     }
 
@@ -86,7 +88,7 @@ function TasksPage() {
         const data = await getTaskStatus(taskId);
         setStatus(data.status);
       } catch (err) {
-        setError(toErrorMessage(err, "çŠ¶æ€æŸ¥è¯¢å¤±è´¥"));
+        setError(toErrorMessage(err, "×´Ì¬²éÑ¯Ê§°Ü"));
       }
     }, 1500);
 
@@ -102,7 +104,7 @@ function TasksPage() {
     if (status === "SUCCESS") {
       void onLoadResult();
     }
-    if (taskId && (status === "FAILURE" || status === "TIMEOUT" || status === "RETRY_EXHAUSTED")) {
+    if (taskId && ["FAILURE", "TIMEOUT", "RETRY_EXHAUSTED"].includes(status)) {
       void loadTaskDiagnostic(taskId);
     }
   }, [status, taskId]);
@@ -114,7 +116,7 @@ function TasksPage() {
       const response = await getProjectList(50, 0);
       setProjects(response.projects);
     } catch (err) {
-      setProjectError(toErrorMessage(err, "åŠ è½½é¡¹ç›®åˆ—è¡¨å¤±è´¥"));
+      setProjectError(toErrorMessage(err, "¼ÓÔØÏîÄ¿ÁĞ±íÊ§°Ü"));
     } finally {
       setProjectLoading(false);
     }
@@ -137,7 +139,7 @@ function TasksPage() {
       setTaskId(data.task_id);
       setStatus(data.status);
     } catch (err) {
-      setError(toErrorMessage(err, "æäº¤å¤±è´¥"));
+      setError(toErrorMessage(err, "Ìá½»Ê§°Ü"));
     } finally {
       setLoading(false);
     }
@@ -152,18 +154,18 @@ function TasksPage() {
       const data = await getTaskStatus(taskId);
       setStatus(data.status);
     } catch (err) {
-      setError(toErrorMessage(err, "çŠ¶æ€æŸ¥è¯¢å¤±è´¥"));
+      setError(toErrorMessage(err, "×´Ì¬²éÑ¯Ê§°Ü"));
     }
   }
 
   function onLogout() {
-    clearToken();
+    logout();
     navigate("/login", { replace: true });
   }
 
   async function onSaveProject(name: string) {
     if (!name.trim()) {
-      setProjectError("é¡¹ç›®åç§°ä¸èƒ½ä¸ºç©º");
+      setProjectError("ÏîÄ¿Ãû³Æ²»ÄÜÎª¿Õ");
       return;
     }
     setProjectSaving(true);
@@ -175,10 +177,10 @@ function TasksPage() {
         payload: { code },
         last_task_id: taskId,
       });
-      setProjectSuccess("é¡¹ç›®ä¿å­˜æˆåŠŸ");
+      setProjectSuccess("ÏîÄ¿±£´æ³É¹¦");
       await loadProjects();
     } catch (err) {
-      setProjectError(toErrorMessage(err, "ä¿å­˜é¡¹ç›®å¤±è´¥"));
+      setProjectError(toErrorMessage(err, "±£´æÏîÄ¿Ê§°Ü"));
     } finally {
       setProjectSaving(false);
     }
@@ -191,12 +193,12 @@ function TasksPage() {
       const detail = await getProjectDetail(projectId);
       const loadedCode = detail.payload.code;
       if (typeof loadedCode !== "string") {
-        throw new Error("é¡¹ç›®å†…å®¹ç¼ºå°‘ code å­—æ®µ");
+        throw new Error("ÏîÄ¿ÄÚÈİÈ±ÉÙ code ×Ö¶Î");
       }
       setCode(loadedCode);
-      setProjectSuccess(`å·²åŠ è½½é¡¹ç›®ï¼š${detail.name}`);
+      setProjectSuccess(`ÒÑ¼ÓÔØÏîÄ¿£º${detail.name}`);
     } catch (err) {
-      setProjectError(toErrorMessage(err, "åŠ è½½é¡¹ç›®å¤±è´¥"));
+      setProjectError(toErrorMessage(err, "¼ÓÔØÏîÄ¿Ê§°Ü"));
     }
   }
 
@@ -204,27 +206,27 @@ function TasksPage() {
     <main style={{ maxWidth: 980, margin: "24px auto", fontFamily: "Segoe UI, sans-serif" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1>
-          ä»£ç æäº¤ï¼ˆPython/Qiboï¼‰
+          ´úÂëÌá½»£¨Python/Qibo£©
           <span style={{ marginLeft: 12, fontSize: 14, fontWeight: 400 }}>
-            <Link to="/tasks/center">è¿›å…¥ä»»åŠ¡ä¸­å¿ƒ</Link>
+            <Link to="/tasks/center">½øÈëÈÎÎñÖĞĞÄ</Link>
           </span>
         </h1>
-        <button onClick={onLogout}>é€€å‡ºç™»å½•</button>
+        <button onClick={onLogout}>ÍË³öµÇÂ¼</button>
       </header>
 
       <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
         <CodeEditor value={code} onChange={setCode} />
         <button type="submit" disabled={loading}>
-          {loading ? "æäº¤ä¸­..." : "æäº¤ä»»åŠ¡"}
+          {loading ? "Ìá½»ÖĞ..." : "Ìá½»ÈÎÎñ"}
         </button>
       </form>
 
       <section style={{ marginTop: 16, display: "flex", gap: 8, alignItems: "center" }}>
         <button onClick={onRefreshStatus} disabled={!taskId}>
-          åˆ·æ–°çŠ¶æ€
+          Ë¢ĞÂ×´Ì¬
         </button>
         <button onClick={onLoadResult} disabled={!taskId}>
-          åŠ è½½ç»“æœ
+          ¼ÓÔØ½á¹û
         </button>
         <label>
           <input
@@ -232,7 +234,7 @@ function TasksPage() {
             checked={autoPolling}
             onChange={(event) => setAutoPolling(event.target.checked)}
           />
-          è‡ªåŠ¨è½®è¯¢
+          ×Ô¶¯ÂÖÑ¯
         </label>
       </section>
 
@@ -263,7 +265,7 @@ function TasksPage() {
         </section>
       ) : (
         <section style={{ marginTop: 16, padding: 12, background: "#f7f7f7" }}>
-          <p style={{ margin: 0, color: "#666" }}>å°šæœªè·å¾—å¯è§†åŒ–ç»“æœï¼Œè¯·å…ˆæäº¤å¹¶ç­‰å¾…ä»»åŠ¡å®Œæˆã€‚</p>
+          <p style={{ margin: 0, color: "#666" }}>ÉĞÎ´»ñµÃ¿ÉÊÓ»¯½á¹û£¬ÇëÏÈÌá½»²¢µÈ´ıÈÎÎñÍê³É¡£</p>
         </section>
       )}
 

@@ -1,4 +1,4 @@
-﻿import { getToken } from "../auth/token";
+import { getAccessToken } from "../auth/session-store";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
@@ -20,7 +20,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   };
 
   if (withAuth) {
-    const token = getToken();
+    const token = getAccessToken();
     if (!token) {
       throw new Error("missing access token");
     }

@@ -1,30 +1,11 @@
-﻿import { apiRequest } from "./client";
-
-export interface TaskSubmitResponse {
-  task_id: number;
-  status: string;
-  deduplicated?: boolean;
-}
-
-export interface TaskStatusResponse {
-  task_id: number;
-  status: string;
-  error_message?: unknown;
-}
-
-export interface TaskResultResponse {
-  task_id: number;
-  status: string;
-  result?: {
-    counts: Record<string, number>;
-    probabilities: Record<string, number>;
-  };
-  message?: string;
-}
+import { apiRequest } from "./client";
+import type { TaskResultResponse, TaskStatusResponse, TaskSubmitResponse } from "./generated/contracts";
 
 interface SubmitTaskOptions {
   readonly idempotencyKey?: string;
 }
+
+export type { TaskResultResponse, TaskStatusResponse, TaskSubmitResponse } from "./generated/contracts";
 
 export function submitTask(code: string, options: SubmitTaskOptions = {}): Promise<TaskSubmitResponse> {
   const headers = options.idempotencyKey

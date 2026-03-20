@@ -1,8 +1,7 @@
-import TasksPage from "./TasksPage";
+import CodeTasksScreen from "../features/code-tasks/CodeTasksScreen";
 
 function CodeTasksPage() {
-  return <TasksPage />;
+  return <CodeTasksScreen />;
 }
 
 export default CodeTasksPage;
-

@@ -1,48 +1,18 @@
 import { apiRequest } from "./client";
-
-export interface TaskDiagnostic {
-  code: string;
-  message: string;
-  phase: string;
-  summary: string | null;
-  suggestions: string[];
-}
-
-export interface TaskCenterListItem {
-  task_id: number;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  duration_ms: number | null;
-  attempt_count: number;
-  has_result: boolean;
-}
-
-export interface TaskCenterListResponse {
-  items: TaskCenterListItem[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-export interface TaskCenterDetailResponse {
-  task_id: number;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  started_at: string | null;
-  finished_at: string | null;
-  duration_ms: number | null;
-  attempt_count: number;
-  result: Record<string, unknown> | null;
-  diagnostic: TaskDiagnostic | null;
-}
+import type {
+  TaskCenterDetailResponse,
+  TaskCenterListItem,
+  TaskCenterListResponse,
+  TaskDiagnostic,
+} from "./generated/contracts";
 
 interface ListTaskCenterOptions {
   status?: string;
   limit?: number;
   offset?: number;
 }
+
+export type { TaskCenterDetailResponse, TaskCenterListItem, TaskCenterListResponse, TaskDiagnostic } from "./generated/contracts";
 
 export function getTaskCenterList(
   options: ListTaskCenterOptions = {},

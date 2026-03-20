@@ -1,8 +1,8 @@
 import math
 
-from sqlmodel import Session, select
+from sqlmodel import select
 
-from app.db.session import engine
+from app.db.session import SessionFactory, create_session
 from app.models.task import Task, TaskStatus
 from app.queue.rq_queue import get_task_queue_depth
 
@@ -16,8 +16,11 @@ def _percentile(values: list[int], ratio: float) -> int:
 
 
 class MetricsService:
+    def __init__(self, session_factory: SessionFactory = create_session) -> None:
+        self._session_factory = session_factory
+
     def render_metrics_text(self) -> str:
-        with Session(engine) as session:
+        with self._session_factory() as session:
             tasks = session.exec(select(Task)).all()
 
         success_count = sum(1 for task in tasks if task.status == TaskStatus.SUCCESS)

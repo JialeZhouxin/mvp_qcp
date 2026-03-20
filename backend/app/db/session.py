@@ -1,5 +1,5 @@
 ﻿from pathlib import Path
-from typing import Generator
+from typing import Generator, Protocol
 
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -37,6 +37,15 @@ def init_db() -> None:
     SQLModel.metadata.create_all(engine)
 
 
+class SessionFactory(Protocol):
+    def __call__(self) -> Session:
+        ...
+
+
+def create_session() -> Session:
+    return Session(engine)
+
+
 def get_session() -> Generator[Session, None, None]:
-    with Session(engine) as session:
+    with create_session() as session:
         yield session

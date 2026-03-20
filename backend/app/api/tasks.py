@@ -1,48 +1,20 @@
-import json
-import logging
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException, Header, status
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app.api.auth import get_current_user
-from app.core.config import settings
 from app.db.session import get_session
-from app.models.task import Task, TaskStatus
 from app.models.user import User
-from app.queue.rq_queue import get_task_queue
 from app.schemas.task import TaskResultResponse, TaskStatusResponse, TaskSubmitRequest, TaskSubmitResponse
-from app.services.task_submit_service import (
-    TaskSubmitCommand,
-    TaskSubmitConfig,
+from app.use_cases.task_use_cases import (
+    GetTaskResultUseCase,
+    GetTaskStatusUseCase,
+    SubmitTaskUseCase,
     TaskSubmitOverloadedError,
     TaskSubmitQueuePublishError,
-    TaskSubmitService,
     TaskSubmitValidationError,
 )
-from app.worker.tasks import run_quantum_task
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
-logger = logging.getLogger(__name__)
-
-def _parse_json_or_none(raw: str | None) -> Any | None:
-    if not raw:
-        return None
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        return raw
-
-
-def _load_user_task_or_404(session: Session, task_id: int, user_id: int, action: str) -> Task:
-    task = session.exec(select(Task).where(Task.id == task_id)).first()
-    if task is None:
-        logger.info("event=%s_not_found task_id=%s user_id=%s", action, task_id, user_id)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found")
-    if task.user_id != user_id:
-        logger.warning("event=%s_forbidden task_id=%s owner_id=%s user_id=%s", action, task_id, task.user_id, user_id)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found")
-    return task
 
 
 @router.post("/submit", response_model=TaskSubmitResponse)
@@ -52,24 +24,10 @@ def submit_task(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> TaskSubmitResponse:
-    submit_service = TaskSubmitService(
-        session=session,
-        config=TaskSubmitConfig(
-            idempotency_ttl_hours=settings.idempotency_ttl_hours,
-            idempotency_cleanup_batch_size=settings.idempotency_cleanup_batch_size,
-            rq_job_timeout_seconds=settings.rq_job_timeout_seconds,
-        ),
-        queue_getter=get_task_queue,
-        worker_task=run_quantum_task,
-    )
-    command = TaskSubmitCommand(
-        user_id=current_user.id,
-        code=payload.code,
-        raw_idempotency_key=idempotency_key,
-    )
+    use_case = SubmitTaskUseCase(session)
 
     try:
-        outcome = submit_service.submit(command)
+        outcome = use_case.execute(current_user.id, payload.code, idempotency_key)
     except TaskSubmitValidationError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -95,11 +53,11 @@ def get_task_status(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> TaskStatusResponse:
-    task = _load_user_task_or_404(session, task_id, current_user.id, action="task_status")
+    task = GetTaskStatusUseCase(session).execute(current_user.id, task_id)
     return TaskStatusResponse(
-        task_id=task.id,
-        status=task.status.value,
-        error_message=_parse_json_or_none(task.error_message),
+        task_id=task.task_id,
+        status=task.status,
+        error_message=task.error_message,
     )
 
 
@@ -109,17 +67,11 @@ def get_task_result(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> TaskResultResponse:
-    task = _load_user_task_or_404(session, task_id, current_user.id, action="task_result")
-
-    message = None
-    if task.status in {TaskStatus.PENDING, TaskStatus.RUNNING}:
-        message = "task not finished"
-    elif task.status in {TaskStatus.FAILURE, TaskStatus.TIMEOUT, TaskStatus.RETRY_EXHAUSTED}:
-        message = "task failed"
+    task = GetTaskResultUseCase(session).execute(current_user.id, task_id)
 
     return TaskResultResponse(
-        task_id=task.id,
-        status=task.status.value,
-        result=_parse_json_or_none(task.result_json),
-        message=message,
+        task_id=task.task_id,
+        status=task.status,
+        result=task.result,
+        message=task.message,
     )

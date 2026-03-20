@@ -1,4 +1,4 @@
-import { getToken } from "../../auth/token";
+import { getAccessToken } from "../../auth/session-store";
 import { API_BASE_URL } from "../../api/client";
 
 export interface TaskStatusStreamEvent {
@@ -53,7 +53,7 @@ export function connectTaskStatusStream(
   taskIds: number[] | null,
   callbacks: TaskStreamCallbacks,
 ): TaskStreamConnection {
-  const token = getToken();
+  const token = getAccessToken();
   if (!token) {
     throw new Error("missing access token");
   }
