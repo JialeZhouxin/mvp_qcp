@@ -1,0 +1,208 @@
+from datetime import datetime, timedelta
+from typing import Any, Callable
+
+import pytest
+from sqlmodel import SQLModel, Session, create_engine, select
+
+from app.models.idempotency_record import IdempotencyRecord
+from app.models.task import Task, TaskStatus
+from app.services.backpressure_service import QueueOverloadedError
+from app.services.idempotency_service import IdempotencyService
+from app.services.task_submit_service import (
+    TaskSubmitCommand,
+    TaskSubmitConfig,
+    TaskSubmitOverloadedError,
+    TaskSubmitQueuePublishError,
+    TaskSubmitService,
+    TaskSubmitValidationError,
+)
+
+
+class QueueRecorder:
+    def __init__(self, should_fail: bool = False) -> None:
+        self.should_fail = should_fail
+        self.calls: list[tuple[Callable[..., Any], int, int]] = []
+
+    def enqueue(self, func: Callable[..., Any], task_id: int, job_timeout: int) -> None:
+        if self.should_fail:
+            raise RuntimeError("redis unavailable")
+        self.calls.append((func, task_id, job_timeout))
+
+
+class BackpressureStub:
+    def __init__(self, depth: int = 0, error: QueueOverloadedError | None = None) -> None:
+        self.depth = depth
+        self.error = error
+
+    def ensure_submit_capacity(self) -> int:
+        if self.error is not None:
+            raise self.error
+        return self.depth
+
+
+class FakeClock:
+    def __init__(self, *values: datetime) -> None:
+        self._values = list(values)
+        self._index = 0
+
+    def __call__(self) -> datetime:
+        if self._index < len(self._values):
+            value = self._values[self._index]
+            self._index += 1
+            return value
+        return self._values[-1]
+
+
+@pytest.fixture()
+def session() -> Session:
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as db_session:
+        yield db_session
+
+
+def _build_submit_service(
+    session: Session,
+    *,
+    queue: QueueRecorder,
+    backpressure: BackpressureStub,
+    now_provider: Callable[[], datetime] = datetime.utcnow,
+) -> TaskSubmitService:
+    return TaskSubmitService(
+        session=session,
+        config=TaskSubmitConfig(
+            idempotency_ttl_hours=24,
+            idempotency_cleanup_batch_size=200,
+            rq_job_timeout_seconds=90,
+        ),
+        queue_getter=lambda: queue,
+        backpressure_factory=lambda: backpressure,
+        now_provider=now_provider,
+    )
+
+
+def _create_task(session: Session, user_id: int, code: str, status: TaskStatus = TaskStatus.PENDING) -> Task:
+    task = Task(user_id=user_id, code=code, status=status)
+    session.add(task)
+    session.commit()
+    session.refresh(task)
+    return task
+
+
+@pytest.mark.parametrize(
+    ("raw_key", "expected_message"),
+    [
+        ("   ", "idempotency key is empty"),
+        ("x" * 256, "idempotency key is too long"),
+    ],
+)
+def test_submit_rejects_invalid_idempotency_key(
+    session: Session,
+    raw_key: str,
+    expected_message: str,
+) -> None:
+    queue = QueueRecorder()
+    backpressure = BackpressureStub(depth=0)
+    service = _build_submit_service(session, queue=queue, backpressure=backpressure)
+
+    with pytest.raises(TaskSubmitValidationError) as exc_info:
+        service.submit(TaskSubmitCommand(user_id=1, code="def main():\n    return 1", raw_idempotency_key=raw_key))
+
+    assert exc_info.value.code == "INVALID_IDEMPOTENCY_KEY"
+    assert exc_info.value.message == expected_message
+    assert queue.calls == []
+
+
+def test_submit_returns_deduplicated_task_without_enqueue(session: Session) -> None:
+    queue = QueueRecorder()
+    backpressure = BackpressureStub(depth=0)
+    now = datetime.utcnow()
+    service = _build_submit_service(session, queue=queue, backpressure=backpressure)
+
+    existing_task = _create_task(session, user_id=1, code="def main():\n    return {'counts': {'00': 1}}")
+    idempotency = IdempotencyService(session, ttl_hours=24)
+    idempotency.bind_task_key(user_id=1, key="same-key", task_id=existing_task.id, now=now)
+
+    outcome = service.submit(
+        TaskSubmitCommand(
+            user_id=1,
+            code="def main():\n    return {'counts': {'11': 1}}",
+            raw_idempotency_key="same-key",
+        )
+    )
+
+    assert outcome.task_id == existing_task.id
+    assert outcome.status == existing_task.status.value
+    assert outcome.deduplicated is True
+    assert queue.calls == []
+
+
+def test_submit_raises_overloaded_error_before_task_creation(session: Session) -> None:
+    queue = QueueRecorder()
+    overloaded = QueueOverloadedError(depth=201, threshold=200)
+    backpressure = BackpressureStub(error=overloaded)
+    service = _build_submit_service(session, queue=queue, backpressure=backpressure)
+
+    with pytest.raises(TaskSubmitOverloadedError) as exc_info:
+        service.submit(TaskSubmitCommand(user_id=1, code="def main():\n    return 1"))
+
+    assert exc_info.value.code == "QUEUE_OVERLOADED"
+    assert exc_info.value.depth == 201
+    assert exc_info.value.threshold == 200
+    assert session.exec(select(Task)).all() == []
+
+
+def test_submit_marks_failure_and_refreshes_idempotency_on_enqueue_failure(session: Session) -> None:
+    queue = QueueRecorder(should_fail=True)
+    backpressure = BackpressureStub(depth=3)
+    start_time = datetime.utcnow()
+    failure_time = start_time + timedelta(seconds=5)
+    clock = FakeClock(start_time, failure_time)
+    service = _build_submit_service(session, queue=queue, backpressure=backpressure, now_provider=clock)
+
+    with pytest.raises(TaskSubmitQueuePublishError) as exc_info:
+        service.submit(
+            TaskSubmitCommand(
+                user_id=1,
+                code="def main():\n    return {'counts': {'00': 1}}",
+                raw_idempotency_key="enqueue-fail-key",
+            )
+        )
+
+    assert exc_info.value.code == "QUEUE_PUBLISH_ERROR"
+    task = session.exec(select(Task).where(Task.code.contains("counts"))).first()
+    assert task is not None
+    assert task.status == TaskStatus.FAILURE
+    assert task.error_message is not None
+    assert "QUEUE_PUBLISH_ERROR" in task.error_message
+
+    record = session.exec(
+        select(IdempotencyRecord).where(
+            IdempotencyRecord.user_id == 1,
+            IdempotencyRecord.idempotency_key == "enqueue-fail-key",
+        )
+    ).first()
+    assert record is not None
+    assert record.updated_at == failure_time
+
+
+def test_submit_enqueues_pending_task_successfully(session: Session) -> None:
+    queue = QueueRecorder()
+    backpressure = BackpressureStub(depth=7)
+    service = _build_submit_service(session, queue=queue, backpressure=backpressure)
+
+    outcome = service.submit(
+        TaskSubmitCommand(user_id=1, code="def main():\n    return {'counts': {'00': 3, '11': 1}}")
+    )
+
+    assert outcome.deduplicated is False
+    assert outcome.status == "PENDING"
+    assert outcome.queue_depth == 7
+    assert len(queue.calls) == 1
+    _, task_id, job_timeout = queue.calls[0]
+    assert task_id == outcome.task_id
+    assert job_timeout == 90
+
+    task = session.exec(select(Task).where(Task.id == outcome.task_id)).first()
+    assert task is not None
+    assert task.status == TaskStatus.PENDING
