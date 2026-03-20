@@ -51,3 +51,10 @@ def test_task_event_stream_service_uses_explicit_stream_models() -> None:
     assert "tuple[list[dict[str, Any]], dict[int, str]]" not in source
     assert "def build_heartbeat(self) -> dict[str, str]" not in source
     assert '"task_id": task.id or 0' not in source
+
+
+def test_task_submit_provider_is_not_kept_under_use_cases() -> None:
+    assert not (ROOT / "app" / "use_cases" / "task_submit_provider.py").exists()
+
+    tasks_api_source = _read("app", "api", "tasks.py")
+    assert "from app.dependencies.task_submit import build_submit_task_use_case" in tasks_api_source

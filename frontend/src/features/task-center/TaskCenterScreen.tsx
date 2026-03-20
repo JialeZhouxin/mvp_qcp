@@ -1,161 +1,64 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useCallback } from "react";
 import { Link } from "react-router-dom";
 
-import { toErrorMessage } from "../../api/errors";
-import {
-  getTaskCenterDetail,
-  getTaskCenterList,
-  type TaskCenterDetailResponse,
-  type TaskCenterListItem,
-} from "../../api/task-center";
 import TaskDetailPanel from "../../components/task-center/TaskDetailPanel";
 import TaskListPanel from "../../components/task-center/TaskListPanel";
-import {
-  connectTaskStatusStream,
-  type TaskStatusStreamEvent,
-  type TaskStreamConnection,
-} from "../realtime/task-stream-client";
+import { useTaskCenterDetail } from "./use-task-center-detail";
+import { useTaskCenterList } from "./use-task-center-list";
+import { useTaskCenterRealtime } from "./use-task-center-realtime";
 
 function TaskCenterScreen() {
-  const [tasks, setTasks] = useState<TaskCenterListItem[]>([]);
-  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
-  const [detail, setDetail] = useState<TaskCenterDetailResponse | null>(null);
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [listLoading, setListLoading] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [listError, setListError] = useState<string | null>(null);
-  const [detailError, setDetailError] = useState<string | null>(null);
-  const [streamDisconnected, setStreamDisconnected] = useState(false);
-  const [streamVersion, setStreamVersion] = useState(0);
-  const selectedTaskRef = useRef<number | null>(null);
-  const streamRef = useRef<TaskStreamConnection | null>(null);
-  const pollTimerRef = useRef<number | null>(null);
-
-  selectedTaskRef.current = selectedTaskId;
-
-  const loadList = async (nextFilter: string) => {
-    setListLoading(true);
-    setListError(null);
-    try {
-      const response = await getTaskCenterList({
-        status: nextFilter === "ALL" ? undefined : nextFilter,
-        limit: 50,
-        offset: 0,
-      });
-      setTasks(response.items);
-    } catch (error) {
-      setListError(toErrorMessage(error, "���������б�ʧ��"));
-    } finally {
-      setListLoading(false);
-    }
-  };
-
-  const loadDetail = async (taskId: number) => {
-    setDetailLoading(true);
-    setDetailError(null);
-    try {
-      const response = await getTaskCenterDetail(taskId);
-      setDetail(response);
-    } catch (error) {
-      setDetailError(toErrorMessage(error, "������������ʧ��"));
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  const applyStreamEvent = (event: TaskStatusStreamEvent) => {
-    setTasks((previous) =>
-      previous.map((task) =>
-        task.task_id === event.task_id
-          ? {
-              ...task,
-              status: event.status,
-              updated_at: event.updated_at,
-              duration_ms: event.duration_ms,
-              attempt_count: event.attempt_count,
-            }
-          : task,
-      ),
-    );
-    if (selectedTaskRef.current === event.task_id) {
-      void loadDetail(event.task_id);
-    }
-  };
-
-  useEffect(() => {
-    void loadList(statusFilter);
-  }, [statusFilter]);
-
-  useEffect(() => {
-    if (selectedTaskId === null) {
-      return;
-    }
-    void loadDetail(selectedTaskId);
-  }, [selectedTaskId]);
-
-  useEffect(() => {
-    if (streamRef.current) {
-      streamRef.current.close();
-      streamRef.current = null;
-    }
-    setStreamDisconnected(false);
-    streamRef.current = connectTaskStatusStream(null, {
-      onStatus: applyStreamEvent,
-      onError: () => setStreamDisconnected(true),
-      onDisconnect: () => setStreamDisconnected(true),
-    });
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.close();
-        streamRef.current = null;
-      }
-    };
-  }, [streamVersion]);
-
-  useEffect(() => {
-    if (!streamDisconnected) {
-      if (pollTimerRef.current) {
-        window.clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
-      }
-      return;
-    }
-    pollTimerRef.current = window.setInterval(() => {
-      void loadList(statusFilter);
-      if (selectedTaskRef.current !== null) {
-        void loadDetail(selectedTaskRef.current);
-      }
-    }, 3000);
-    return () => {
-      if (pollTimerRef.current) {
-        window.clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
-      }
-    };
-  }, [streamDisconnected, statusFilter]);
+  const {
+    tasks,
+    statusFilter,
+    setStatusFilter,
+    listLoading,
+    listError,
+    refreshList,
+    applyTaskStatusEvent,
+  } = useTaskCenterList();
+  const {
+    selectedTaskId,
+    setSelectedTaskId,
+    detail,
+    detailLoading,
+    detailError,
+    refreshDetail,
+  } = useTaskCenterDetail();
+  const refreshCurrentList = useCallback(
+    () => refreshList(statusFilter),
+    [refreshList, statusFilter],
+  );
+  const refreshCurrentDetail = useCallback(
+    () => refreshDetail(selectedTaskId),
+    [refreshDetail, selectedTaskId],
+  );
+  const { streamDisconnected, reconnect } = useTaskCenterRealtime({
+    statusFilter,
+    selectedTaskId,
+    refreshList: refreshCurrentList,
+    refreshDetail: refreshCurrentDetail,
+    onTaskStatus: applyTaskStatusEvent,
+  });
 
   return (
     <main style={{ maxWidth: 1280, margin: "20px auto 24px", display: "grid", gap: 12 }}>
       <header>
-        <h1 style={{ marginBottom: 8 }}>�������ģ�״̬����������ϣ�</h1>
+        <h1 style={{ marginBottom: 8 }}>Ã¤Â»Â»Ã¥Å Â¡Ã¤Â¸Â­Ã¥Â¿Æ’Ã¯Â¼Ë†Ã§Å Â¶Ã¦â‚¬ÂÃ¨Â·Å¸Ã¨Â¸ÂªÃ¤Â¸Å½Ã§Â»â€œÃ¦Å¾Å“Ã¨Â¯Å Ã¦â€“Â­Ã¯Â¼â€°</h1>
         <p style={{ margin: 0, color: "#666" }}>
-          ������ͳһ�鿴����״̬��ִ�н����ʧ����ϣ����ٶ�λ���Ⲣ�ص���Ӧģ�����������
+          Ã¥Å“Â¨Ã¨Â¿â„¢Ã©â€¡Å’Ã§Â»Å¸Ã¤Â¸â‚¬Ã¦Å¸Â¥Ã§Å“â€¹Ã¤Â»Â»Ã¥Å Â¡Ã§Å Â¶Ã¦â‚¬ÂÃ£â‚¬ÂÃ¦â€°Â§Ã¨Â¡Å’Ã§Â»â€œÃ¦Å¾Å“Ã¤Â¸Å½Ã¥Â¤Â±Ã¨Â´Â¥Ã¨Â¯Å Ã¦â€“Â­Ã¯Â¼Å’Ã¥Â¿Â«Ã©â‚¬Å¸Ã¥Â®Å¡Ã¤Â½ÂÃ©â€”Â®Ã©Â¢ËœÃ¥Â¹Â¶Ã¥â€ºÅ¾Ã¥Ë†Â°Ã¥Â¯Â¹Ã¥Âºâ€Ã¦Â¨Â¡Ã¥Ââ€”Ã§Â»Â§Ã§Â»Â­Ã¥Â¤â€žÃ§Ââ€ Ã£â‚¬â€š
         </p>
         <p style={{ marginTop: 8 }}>
-          <Link to="/tasks/circuit">ͼ�λ����</Link> �� <Link to="/tasks/code">�����ύ</Link> ��{" "}
-          <Link to="/tasks/help">�����ĵ�</Link>
+          <Link to="/tasks/circuit">Ã¥â€ºÂ¾Ã¥Â½Â¢Ã¥Å’â€“Ã§Â¼â€“Ã§Â¨â€¹</Link> Ã‚Â· <Link to="/tasks/code">Ã¤Â»Â£Ã§Â ÂÃ¦ÂÂÃ¤ÂºÂ¤</Link> Ã‚Â·{" "}
+          <Link to="/tasks/help">Ã¥Â¸Â®Ã¥Å Â©Ã¦â€“â€¡Ã¦Â¡Â£</Link>
         </p>
       </header>
 
       {streamDisconnected ? (
         <section style={{ border: "1px solid #ffccc7", background: "#fff2f0", padding: 10, borderRadius: 8 }}>
-          ʵʱ״̬�������ѶϿ���ϵͳ���Զ�����Ϊ��ѯ����Ҳ�����ֶ�������
-          <button
-            type="button"
-            onClick={() => setStreamVersion((previous) => previous + 1)}
-            style={{ marginLeft: 8 }}
-          >
-            ��������
+          Ã¥Â®Å¾Ã¦â€”Â¶Ã§Å Â¶Ã¦â‚¬ÂÃ¦ÂµÂÃ¨Â¿Å¾Ã¦Å½Â¥Ã¥Â·Â²Ã¦â€“Â­Ã¥Â¼â‚¬Ã¯Â¼Å’Ã§Â³Â»Ã§Â»Å¸Ã¤Â¼Å¡Ã¨â€¡ÂªÃ¥Å Â¨Ã©â„¢ÂÃ§ÂºÂ§Ã¤Â¸ÂºÃ¨Â½Â®Ã¨Â¯Â¢Ã£â‚¬â€šÃ¤Â½Â Ã¤Â¹Å¸Ã¥ÂÂ¯Ã¤Â»Â¥Ã¦â€°â€¹Ã¥Å Â¨Ã©â€¡ÂÃ¨Â¿Å¾Ã£â‚¬â€š
+          <button type="button" onClick={reconnect} style={{ marginLeft: 8 }}>
+            Ã§Â«â€¹Ã¥ÂÂ³Ã©â€¡ÂÃ¨Â¿Å¾
           </button>
         </section>
       ) : null}
@@ -169,7 +72,7 @@ function TaskCenterScreen() {
           error={listError}
           onSelectTask={setSelectedTaskId}
           onStatusFilterChange={setStatusFilter}
-          onRefresh={() => void loadList(statusFilter)}
+          onRefresh={() => void refreshCurrentList()}
         />
         <TaskDetailPanel detail={detail} loading={detailLoading} error={detailError} />
       </section>

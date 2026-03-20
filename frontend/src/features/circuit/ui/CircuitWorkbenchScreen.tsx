@@ -1,11 +1,11 @@
 ﻿import CircuitCanvas from "../../../components/circuit/CircuitCanvas";
 import GatePalette from "../../../components/circuit/GatePalette";
+import ProjectPanel from "../../../components/projects/ProjectPanel";
 import QasmEditorPane from "../../../components/circuit/QasmEditorPane";
 import QasmErrorPanel from "../../../components/circuit/QasmErrorPanel";
 import WorkbenchGuide from "../../../components/circuit/WorkbenchGuide";
 import WorkbenchResultPanel from "../../../components/circuit/WorkbenchResultPanel";
 import WorkbenchSubmitPanel from "../../../components/circuit/WorkbenchSubmitPanel";
-import ProjectPanel from "../../../components/task-center/ProjectPanel";
 import { useWorkbenchTaskSubmit } from "../submission/use-workbench-task-submit";
 import { type SimulationSchedulerLike, useWorkbenchSimulation } from "../simulation/use-workbench-simulation";
 import { useWorkbenchDraftSync } from "./use-workbench-draft-sync";

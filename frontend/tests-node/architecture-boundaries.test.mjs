@@ -24,6 +24,7 @@ run("route pages are thin wrappers around feature screens", () => {
   const taskCenterPage = read("src/pages/TaskCenterPage.tsx");
   const circuitWorkbenchPage = read("src/pages/CircuitWorkbenchPage.tsx");
   const codeTasksScreen = read("src/features/code-tasks/CodeTasksScreen.tsx");
+  const taskCenterScreen = read("src/features/task-center/TaskCenterScreen.tsx");
 
   assert.match(codeTasksPage, /CodeTasksScreen/);
   assert.doesNotMatch(codeTasksPage, /submitTask|getProjectList|getTaskStatus/);
@@ -32,6 +33,7 @@ run("route pages are thin wrappers around feature screens", () => {
 
   assert.match(taskCenterPage, /TaskCenterScreen/);
   assert.doesNotMatch(taskCenterPage, /getTaskCenterList|connectTaskStatusStream/);
+  assert.doesNotMatch(taskCenterScreen, /getTaskCenterList|getTaskCenterDetail|connectTaskStatusStream/);
 
   assert.match(circuitWorkbenchPage, /CircuitWorkbenchScreen/);
   assert.doesNotMatch(circuitWorkbenchPage, /useWorkbenchTaskSubmit|createSimulationScheduler/);
@@ -60,6 +62,16 @@ run("frontend api modules consume generated contract types", () => {
   assert.match(taskApiSource, /generated\/contracts/);
   assert.match(taskCenterApiSource, /generated\/contracts/);
   assert.match(projectApiSource, /generated\/contracts/);
+});
+
+run("shared project panel is not owned by task-center feature", () => {
+  const codeTasksScreen = read("src/features/code-tasks/CodeTasksScreen.tsx");
+  const workbenchScreen = read("src/features/circuit/ui/CircuitWorkbenchScreen.tsx");
+
+  assert.doesNotMatch(codeTasksScreen, /components\/task-center\/ProjectPanel/);
+  assert.doesNotMatch(workbenchScreen, /components\/task-center\/ProjectPanel/);
+  assert.equal(fs.existsSync(path.join(root, "src/components/projects/ProjectPanel.tsx")), true);
+  assert.equal(fs.existsSync(path.join(root, "src/components/task-center/ProjectPanel.tsx")), false);
 });
 
 if (process.exitCode && process.exitCode !== 0) {

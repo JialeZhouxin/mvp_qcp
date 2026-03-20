@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = path.resolve("E:/02_Projects/quantuncloudplatform/mvp_qcp/frontend");
+const repoRoot = path.resolve("E:/02_Projects/quantuncloudplatform/mvp_qcp");
 
 function read(file) {
   return fs.readFileSync(path.join(root, file), "utf8");
@@ -10,6 +11,10 @@ function read(file) {
 
 function exists(file) {
   return fs.existsSync(path.join(root, file));
+}
+
+function existsFromRepo(file) {
+  return fs.existsSync(path.join(repoRoot, file));
 }
 
 function run(name, fn) {
@@ -52,10 +57,15 @@ run("frontend key files exist", () => {
   assert.equal(exists("src/components/CodeEditor.tsx"), true);
   assert.equal(exists("src/components/ResultChart.tsx"), true);
   assert.equal(exists("src/api/generated/contracts.ts"), true);
+  assert.equal(exists("src/components/projects/ProjectPanel.tsx"), true);
   assert.equal(exists("src/features/circuit/ui/use-workbench-editor-state.ts"), true);
   assert.equal(exists("src/features/circuit/simulation/use-workbench-simulation.ts"), true);
   assert.equal(exists("src/features/circuit/ui/use-workbench-draft-sync.ts"), true);
   assert.equal(exists("src/features/circuit/ui/use-workbench-guide-state.ts"), true);
+  assert.equal(exists("src/features/task-center/use-task-center-list.ts"), true);
+  assert.equal(exists("src/features/task-center/use-task-center-detail.ts"), true);
+  assert.equal(exists("src/features/task-center/use-task-center-realtime.ts"), true);
+  assert.equal(existsFromRepo("backend/app/dependencies/task_submit.py"), true);
 });
 
 run("package scripts contain test, test:node and generate:contracts", () => {

@@ -3,8 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { useAuthSession } from "../../auth/session";
 import CodeEditor from "../../components/CodeEditor";
+import ProjectPanel from "../../components/projects/ProjectPanel";
 import ResultChart from "../../components/ResultChart";
-import ProjectPanel from "../../components/task-center/ProjectPanel";
 import { useCodeProjects } from "./useCodeProjects";
 import { useCodeTaskRun } from "./useCodeTaskRun";
 

@@ -2,18 +2,20 @@ from fastapi import APIRouter, Depends, HTTPException, Header, status
 from sqlmodel import Session
 
 from app.api.auth import get_current_user
+from app.dependencies.task_submit import build_submit_task_use_case
 from app.db.session import get_session
 from app.models.user import User
 from app.schemas.task import TaskResultResponse, TaskStatusResponse, TaskSubmitRequest, TaskSubmitResponse
-from app.use_cases.task_submit_provider import build_submit_task_use_case
+from app.services.task_submit_shared import (
+    TaskSubmitOverloadedError,
+    TaskSubmitQueuePublishError,
+    TaskSubmitValidationError,
+)
 from app.use_cases.task_use_cases import (
     GetTaskResultUseCase,
     GetTaskStatusUseCase,
     TaskAccessDeniedError,
     TaskNotFoundError,
-    TaskSubmitOverloadedError,
-    TaskSubmitQueuePublishError,
-    TaskSubmitValidationError,
 )
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])

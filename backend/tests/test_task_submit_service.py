@@ -8,14 +8,20 @@ from app.models.idempotency_record import IdempotencyRecord
 from app.models.task import Task, TaskStatus
 from app.services.backpressure_service import QueueOverloadedError
 from app.services.idempotency_service import IdempotencyService
+from app.services.task_submit_dispatch_preflight import TaskDispatchPreflight
+from app.services.task_submit_dispatch_service import TaskDispatchService
+from app.services.task_submit_idempotency import TaskSubmitIdempotencyCoordinator
 from app.services.task_submit_service import (
+    TaskSubmitService,
+)
+from app.services.task_submit_shared import (
     TaskSubmitCommand,
     TaskSubmitConfig,
     TaskSubmitOverloadedError,
     TaskSubmitQueuePublishError,
-    TaskSubmitService,
     TaskSubmitValidationError,
 )
+from app.services.task_submit_validator import TaskSubmitValidator
 
 
 class QueueRecorder:
@@ -70,14 +76,27 @@ def _build_submit_service(
 ) -> TaskSubmitService:
     return TaskSubmitService(
         session=session,
-        config=TaskSubmitConfig(
-            idempotency_ttl_hours=24,
-            idempotency_cleanup_batch_size=200,
-            rq_job_timeout_seconds=90,
+        validator=TaskSubmitValidator(),
+        idempotency=TaskSubmitIdempotencyCoordinator(
+            session,
+            TaskSubmitConfig(
+                idempotency_ttl_hours=24,
+                idempotency_cleanup_batch_size=200,
+                rq_job_timeout_seconds=90,
+            ),
         ),
-        queue_getter=lambda: queue,
-        worker_task=lambda task_id: {"task_id": task_id},
-        backpressure_factory=lambda: backpressure,
+        preflight=TaskDispatchPreflight(lambda: backpressure),
+        dispatch=TaskDispatchService(
+            session=session,
+            config=TaskSubmitConfig(
+                idempotency_ttl_hours=24,
+                idempotency_cleanup_batch_size=200,
+                rq_job_timeout_seconds=90,
+            ),
+            queue_getter=lambda: queue,
+            worker_task=lambda task_id: {"task_id": task_id},
+            now_provider=now_provider,
+        ),
         now_provider=now_provider,
     )
 

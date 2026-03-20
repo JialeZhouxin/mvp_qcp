@@ -6,12 +6,12 @@ from typing import Any
 from sqlmodel import Session, select
 
 from app.models.task import Task, TaskStatus
-from app.services.task_submit_service import (
+from app.services.task_submit_service import TaskSubmitService
+from app.services.task_submit_shared import (
     TaskSubmitCommand,
     TaskSubmitOutcome,
     TaskSubmitOverloadedError,
     TaskSubmitQueuePublishError,
-    TaskSubmitService,
     TaskSubmitValidationError,
 )
 
