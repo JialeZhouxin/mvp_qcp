@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 
 import { toErrorMessage } from "../../api/errors";
 import {
@@ -24,7 +24,7 @@ export function useTaskCenterList() {
       });
       setTasks(response.items);
     } catch (error) {
-      setListError(toErrorMessage(error, "åŠ è½½ä»»åŠ¡åˆ—è¡¨å¤±è´¥"));
+      setListError(toErrorMessage(error, "加载任务列表失败"));
     } finally {
       setListLoading(false);
     }

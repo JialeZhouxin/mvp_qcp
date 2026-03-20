@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 
 import { toErrorMessage } from "../../api/errors";
 import {
@@ -22,7 +22,7 @@ export function useTaskCenterDetail() {
       const response = await getTaskCenterDetail(taskId);
       setDetail(response);
     } catch (error) {
-      setDetailError(toErrorMessage(error, "åŠ è½½ä»»åŠ¡è¯¦æƒ…å¤±è´¥"));
+      setDetailError(toErrorMessage(error, "加载任务详情失败"));
     } finally {
       setDetailLoading(false);
     }

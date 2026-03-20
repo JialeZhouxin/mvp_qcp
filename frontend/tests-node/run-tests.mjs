@@ -88,6 +88,21 @@ run("task stream client uses generated contracts instead of local event interfac
   assert.match(src, /generated\/contracts/);
 });
 
+run("task center copy is readable UTF-8 text", () => {
+  const screenSource = read("src/features/task-center/TaskCenterScreen.tsx");
+  const listHookSource = read("src/features/task-center/use-task-center-list.ts");
+  const detailHookSource = read("src/features/task-center/use-task-center-detail.ts");
+
+  assert.match(screenSource, /任务中心（状态跟踪与结果诊断）/);
+  assert.match(screenSource, /实时状态流连接已断开/);
+  assert.match(screenSource, /立即重连/);
+  assert.match(listHookSource, /加载任务列表失败/);
+  assert.match(detailHookSource, /加载任务详情失败/);
+  assert.doesNotMatch(screenSource, /Ã/);
+  assert.doesNotMatch(listHookSource, /Ã|æ°“/);
+  assert.doesNotMatch(detailHookSource, /Ã|æ°“/);
+});
+
 if (process.exitCode && process.exitCode !== 0) {
   console.error("node fallback tests failed");
 } else {
