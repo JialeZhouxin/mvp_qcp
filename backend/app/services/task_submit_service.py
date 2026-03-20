@@ -1,34 +1,20 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Protocol
 
 from sqlmodel import Session
 
 from app.models.task import Task, TaskStatus
-from app.queue.rq_queue import get_task_queue
 from app.services.backpressure_service import BackpressureService, QueueOverloadedError
 from app.services.idempotency_cleanup import cleanup_expired_idempotency_records
 from app.services.idempotency_service import IdempotencyService
 from app.services.task_lifecycle import TaskLifecycleService
-from app.worker.tasks import run_quantum_task
+from app.services.task_submit_ports import BackpressureFactory, NowProvider, QueueGetter, WorkerTask
 
 logger = logging.getLogger(__name__)
 
 IDEMPOTENCY_KEY_MAX_LENGTH = 255
 QUEUE_PUBLISH_ERROR_CODE = "QUEUE_PUBLISH_ERROR"
-
-
-class TaskQueue(Protocol):
-    def enqueue(self, func: Callable[..., Any], task_id: int, job_timeout: int) -> Any:
-        ...
-
-
-QueueGetter = Callable[[], TaskQueue]
-WorkerTask = Callable[[int], dict[str, Any]]
-BackpressureFactory = Callable[[], BackpressureService]
-NowProvider = Callable[[], datetime]
-
 
 @dataclass(frozen=True)
 class TaskSubmitConfig:
@@ -79,8 +65,8 @@ class TaskSubmitService:
         self,
         session: Session,
         config: TaskSubmitConfig,
-        queue_getter: QueueGetter = get_task_queue,
-        worker_task: WorkerTask = run_quantum_task,
+        queue_getter: QueueGetter,
+        worker_task: WorkerTask,
         backpressure_factory: BackpressureFactory = BackpressureService.from_settings,
         now_provider: NowProvider = datetime.utcnow,
     ) -> None:

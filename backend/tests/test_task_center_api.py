@@ -10,6 +10,7 @@ from app.db.session import engine, init_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models.task import Task, TaskStatus  # noqa: E402
 from app.services.task_event_stream_service import TaskEventStreamService  # noqa: E402
+from app.schemas.task_stream import TaskHeartbeatEvent, TaskStatusStreamEvent  # noqa: E402
 
 SQLModel.metadata.drop_all(engine)
 init_db()
@@ -85,9 +86,19 @@ def test_task_event_stream_service_emits_change_payload() -> None:
     changed, versions = service.list_changed_tasks(user_id, {task_id}, {})
 
     assert len(changed) == 1
-    assert changed[0]["task_id"] == task_id
-    assert changed[0]["status"] == "PENDING"
+    assert isinstance(changed[0], TaskStatusStreamEvent)
+    assert changed[0].task_id == task_id
+    assert changed[0].status == "PENDING"
     assert task_id in versions
+
+
+def test_task_event_stream_service_builds_typed_heartbeat() -> None:
+    service = TaskEventStreamService()
+
+    heartbeat = service.build_heartbeat()
+
+    assert isinstance(heartbeat, TaskHeartbeatEvent)
+    assert heartbeat.timestamp.isoformat()
 
 
 def teardown_module() -> None:

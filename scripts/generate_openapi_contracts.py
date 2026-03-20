@@ -30,6 +30,8 @@ TARGET_SCHEMAS = [
     "TaskCenterListItem",
     "TaskCenterListResponse",
     "TaskCenterDetailResponse",
+    "TaskStatusStreamEvent",
+    "TaskHeartbeatEvent",
 ]
 
 TYPE_ALIASES = {
@@ -39,6 +41,10 @@ TYPE_ALIASES = {
 
 def load_components() -> dict[str, Any]:
     return app.openapi().get("components", {}).get("schemas", {})
+
+
+def load_openapi() -> dict[str, Any]:
+    return app.openapi()
 
 
 def resolve_ref(schema: dict[str, Any]) -> str:
@@ -107,16 +113,35 @@ def render_interface(name: str, schema: dict[str, Any]) -> str:
 
 
 def main() -> None:
-    components = load_components()
+    openapi_schema = load_openapi()
+    components = openapi_schema.get("components", {}).get("schemas", {})
     missing = [name for name in TARGET_SCHEMAS if name not in components]
     if missing:
         raise SystemExit(f"missing schemas: {', '.join(missing)}")
+
+    stream_events = openapi_schema.get("paths", {}).get("/api/tasks/stream", {}).get("get", {}).get(
+        "x-sse-events", {}
+    )
+    if stream_events != {
+        "task_status": "TaskStatusStreamEvent",
+        "heartbeat": "TaskHeartbeatEvent",
+    }:
+        raise SystemExit("missing or invalid x-sse-events contract for /api/tasks/stream")
 
     FRONTEND_CONTRACT_PATH.parent.mkdir(parents=True, exist_ok=True)
     blocks = ["// Generated from backend OpenAPI. Do not edit by hand.\n"]
     blocks.append(render_interface("ProjectEntryType", {"enum": ["code", "circuit"]}))
     for name in TARGET_SCHEMAS:
         blocks.append(render_interface(name, components[name]))
+    blocks.append(
+        "\n".join(
+            [
+                "export type TaskStreamMessage =",
+                '  | { event: "task_status"; data: TaskStatusStreamEvent }',
+                '  | { event: "heartbeat"; data: TaskHeartbeatEvent };',
+            ]
+        )
+    )
 
     FRONTEND_CONTRACT_PATH.write_text("\n\n".join(blocks) + "\n", encoding="utf-8")
     print(f"wrote {FRONTEND_CONTRACT_PATH}")

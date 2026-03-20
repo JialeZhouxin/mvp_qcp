@@ -5,10 +5,12 @@ from app.api.auth import get_current_user
 from app.db.session import get_session
 from app.models.user import User
 from app.schemas.task import TaskResultResponse, TaskStatusResponse, TaskSubmitRequest, TaskSubmitResponse
+from app.use_cases.task_submit_provider import build_submit_task_use_case
 from app.use_cases.task_use_cases import (
     GetTaskResultUseCase,
     GetTaskStatusUseCase,
-    SubmitTaskUseCase,
+    TaskAccessDeniedError,
+    TaskNotFoundError,
     TaskSubmitOverloadedError,
     TaskSubmitQueuePublishError,
     TaskSubmitValidationError,
@@ -24,7 +26,7 @@ def submit_task(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> TaskSubmitResponse:
-    use_case = SubmitTaskUseCase(session)
+    use_case = build_submit_task_use_case(session)
 
     try:
         outcome = use_case.execute(current_user.id, payload.code, idempotency_key)
@@ -53,7 +55,10 @@ def get_task_status(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> TaskStatusResponse:
-    task = GetTaskStatusUseCase(session).execute(current_user.id, task_id)
+    try:
+        task = GetTaskStatusUseCase(session).execute(current_user.id, task_id)
+    except (TaskNotFoundError, TaskAccessDeniedError) as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found") from exc
     return TaskStatusResponse(
         task_id=task.task_id,
         status=task.status,
@@ -67,7 +72,10 @@ def get_task_result(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> TaskResultResponse:
-    task = GetTaskResultUseCase(session).execute(current_user.id, task_id)
+    try:
+        task = GetTaskResultUseCase(session).execute(current_user.id, task_id)
+    except (TaskNotFoundError, TaskAccessDeniedError) as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found") from exc
 
     return TaskResultResponse(
         task_id=task.task_id,

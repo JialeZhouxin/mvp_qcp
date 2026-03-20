@@ -99,7 +99,7 @@ def test_task_submit_queue_success_sets_pending(monkeypatch) -> None:
             assert job_timeout > 0
             queued["task_id"] = task_id
 
-    monkeypatch.setattr("app.use_cases.task_use_cases.get_task_queue", lambda: QueueStub())
+    monkeypatch.setattr("app.use_cases.task_submit_provider.get_task_queue", lambda: QueueStub())
 
     headers = _auth_headers("tester_queue_ok")
     code = "def main():\n    return {'counts': {'00': 3, '11': 1}}"
@@ -124,7 +124,7 @@ def test_task_submit_queue_failure_marks_task_failed(monkeypatch) -> None:
         def enqueue(self, *_args, **_kwargs) -> None:
             raise RuntimeError("redis unavailable")
 
-    monkeypatch.setattr("app.use_cases.task_use_cases.get_task_queue", lambda: QueueStub())
+    monkeypatch.setattr("app.use_cases.task_submit_provider.get_task_queue", lambda: QueueStub())
 
     headers = _auth_headers("tester_queue_fail")
     code = "def main():\n    return {'counts': {'00': 1, '11': 1}}  # queue-fail-case"
@@ -150,7 +150,7 @@ def test_task_status_isolation_by_owner(monkeypatch) -> None:
         def enqueue(self, *_args, **_kwargs) -> None:
             return None
 
-    monkeypatch.setattr("app.use_cases.task_use_cases.get_task_queue", lambda: QueueStub())
+    monkeypatch.setattr("app.use_cases.task_submit_provider.get_task_queue", lambda: QueueStub())
 
     owner_headers = _auth_headers("tester_owner")
     other_headers = _auth_headers("tester_other")

@@ -1,10 +1,10 @@
 from datetime import datetime
-from typing import Any
 
 from sqlmodel import select
 
 from app.db.session import SessionFactory, create_session
 from app.models.task import Task
+from app.schemas.task_stream import TaskHeartbeatEvent, TaskStatusStreamEvent
 
 MAX_STREAM_TASKS = 200
 
@@ -25,10 +25,10 @@ class TaskEventStreamService:
         user_id: int,
         watched_task_ids: set[int] | None,
         versions: dict[int, str],
-    ) -> tuple[list[dict[str, Any]], dict[int, str]]:
+    ) -> tuple[list[TaskStatusStreamEvent], dict[int, str]]:
         tasks = self._load_tasks(user_id, watched_task_ids)
         next_versions = dict(versions)
-        changed: list[dict[str, Any]] = []
+        changed: list[TaskStatusStreamEvent] = []
         for task in tasks:
             if task.id is None:
                 continue
@@ -38,8 +38,8 @@ class TaskEventStreamService:
             next_versions[task.id] = version
         return changed, next_versions
 
-    def build_heartbeat(self) -> dict[str, str]:
-        return {"timestamp": datetime.utcnow().isoformat()}
+    def build_heartbeat(self) -> TaskHeartbeatEvent:
+        return TaskHeartbeatEvent(timestamp=datetime.utcnow())
 
     def _load_tasks(self, user_id: int, watched_task_ids: set[int] | None) -> list[Task]:
         statement = select(Task).where(Task.user_id == user_id)
@@ -59,11 +59,11 @@ class TaskEventStreamService:
             ]
         )
 
-    def _to_event_payload(self, task: Task) -> dict[str, Any]:
-        return {
-            "task_id": task.id or 0,
-            "status": task.status.value,
-            "updated_at": task.updated_at.isoformat(),
-            "duration_ms": task.duration_ms,
-            "attempt_count": task.attempt_count,
-        }
+    def _to_event_payload(self, task: Task) -> TaskStatusStreamEvent:
+        return TaskStatusStreamEvent(
+            task_id=task.id or 0,
+            status=task.status.value,
+            updated_at=task.updated_at,
+            duration_ms=task.duration_ms,
+            attempt_count=task.attempt_count,
+        )

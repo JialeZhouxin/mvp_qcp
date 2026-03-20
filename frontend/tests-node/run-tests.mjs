@@ -52,6 +52,10 @@ run("frontend key files exist", () => {
   assert.equal(exists("src/components/CodeEditor.tsx"), true);
   assert.equal(exists("src/components/ResultChart.tsx"), true);
   assert.equal(exists("src/api/generated/contracts.ts"), true);
+  assert.equal(exists("src/features/circuit/ui/use-workbench-editor-state.ts"), true);
+  assert.equal(exists("src/features/circuit/simulation/use-workbench-simulation.ts"), true);
+  assert.equal(exists("src/features/circuit/ui/use-workbench-draft-sync.ts"), true);
+  assert.equal(exists("src/features/circuit/ui/use-workbench-guide-state.ts"), true);
 });
 
 run("package scripts contain test, test:node and generate:contracts", () => {
@@ -59,6 +63,19 @@ run("package scripts contain test, test:node and generate:contracts", () => {
   assert.equal(typeof pkg.scripts.test, "string");
   assert.equal(typeof pkg.scripts["test:node"], "string");
   assert.equal(typeof pkg.scripts["generate:contracts"], "string");
+});
+
+run("generated contracts expose task stream event types", () => {
+  const src = read("src/api/generated/contracts.ts");
+  assert.match(src, /export interface TaskStatusStreamEvent/);
+  assert.match(src, /export interface TaskHeartbeatEvent/);
+  assert.match(src, /export type TaskStreamMessage/);
+});
+
+run("task stream client uses generated contracts instead of local event interfaces", () => {
+  const src = read("src/features/realtime/task-stream-client.ts");
+  assert.doesNotMatch(src, /export interface TaskStatusStreamEvent/);
+  assert.match(src, /generated\/contracts/);
 });
 
 if (process.exitCode && process.exitCode !== 0) {

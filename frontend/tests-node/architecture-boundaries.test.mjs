@@ -23,15 +23,21 @@ run("route pages are thin wrappers around feature screens", () => {
   const codeTasksPage = read("src/pages/CodeTasksPage.tsx");
   const taskCenterPage = read("src/pages/TaskCenterPage.tsx");
   const circuitWorkbenchPage = read("src/pages/CircuitWorkbenchPage.tsx");
+  const codeTasksScreen = read("src/features/code-tasks/CodeTasksScreen.tsx");
 
   assert.match(codeTasksPage, /CodeTasksScreen/);
   assert.doesNotMatch(codeTasksPage, /submitTask|getProjectList|getTaskStatus/);
+  assert.doesNotMatch(codeTasksPage, /from\s+["'][^"']*TasksPage["']/);
+  assert.doesNotMatch(codeTasksPage, /<TasksPage\s*\/>/);
 
   assert.match(taskCenterPage, /TaskCenterScreen/);
   assert.doesNotMatch(taskCenterPage, /getTaskCenterList|connectTaskStatusStream/);
 
   assert.match(circuitWorkbenchPage, /CircuitWorkbenchScreen/);
   assert.doesNotMatch(circuitWorkbenchPage, /useWorkbenchTaskSubmit|createSimulationScheduler/);
+
+  assert.doesNotMatch(codeTasksScreen, /pages\/TasksPage/);
+  assert.doesNotMatch(codeTasksScreen, /\.\.\/\.\.\/pages\/TasksPage/);
 });
 
 run("frontend authentication flows do not read token storage outside auth modules", () => {

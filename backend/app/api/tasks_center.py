@@ -4,6 +4,7 @@ from typing import AsyncIterator
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlmodel import Session
 
 from app.api.auth import get_current_user
@@ -34,8 +35,8 @@ def _parse_task_ids(task_ids: str | None) -> set[int] | None:
     return parsed or None
 
 
-def _to_sse(event: str, payload: dict) -> str:
-    return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+def _to_sse(event: str, payload: BaseModel) -> str:
+    return f"event: {event}\ndata: {json.dumps(payload.model_dump(mode='json'), ensure_ascii=False)}\n\n"
 
 
 def _to_task_center_list_response(view: TaskListView) -> TaskCenterListResponse:
@@ -114,7 +115,15 @@ def get_task_detail(
     return _to_task_center_detail_response(detail)
 
 
-@router.get("/stream")
+@router.get(
+    "/stream",
+    openapi_extra={
+        "x-sse-events": {
+            "task_status": "TaskStatusStreamEvent",
+            "heartbeat": "TaskHeartbeatEvent",
+        }
+    },
+)
 async def stream_task_status(
     request: Request,
     task_ids: str | None = Query(default=None),

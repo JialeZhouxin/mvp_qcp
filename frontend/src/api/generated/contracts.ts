@@ -110,3 +110,19 @@ export interface TaskCenterDetailResponse {
   result?: Record<string, unknown> | null;
   diagnostic?: TaskDiagnostic | null;
 }
+
+export interface TaskStatusStreamEvent {
+  task_id: number;
+  status: string;
+  updated_at: string;
+  duration_ms?: number | null;
+  attempt_count: number;
+}
+
+export interface TaskHeartbeatEvent {
+  timestamp: string;
+}
+
+export type TaskStreamMessage =
+  | { event: "task_status"; data: TaskStatusStreamEvent }
+  | { event: "heartbeat"; data: TaskHeartbeatEvent };

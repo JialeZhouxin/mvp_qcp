@@ -1,17 +1,14 @@
 import { getAccessToken } from "../../auth/session-store";
 import { API_BASE_URL } from "../../api/client";
-
-export interface TaskStatusStreamEvent {
-  task_id: number;
-  status: string;
-  updated_at: string;
-  duration_ms: number | null;
-  attempt_count: number;
-}
+import type {
+  TaskHeartbeatEvent,
+  TaskStatusStreamEvent,
+  TaskStreamMessage,
+} from "../../api/generated/contracts";
 
 export interface TaskStreamCallbacks {
   onStatus: (event: TaskStatusStreamEvent) => void;
-  onHeartbeat?: (timestamp: string) => void;
+  onHeartbeat?: (event: TaskHeartbeatEvent) => void;
   onDisconnect?: () => void;
   onError?: (error: Error) => void;
 }
@@ -39,15 +36,21 @@ function parseEventBlock(
   if (!dataText) {
     return;
   }
-  if (eventName === "task_status") {
-    callbacks.onStatus(JSON.parse(dataText) as TaskStatusStreamEvent);
+  const message = {
+    event: eventName,
+    data: JSON.parse(dataText),
+  } as TaskStreamMessage;
+
+  if (message.event === "task_status") {
+    callbacks.onStatus(message.data);
     return;
   }
-  if (eventName === "heartbeat" && callbacks.onHeartbeat) {
-    const payload = JSON.parse(dataText) as { timestamp?: string };
-    callbacks.onHeartbeat(payload.timestamp ?? "");
+  if (message.event === "heartbeat" && callbacks.onHeartbeat) {
+    callbacks.onHeartbeat(message.data);
   }
 }
+
+export type { TaskHeartbeatEvent, TaskStatusStreamEvent, TaskStreamMessage };
 
 export function connectTaskStatusStream(
   taskIds: number[] | null,

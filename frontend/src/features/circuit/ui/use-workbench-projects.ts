@@ -11,7 +11,7 @@ import type { CircuitModel } from "../model/types";
 import type { ProbabilityDisplayMode } from "../simulation/probability-filter";
 import { isCircuitModel } from "./workbench-model-utils";
 
-interface LoadedProjectPayload {
+export interface WorkbenchProjectPayload {
   readonly circuit: CircuitModel;
   readonly qasm: string;
   readonly displayMode: ProbabilityDisplayMode;
@@ -22,7 +22,7 @@ interface UseWorkbenchProjectsParams {
   readonly circuit: CircuitModel;
   readonly qasm: string;
   readonly displayMode: ProbabilityDisplayMode;
-  readonly onProjectLoaded: (payload: LoadedProjectPayload) => void;
+  readonly onProjectLoaded: (payload: WorkbenchProjectPayload) => void;
 }
 
 export function useWorkbenchProjects({

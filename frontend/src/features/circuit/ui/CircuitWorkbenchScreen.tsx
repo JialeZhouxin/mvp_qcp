@@ -1,6 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-
-import CircuitCanvas from "../../../components/circuit/CircuitCanvas";
+锘縤mport CircuitCanvas from "../../../components/circuit/CircuitCanvas";
 import GatePalette from "../../../components/circuit/GatePalette";
 import QasmEditorPane from "../../../components/circuit/QasmEditorPane";
 import QasmErrorPanel from "../../../components/circuit/QasmErrorPanel";
@@ -8,74 +6,58 @@ import WorkbenchGuide from "../../../components/circuit/WorkbenchGuide";
 import WorkbenchResultPanel from "../../../components/circuit/WorkbenchResultPanel";
 import WorkbenchSubmitPanel from "../../../components/circuit/WorkbenchSubmitPanel";
 import ProjectPanel from "../../../components/task-center/ProjectPanel";
-import { EDITOR_MAX_QUBITS, EDITOR_MIN_QUBITS } from "../model/constants";
-import { evaluateComplexity, getLocalSimulationGuardMessage } from "../model/complexity-guard";
-import { decreaseQubits, increaseQubits } from "../model/circuit-model";
-import { validateCircuitModel } from "../model/circuit-validation";
-import {
-  canRedoHistory,
-  canUndoHistory,
-  createHistoryState,
-  redoHistoryState,
-  undoHistoryState,
-  type EditorHistoryState,
-} from "../model/history";
-import { loadCircuitTemplate } from "../model/templates";
-import type { CircuitModel } from "../model/types";
-import { toQasm3 } from "../qasm/qasm-bridge";
-import type { QasmParseError } from "../qasm/qasm-errors";
-import {
-  filterProbabilities,
-  getProbabilityDisplayView,
-  type ProbabilityDisplayMode,
-  type ProbabilityFilterResult,
-} from "../simulation/probability-filter";
-import { SimulationScheduleError, createSimulationScheduler } from "../simulation/scheduler";
 import { useWorkbenchTaskSubmit } from "../submission/use-workbench-task-submit";
-import { clearWorkbenchDraft, saveWorkbenchDraft } from "./draft-storage";
-import { isWorkbenchGuideDismissed, setWorkbenchGuideDismissed } from "./guide-preference";
-import {
-  areCircuitsEquivalent,
-  buildInitialState,
-  createDefaultCircuit,
-  createNextHistoryState,
-} from "./workbench-model-utils";
+import { type SimulationSchedulerLike, useWorkbenchSimulation } from "../simulation/use-workbench-simulation";
+import { useWorkbenchDraftSync } from "./use-workbench-draft-sync";
+import { useWorkbenchEditorState } from "./use-workbench-editor-state";
+import { useWorkbenchGuideState } from "./use-workbench-guide-state";
 import { useWorkbenchProjects } from "./use-workbench-projects";
 
-const DEFAULT_DISPLAY_MODE: ProbabilityDisplayMode = "FILTERED";
 const SUBMIT_RAIL_TOP_OFFSET = 12;
 const SUBMIT_RAIL_Z_INDEX = 20;
-
-type SimulationViewState = "IDLE" | "RUNNING" | "READY" | "ERROR";
-
-interface SimulationSchedulerLike {
-  readonly schedule: (
-    model: CircuitModel,
-  ) => Promise<{ requestId: string; probabilities: Record<string, number> }>;
-}
 
 interface CircuitWorkbenchScreenProps {
   readonly scheduler?: SimulationSchedulerLike;
 }
 
 function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
-  const [initialState] = useState(() => buildInitialState(DEFAULT_DISPLAY_MODE));
-  const [history, setHistory] = useState<EditorHistoryState<CircuitModel>>(() =>
-    createHistoryState(initialState.circuit),
-  );
-  const [qasm, setQasm] = useState(() => initialState.qasm);
-  const [displayMode, setDisplayMode] = useState<ProbabilityDisplayMode>(
-    initialState.displayMode,
-  );
-  const [parseError, setParseError] = useState<QasmParseError | null>(null);
-  const [simError, setSimError] = useState<string | null>(null);
-  const [qubitMessage, setQubitMessage] = useState<string | null>(null);
-  const [simulationState, setSimulationState] = useState<SimulationViewState>("IDLE");
-  const [probabilityView, setProbabilityView] = useState<ProbabilityFilterResult | null>(null);
-  const [showGuide, setShowGuide] = useState(() => !isWorkbenchGuideDismissed());
-  const schedulerRef = useRef<SimulationSchedulerLike>(scheduler ?? createSimulationScheduler());
+  const {
+    circuit,
+    qasm,
+    setQasm,
+    displayMode,
+    setDisplayMode,
+    parseError,
+    setParseError,
+    pushCircuit,
+    onValidQasmChange,
+    replaceFromProject,
+    historyState,
+    canvasControls,
+    resetVersion,
+  } = useWorkbenchEditorState();
+  const { showGuide, dismissGuide } = useWorkbenchGuideState();
 
-  const circuit = history.present;
+  useWorkbenchDraftSync({
+    circuit,
+    qasm,
+    displayMode,
+    resetVersion,
+    onRestore: replaceFromProject,
+  });
+
+  const {
+    simulationState,
+    simError,
+    probabilityView,
+    probabilityDisplayView,
+    epsilonText,
+  } = useWorkbenchSimulation({
+    circuit,
+    displayMode,
+    scheduler,
+  });
+
   const {
     projectLoading,
     projectSaving,
@@ -89,13 +71,9 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
     circuit,
     qasm,
     displayMode,
-    onProjectLoaded: (payload) => {
-      setHistory(createHistoryState(payload.circuit));
-      setQasm(payload.qasm);
-      setDisplayMode(payload.displayMode);
-      setParseError(null);
-    },
+    onProjectLoaded: replaceFromProject,
   });
+
   const {
     submittingTask,
     submittedTaskId,
@@ -107,147 +85,9 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
     onSubmitTask,
   } = useWorkbenchTaskSubmit({ circuit, parseError });
 
-  const runSimulation = async (model: CircuitModel) => {
-    setSimulationState("RUNNING");
-    const validation = validateCircuitModel(model);
-    if (!validation.ok) {
-      setSimError(`电路校验失败：${validation.error.message}`);
-      setProbabilityView(null);
-      setSimulationState("ERROR");
-      return;
-    }
-    const simGuardMessage = getLocalSimulationGuardMessage(model);
-    if (simGuardMessage) {
-      setSimError(simGuardMessage);
-      setProbabilityView(null);
-      setSimulationState("ERROR");
-      return;
-    }
-    const complexity = evaluateComplexity(model);
-    if (!complexity.ok) {
-      setSimError(`本地模拟复杂度过高${complexity.message ?? ""}`.trim());
-      setProbabilityView(null);
-      setSimulationState("ERROR");
-      return;
-    }
-
-    try {
-      const response = await schedulerRef.current.schedule(model);
-      const filtered = filterProbabilities(model.numQubits, response.probabilities);
-      setProbabilityView(filtered);
-      setSimError(null);
-      setSimulationState("READY");
-    } catch (error) {
-      if (error instanceof SimulationScheduleError && error.code === "SIM_STALE") {
-        return;
-      }
-      setSimError(`本地模拟失败：${error instanceof Error ? error.message : String(error)}`);
-      setSimulationState("ERROR");
-    }
-  };
-
-  useEffect(() => {
-    void runSimulation(circuit);
-  }, [circuit]);
-
-  useEffect(() => {
-    const normalized = toQasm3(circuit);
-    setQasm((previous) => (previous === normalized ? previous : normalized));
-    setParseError(null);
-  }, [circuit]);
-
-  useEffect(() => {
-    saveWorkbenchDraft({
-      version: 1,
-      circuit,
-      qasm: toQasm3(circuit),
-      displayMode,
-      updatedAt: Date.now(),
-    });
-  }, [circuit, displayMode]);
-
-  const pushCircuit = (next: CircuitModel) => {
-    setHistory((previous) => createNextHistoryState(previous, next));
-  };
-
-  const onValidQasmChange = (nextModel: CircuitModel) => {
-    if (!areCircuitsEquivalent(nextModel, circuit)) {
-      pushCircuit(nextModel);
-    }
-  };
-
-  const onClearCircuit = () => {
-    setQubitMessage(null);
-    pushCircuit({ numQubits: circuit.numQubits, operations: [] });
-  };
-
-  const onResetWorkbench = () => {
-    const fallback = createDefaultCircuit();
-    setHistory(createHistoryState(fallback));
-    setQasm(toQasm3(fallback));
-    setDisplayMode(DEFAULT_DISPLAY_MODE);
-    setParseError(null);
-    setQubitMessage(null);
-    clearWorkbenchDraft();
-  };
-
-  const onIncreaseQubits = () => {
-    const result = increaseQubits(circuit, {
-      minQubits: EDITOR_MIN_QUBITS,
-      maxQubits: EDITOR_MAX_QUBITS,
-    });
-    if (!result.ok) {
-      setQubitMessage("已达到最大量子比特限制，无法继续增加。");
-      return;
-    }
-    setQubitMessage(null);
-    pushCircuit(result.model);
-  };
-
-  const onDecreaseQubits = () => {
-    const result = decreaseQubits(circuit, {
-      minQubits: EDITOR_MIN_QUBITS,
-      maxQubits: EDITOR_MAX_QUBITS,
-    });
-    if (!result.ok) {
-      if (result.code === "QUBIT_SHRINK_BLOCKED_BY_OPERATION") {
-        setQubitMessage("当前电路中存在使用高位量子比特的操作，请先删除相关门再减少 qubit。");
-      } else {
-        setQubitMessage("已达到最小量子比特限制，无法继续减少。");
-      }
-      return;
-    }
-    setQubitMessage(null);
-    pushCircuit(result.model);
-  };
-
-  const canIncreaseQubits = circuit.numQubits < EDITOR_MAX_QUBITS;
-  const canDecreaseQubits =
-    decreaseQubits(circuit, {
-      minQubits: EDITOR_MIN_QUBITS,
-      maxQubits: EDITOR_MAX_QUBITS,
-    }).ok;
-  const handleUndo = () => {
-    setHistory((previous) => undoHistoryState(previous));
-  };
-  const handleRedo = () => {
-    setHistory((previous) => redoHistoryState(previous));
-  };
-
-  const probabilityDisplayView = probabilityView
-    ? getProbabilityDisplayView(displayMode, probabilityView)
-    : null;
-  const epsilonText = probabilityView ? probabilityView.epsilon.toExponential(3) : "--";
-
   return (
     <main style={{ maxWidth: 1320, margin: "24px auto", display: "grid", gap: 16 }}>
-      <WorkbenchGuide
-        visible={showGuide}
-        onDismiss={() => {
-          setShowGuide(false);
-          setWorkbenchGuideDismissed(true);
-        }}
-      />
+      <WorkbenchGuide visible={showGuide} onDismiss={dismissGuide} />
 
       <section
         data-testid="workbench-submit-rail"
@@ -286,22 +126,10 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
         <div data-testid="workbench-canvas-column" style={{ minWidth: 0 }}>
           <CircuitCanvas
             circuit={circuit}
-            onCircuitChange={(next) => pushCircuit(next)}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            controls={{
-              canUndo: canUndoHistory(history),
-              canRedo: canRedoHistory(history),
-              currentQubits: circuit.numQubits,
-              canIncreaseQubits,
-              canDecreaseQubits,
-              qubitMessage,
-              onIncreaseQubits,
-              onDecreaseQubits,
-              onClearCircuit,
-              onResetWorkbench,
-              onLoadTemplate: (templateId) => pushCircuit(loadCircuitTemplate(templateId)),
-            }}
+            onCircuitChange={pushCircuit}
+            onUndo={historyState.onUndo}
+            onRedo={historyState.onRedo}
+            controls={canvasControls}
           />
         </div>
         <div data-testid="workbench-qasm-column" style={{ display: "grid", gap: 12, minWidth: 0 }}>

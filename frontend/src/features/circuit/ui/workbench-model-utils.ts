@@ -6,7 +6,6 @@ import {
 import { loadCircuitTemplate } from "../model/templates";
 import type { CircuitModel } from "../model/types";
 import type { ProbabilityDisplayMode } from "../simulation/probability-filter";
-import { loadWorkbenchDraft } from "./draft-storage";
 import { toQasm3 } from "../qasm/qasm-bridge";
 
 const DEFAULT_TEMPLATE_ID = "bell";
@@ -23,12 +22,7 @@ export function createDefaultCircuit(): CircuitModel {
 
 export function buildInitialState(defaultMode: ProbabilityDisplayMode): InitialWorkbenchState {
   const defaultCircuit = createDefaultCircuit();
-  const defaultQasm = toQasm3(defaultCircuit);
-  const draft = loadWorkbenchDraft();
-  if (!draft) {
-    return { circuit: defaultCircuit, qasm: defaultQasm, displayMode: defaultMode };
-  }
-  return { circuit: draft.circuit, qasm: draft.qasm, displayMode: draft.displayMode };
+  return { circuit: defaultCircuit, qasm: toQasm3(defaultCircuit), displayMode: defaultMode };
 }
 
 export function areCircuitsEquivalent(left: CircuitModel, right: CircuitModel): boolean {

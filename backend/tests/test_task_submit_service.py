@@ -76,6 +76,7 @@ def _build_submit_service(
             rq_job_timeout_seconds=90,
         ),
         queue_getter=lambda: queue,
+        worker_task=lambda task_id: {"task_id": task_id},
         backpressure_factory=lambda: backpressure,
         now_provider=now_provider,
     )
