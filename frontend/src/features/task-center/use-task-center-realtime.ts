@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { TaskStatusStreamEvent } from "../realtime/task-stream-client";
+import type { TaskStatusStreamEvent } from "../../api/task-stream";
 import {
-  connectTaskStatusStream,
+  subscribeTaskStream,
   type TaskStreamConnection,
-} from "../realtime/task-stream-client";
+} from "../../api/task-stream";
 
 const FALLBACK_POLL_INTERVAL_MS = 3000;
 
@@ -37,7 +37,7 @@ export function useTaskCenterRealtime({
       streamRef.current = null;
     }
     setStreamDisconnected(false);
-    streamRef.current = connectTaskStatusStream(null, {
+    streamRef.current = subscribeTaskStream(null, {
       onStatus: (event) => {
         onTaskStatus(event);
         if (selectedTaskIdRef.current === event.task_id) {

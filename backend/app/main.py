@@ -12,7 +12,7 @@ from app.schemas.task_stream import TaskHeartbeatEvent, TaskStatusStreamEvent
 configure_logging()
 app = FastAPI(title=settings.app_name)
 
-# 鍏佽鏈湴鍓嶇寮€鍙戞湇鍔″櫒璺ㄥ煙璁块棶鍚庣 API
+# 配置跨域访问，允许前端开发服务器访问后端 API。
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -24,7 +24,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup() -> None:
-    # 鍚姩鏃跺垵濮嬪寲鏁版嵁搴撹〃缁撴瀯锛屼负鍚庣画閴存潈鍜屼换鍔℃祦杞仛鍑嗗
+    # 启动时初始化数据库，确保本地开发和测试环境具备基础表结构。
     init_db()
 
 

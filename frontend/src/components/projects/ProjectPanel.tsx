@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 
 import type { ProjectEntryType, ProjectItem } from "../../api/projects";
 
@@ -30,10 +30,10 @@ function ProjectPanel({
 
   return (
     <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-      <h3 style={{ marginTop: 0 }}>项目保存</h3>
+      <h3 style={{ marginTop: 0 }}>项目面板</h3>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <input
-          placeholder={entryType === "code" ? "输入代码项目名" : "输入电路项目名"}
+          placeholder={entryType === "code" ? "输入代码项目名称" : "输入电路项目名称"}
           value={name}
           onChange={(event) => setName(event.target.value)}
           style={{ flex: 1 }}
@@ -49,7 +49,7 @@ function ProjectPanel({
           {saving ? "保存中..." : "保存项目"}
         </button>
         <button type="button" onClick={onRefresh} disabled={loading}>
-          刷新项目
+          刷新列表
         </button>
       </div>
       {error ? <p style={{ color: "#cf1322", margin: "4px 0" }}>{error}</p> : null}

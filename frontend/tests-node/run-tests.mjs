@@ -57,7 +57,12 @@ run("frontend key files exist", () => {
   assert.equal(exists("src/components/CodeEditor.tsx"), true);
   assert.equal(exists("src/components/ResultChart.tsx"), true);
   assert.equal(exists("src/api/generated/contracts.ts"), true);
+  assert.equal(exists("src/api/task-stream.ts"), true);
   assert.equal(exists("src/components/projects/ProjectPanel.tsx"), true);
+  assert.equal(exists("src/features/code-tasks/CodeTasksHeader.tsx"), true);
+  assert.equal(exists("src/features/code-tasks/CodeTasksActions.tsx"), true);
+  assert.equal(exists("src/features/code-tasks/CodeTasksStatusPanel.tsx"), true);
+  assert.equal(exists("src/features/code-tasks/CodeTasksResultPanel.tsx"), true);
   assert.equal(exists("src/features/circuit/ui/use-workbench-editor-state.ts"), true);
   assert.equal(exists("src/features/circuit/simulation/use-workbench-simulation.ts"), true);
   assert.equal(exists("src/features/circuit/ui/use-workbench-draft-sync.ts"), true);
@@ -83,7 +88,7 @@ run("generated contracts expose task stream event types", () => {
 });
 
 run("task stream client uses generated contracts instead of local event interfaces", () => {
-  const src = read("src/features/realtime/task-stream-client.ts");
+  const src = read("src/api/task-stream.ts");
   assert.doesNotMatch(src, /export interface TaskStatusStreamEvent/);
   assert.match(src, /generated\/contracts/);
 });
@@ -101,6 +106,28 @@ run("task center copy is readable UTF-8 text", () => {
   assert.doesNotMatch(screenSource, /Ã/);
   assert.doesNotMatch(listHookSource, /Ã|æ°“/);
   assert.doesNotMatch(detailHookSource, /Ã|æ°“/);
+});
+
+run("code task copy is readable UTF-8 text", () => {
+  const headerSource = read("src/features/code-tasks/CodeTasksHeader.tsx");
+  const actionsSource = read("src/features/code-tasks/CodeTasksActions.tsx");
+  const resultPanelSource = read("src/features/code-tasks/CodeTasksResultPanel.tsx");
+  const runHookSource = read("src/features/code-tasks/useCodeTaskRun.ts");
+  const projectsHookSource = read("src/features/code-tasks/useCodeProjects.ts");
+  const projectPanelSource = read("src/components/projects/ProjectPanel.tsx");
+
+  assert.match(headerSource, /Python \/ Qibo 代码任务/);
+  assert.match(actionsSource, /刷新任务状态/);
+  assert.match(resultPanelSource, /提交成功后将在这里展示概率分布图和可视化结果/);
+  assert.match(runHookSource, /任务提交失败/);
+  assert.match(projectsHookSource, /项目保存成功/);
+  assert.match(projectPanelSource, /项目面板/);
+  assert.doesNotMatch(headerSource, /Ã|æµ|éŽ»/);
+  assert.doesNotMatch(actionsSource, /Ã|æµ|éŽ»/);
+  assert.doesNotMatch(resultPanelSource, /Ã|æµ|éŽ»/);
+  assert.doesNotMatch(runHookSource, /Ã|é|ç¼|éŽ»/);
+  assert.doesNotMatch(projectsHookSource, /Ã|é”|æ¤¤/);
+  assert.doesNotMatch(projectPanelSource, /妞ゅ|鏉堟|娣囨/);
 });
 
 if (process.exitCode && process.exitCode !== 0) {

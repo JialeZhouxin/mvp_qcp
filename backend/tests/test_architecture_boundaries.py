@@ -24,6 +24,9 @@ def test_task_use_cases_do_not_depend_on_fastapi_or_infrastructure_modules() -> 
     assert "HTTPException" not in source
     assert "from app.queue" not in source
     assert "from app.worker" not in source
+    assert "select(" not in source
+    assert "from app.models.task import Task" not in source
+    assert "from sqlmodel import Session" not in source
 
 
 def test_services_do_not_depend_on_http_schema_models() -> None:

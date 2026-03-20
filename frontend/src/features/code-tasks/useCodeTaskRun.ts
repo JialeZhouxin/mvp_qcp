@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 
 import { toErrorMessage } from "../../api/errors";
 import { getTaskCenterDetail } from "../../api/task-center";
@@ -35,7 +35,7 @@ export function useCodeTaskRun(code: string) {
           : null,
       );
     } catch (nextError) {
-      setError(toErrorMessage(nextError, "结果查询失败"));
+      setError(toErrorMessage(nextError, "加载任务结果失败"));
     }
   };
 
@@ -64,7 +64,7 @@ export function useCodeTaskRun(code: string) {
         const data = await getTaskStatus(taskId);
         setStatus(data.status);
       } catch (nextError) {
-        setError(toErrorMessage(nextError, "状态查询失败"));
+        setError(toErrorMessage(nextError, "刷新任务状态失败"));
       }
     }, POLL_INTERVAL_MS);
 
@@ -97,7 +97,7 @@ export function useCodeTaskRun(code: string) {
       setTaskId(data.task_id);
       setStatus(data.status);
     } catch (nextError) {
-      setError(toErrorMessage(nextError, "提交失败"));
+      setError(toErrorMessage(nextError, "任务提交失败"));
     } finally {
       setLoading(false);
     }
@@ -112,7 +112,7 @@ export function useCodeTaskRun(code: string) {
       const data = await getTaskStatus(taskId);
       setStatus(data.status);
     } catch (nextError) {
-      setError(toErrorMessage(nextError, "状态查询失败"));
+      setError(toErrorMessage(nextError, "刷新任务状态失败"));
     }
   };
 

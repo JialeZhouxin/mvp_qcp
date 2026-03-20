@@ -7,8 +7,8 @@ import {
   type TaskStatusResponse,
   type TaskSubmitResponse,
 } from "../../../api/tasks";
-import type { TaskStreamCallbacks, TaskStreamConnection } from "../../realtime/task-stream-client";
-import { connectTaskStatusStream as connectTaskStatusStreamApi } from "../../realtime/task-stream-client";
+import type { TaskStreamCallbacks, TaskStreamConnection } from "../../../api/task-stream";
+import { subscribeTaskStream as connectTaskStatusStreamApi } from "../../../api/task-stream";
 import { validateCircuitModel } from "../model/circuit-validation";
 import type { CircuitModel } from "../model/types";
 import type { QasmParseError } from "../qasm/qasm-errors";

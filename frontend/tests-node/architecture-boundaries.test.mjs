@@ -25,6 +25,8 @@ run("route pages are thin wrappers around feature screens", () => {
   const circuitWorkbenchPage = read("src/pages/CircuitWorkbenchPage.tsx");
   const codeTasksScreen = read("src/features/code-tasks/CodeTasksScreen.tsx");
   const taskCenterScreen = read("src/features/task-center/TaskCenterScreen.tsx");
+  const taskCenterListHook = read("src/features/task-center/use-task-center-list.ts");
+  const taskCenterRealtimeHook = read("src/features/task-center/use-task-center-realtime.ts");
 
   assert.match(codeTasksPage, /CodeTasksScreen/);
   assert.doesNotMatch(codeTasksPage, /submitTask|getProjectList|getTaskStatus/);
@@ -34,6 +36,9 @@ run("route pages are thin wrappers around feature screens", () => {
   assert.match(taskCenterPage, /TaskCenterScreen/);
   assert.doesNotMatch(taskCenterPage, /getTaskCenterList|connectTaskStatusStream/);
   assert.doesNotMatch(taskCenterScreen, /getTaskCenterList|getTaskCenterDetail|connectTaskStatusStream/);
+  assert.doesNotMatch(taskCenterListHook, /realtime\/task-stream-client/);
+  assert.doesNotMatch(taskCenterRealtimeHook, /realtime\/task-stream-client/);
+  assert.match(taskCenterRealtimeHook, /api\/task-stream/);
 
   assert.match(circuitWorkbenchPage, /CircuitWorkbenchScreen/);
   assert.doesNotMatch(circuitWorkbenchPage, /useWorkbenchTaskSubmit|createSimulationScheduler/);
@@ -46,7 +51,7 @@ run("frontend authentication flows do not read token storage outside auth module
   const appSource = read("src/App.tsx");
   const protectedRouteSource = read("src/components/ProtectedRoute.tsx");
   const apiClientSource = read("src/api/client.ts");
-  const streamClientSource = read("src/features/realtime/task-stream-client.ts");
+  const streamClientSource = read("src/api/task-stream.ts");
 
   assert.doesNotMatch(appSource, /auth\/token/);
   assert.doesNotMatch(protectedRouteSource, /auth\/token/);

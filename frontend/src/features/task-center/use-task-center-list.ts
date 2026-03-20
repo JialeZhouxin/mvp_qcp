@@ -5,7 +5,7 @@ import {
   getTaskCenterList,
   type TaskCenterListItem,
 } from "../../api/task-center";
-import type { TaskStatusStreamEvent } from "../realtime/task-stream-client";
+import type { TaskStatusStreamEvent } from "../../api/task-stream";
 
 export function useTaskCenterList() {
   const [tasks, setTasks] = useState<TaskCenterListItem[]>([]);
