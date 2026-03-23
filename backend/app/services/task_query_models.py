@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+
+TaskQueryResultPayload = dict[str, object]
 
 
 @dataclass(frozen=True)
@@ -41,5 +42,5 @@ class TaskDetailView:
     finished_at: datetime | None
     duration_ms: int | None
     attempt_count: int
-    result: dict[str, Any] | None
+    result: TaskQueryResultPayload | None
     diagnostic: TaskDiagnosticView | None

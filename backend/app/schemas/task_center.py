@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import Any
 
 from pydantic import BaseModel, Field
+
+TaskCenterResultPayload = dict[str, object]
 
 
 class TaskDiagnostic(BaseModel):
@@ -38,5 +39,5 @@ class TaskCenterDetailResponse(BaseModel):
     finished_at: datetime | None = None
     duration_ms: int | None = None
     attempt_count: int
-    result: dict[str, Any] | None = None
+    result: TaskCenterResultPayload | None = None
     diagnostic: TaskDiagnostic | None = None

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header, status
 from sqlmodel import Session
 
 from app.api.auth import get_current_user
+from app.api.task_presenters import to_task_result_response, to_task_status_response, to_task_submit_response
 from app.dependencies.task_submit import build_submit_task_use_case
 from app.db.session import get_session
 from app.models.user import User
@@ -49,7 +50,7 @@ def submit_task(
             detail={"code": exc.code, "message": "task enqueue failed"},
         ) from exc
 
-    return TaskSubmitResponse(task_id=outcome.task_id, status=outcome.status, deduplicated=outcome.deduplicated)
+    return to_task_submit_response(outcome)
 
 
 @router.get("/{task_id}", response_model=TaskStatusResponse)
@@ -62,11 +63,7 @@ def get_task_status(
         task = GetTaskStatusUseCase(UserTaskQueryService(session)).execute(current_user.id, task_id)
     except (TaskNotFoundError, TaskAccessDeniedError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found") from exc
-    return TaskStatusResponse(
-        task_id=task.task_id,
-        status=task.status,
-        error_message=task.error_message,
-    )
+    return to_task_status_response(task)
 
 
 @router.get("/{task_id}/result", response_model=TaskResultResponse)
@@ -80,9 +77,4 @@ def get_task_result(
     except (TaskNotFoundError, TaskAccessDeniedError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found") from exc
 
-    return TaskResultResponse(
-        task_id=task.task_id,
-        status=task.status,
-        result=task.result,
-        message=task.message,
-    )
+    return to_task_result_response(task)

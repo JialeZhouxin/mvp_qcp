@@ -1,6 +1,7 @@
-﻿from typing import Any
+﻿from pydantic import BaseModel, Field
 
-from pydantic import BaseModel, Field
+TaskErrorMessagePayload = dict[str, object] | str
+TaskResultPayload = dict[str, object]
 
 
 class TaskSubmitRequest(BaseModel):
@@ -16,11 +17,11 @@ class TaskSubmitResponse(BaseModel):
 class TaskStatusResponse(BaseModel):
     task_id: int
     status: str
-    error_message: Any | None = None
+    error_message: TaskErrorMessagePayload | None = None
 
 
 class TaskResultResponse(BaseModel):
     task_id: int
     status: str
-    result: dict[str, Any] | None = None
+    result: TaskResultPayload | None = None
     message: str | None = None
