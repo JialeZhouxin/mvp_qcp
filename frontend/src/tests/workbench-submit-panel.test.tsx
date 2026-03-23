@@ -1,7 +1,8 @@
-﻿import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 
 import WorkbenchSubmitPanel from "../features/circuit/components/WorkbenchSubmitPanel";
+import { WORKBENCH_COPY } from "../features/circuit/ui/copy-catalog";
 
 function renderPanel(overrides: Partial<ComponentProps<typeof WorkbenchSubmitPanel>> = {}) {
   const onSubmit = vi.fn();
@@ -32,45 +33,44 @@ describe("WorkbenchSubmitPanel", () => {
       whiteSpace: "nowrap",
       overflowX: "auto",
     });
-    expect(screen.getByRole("button", { name: "鎻愪氦浠诲姟" })).toBeEnabled();
-    expect(screen.getByText("浠诲姟 ID: -")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: WORKBENCH_COPY.submitPanel.submit })).toBeEnabled();
+    expect(screen.getByText(`${WORKBENCH_COPY.submitPanel.taskId}: -`)).toBeInTheDocument();
     expect(screen.getByTestId("task-status-text")).toHaveTextContent("-");
     expect(screen.getByTestId("task-elapsed-seconds")).toHaveTextContent("0");
-    expect(screen.queryByRole("button", { name: "鍒锋柊鐘舵€? })).not.toBeInTheDocument();
-    expect(screen.queryByText("杩涘叆浠诲姟涓績")).not.toBeInTheDocument();
-    expect(screen.queryByText("璺熻釜杩涘害:")).not.toBeInTheDocument();
-    expect(screen.queryByText("璺熻釜閫氶亾:")).not.toBeInTheDocument();
-    expect(screen.queryByText("鎻愪氦鍚庡皢鏄剧ず浠诲姟 ID 鍜岀姸鎬佽窡韪俊鎭€?)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "刷新状态" })).not.toBeInTheDocument();
+    expect(screen.queryByText("进入任务中心")).not.toBeInTheDocument();
+    expect(screen.queryByText("跟踪进度:")).not.toBeInTheDocument();
+    expect(screen.queryByText("跟踪通道:")).not.toBeInTheDocument();
+    expect(screen.queryByText("提交后将显示任务 ID 和状态跟踪信息。")).not.toBeInTheDocument();
   });
 
   it("shows loading state and disables submit while submitting", () => {
     renderPanel({
       submitting: true,
       taskId: 1,
-      taskStatusLabel: "鎺掗槦涓?,
+      taskStatusLabel: "排队中",
       elapsedSeconds: 1,
     });
 
-    expect(screen.getByRole("button", { name: "鎻愪氦涓?.." })).toBeDisabled();
-    expect(screen.getByText("浠诲姟 ID: 1")).toBeInTheDocument();
-    expect(screen.getByTestId("task-status-text")).toHaveTextContent("鎺掗槦涓?);
+    expect(screen.getByRole("button", { name: WORKBENCH_COPY.submitPanel.submitting })).toBeDisabled();
+    expect(screen.getByText(`${WORKBENCH_COPY.submitPanel.taskId}: 1`)).toBeInTheDocument();
+    expect(screen.getByTestId("task-status-text")).toHaveTextContent("排队中");
   });
 
   it("triggers submit callback and shows feedback when provided", () => {
     const { onSubmit } = renderPanel({
       taskId: 10,
-      taskStatusLabel: "鎵ц涓?,
+      taskStatusLabel: "执行中",
       deduplicated: true,
-      submitError: "鎻愪氦澶辫触",
+      submitError: "提交失败",
       elapsedSeconds: 6,
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "鎻愪氦浠诲姟" }));
+    fireEvent.click(screen.getByRole("button", { name: WORKBENCH_COPY.submitPanel.submit }));
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("妫€娴嬪埌閲嶅鎻愪氦锛岀郴缁熷凡澶嶇敤宸叉湁浠诲姟銆?)).toBeInTheDocument();
-    expect(screen.getByText("鎻愪氦澶辫触")).toBeInTheDocument();
+    expect(screen.getByText(WORKBENCH_COPY.submitPanel.deduplicatedHint)).toBeInTheDocument();
+    expect(screen.getByText("提交失败")).toBeInTheDocument();
   });
 });
-
 

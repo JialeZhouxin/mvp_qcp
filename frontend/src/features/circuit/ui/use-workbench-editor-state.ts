@@ -15,6 +15,7 @@ import type { CircuitModel } from "../model/types";
 import { toQasm3 } from "../qasm/qasm-bridge";
 import type { QasmParseError } from "../qasm/qasm-errors";
 import type { ProbabilityDisplayMode } from "../simulation/probability-filter";
+import { WORKBENCH_COPY } from "./copy-catalog";
 import {
   areCircuitsEquivalent,
   buildInitialState,
@@ -88,7 +89,7 @@ export function useWorkbenchEditorState() {
       maxQubits: EDITOR_MAX_QUBITS,
     });
     if (!result.ok) {
-      setQubitMessage("å·²è¾¾åˆ°æœ€å¤§é‡å­æ¯”ç‰¹é™åˆ¶ï¼Œæ— æ³•ç»§ç»­å¢žåŠ ã€‚");
+      setQubitMessage(WORKBENCH_COPY.editor.maxQubitReached);
       return;
     }
     setQubitMessage(null);
@@ -102,9 +103,9 @@ export function useWorkbenchEditorState() {
     });
     if (!result.ok) {
       if (result.code === "QUBIT_SHRINK_BLOCKED_BY_OPERATION") {
-        setQubitMessage("å½“å‰ç”µè·¯ä¸­å­˜åœ¨ä½¿ç”¨é«˜ä½é‡å­æ¯”ç‰¹çš„æ“ä½œï¼Œè¯·å…ˆåˆ é™¤ç›¸å…³é—¨å†å‡å°‘ qubitã€‚");
+        setQubitMessage(WORKBENCH_COPY.editor.shrinkBlockedByOperation);
       } else {
-        setQubitMessage("å·²è¾¾åˆ°æœ€å°é‡å­æ¯”ç‰¹é™åˆ¶ï¼Œæ— æ³•ç»§ç»­å‡å°‘ã€‚");
+        setQubitMessage(WORKBENCH_COPY.editor.minQubitReached);
       }
       return;
     }
@@ -159,3 +160,4 @@ export function useWorkbenchEditorState() {
     resetVersion,
   };
 }
+

@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+ï»¿import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { login } from "../api/auth";
@@ -31,21 +31,21 @@ function LoginPage() {
 
   return (
     <main style={{ maxWidth: 420, margin: "40px auto", fontFamily: "Segoe UI, sans-serif" }}>
-      <h1>µÇÂ¼</h1>
+      <h1>ç™»å½•</h1>
       <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
-        <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="ÓÃ»§Ãû" required />
+        <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="ç”¨æˆ·å" required />
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="ÃÜÂë"
+          placeholder="å¯†ç "
           required
         />
-        <button type="submit" disabled={loading}>{loading ? "µÇÂ¼ÖĞ..." : "µÇÂ¼"}</button>
+        <button type="submit" disabled={loading}>{loading ? "ç™»å½•ä¸­..." : "ç™»å½•"}</button>
       </form>
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
       <p>
-        Ã»ÓĞÕËºÅ£¿<Link to="/register">×¢²á</Link>
+        æ²¡æœ‰è´¦å·ï¼Ÿ<Link to="/register">æ³¨å†Œ</Link>
       </p>
     </main>
   );

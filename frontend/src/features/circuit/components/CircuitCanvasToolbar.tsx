@@ -1,4 +1,6 @@
-﻿interface CircuitCanvasToolbarProps {
+import { WORKBENCH_COPY } from "../ui/copy-catalog";
+
+interface CircuitCanvasToolbarProps {
   readonly hasWorkbenchControls: boolean;
   readonly canUndoAction: boolean;
   readonly canRedoAction: boolean;
@@ -51,16 +53,17 @@ function CircuitCanvasToolbar({
         {hasWorkbenchControls ? (
           <div className="canvas-workbench-group" data-testid="canvas-workbench-actions">
             <button type="button" className="canvas-workbench-btn" onClick={onUndo} disabled={!canUndoAction}>
-              鎾ら攢
+              {WORKBENCH_COPY.toolbar.undo}
             </button>
             <button type="button" className="canvas-workbench-btn" onClick={onRedo} disabled={!canRedoAction}>
-              閲嶅仛
+              {WORKBENCH_COPY.toolbar.redo}
             </button>
             <button type="button" className="canvas-workbench-btn" onClick={onClearCircuit}>
-              娓呯┖鐢佃矾
+              {WORKBENCH_COPY.toolbar.clearCircuit}
             </button>
             <button type="button" className="canvas-workbench-btn" onClick={onResetWorkbench}>
-              閲嶇疆宸ヤ綔鍙?            </button>
+              {WORKBENCH_COPY.toolbar.resetWorkbench}
+            </button>
           </div>
         ) : null}
         {hasWorkbenchControls ? (
@@ -89,11 +92,13 @@ function CircuitCanvasToolbar({
         ) : null}
         {hasWorkbenchControls ? (
           <div className="canvas-workbench-group" data-testid="canvas-workbench-templates">
-            <span className="canvas-workbench-label">妯℃澘</span>
+            <span className="canvas-workbench-label">{WORKBENCH_COPY.toolbar.templateLabel}</span>
             <button type="button" className="canvas-workbench-btn" onClick={onLoadBellTemplate}>
-              Bell 鎬?            </button>
+              {WORKBENCH_COPY.toolbar.bellTemplate}
+            </button>
             <button type="button" className="canvas-workbench-btn" onClick={onLoadSuperpositionTemplate}>
-              鍧囧寑鍙犲姞鎬?            </button>
+              {WORKBENCH_COPY.toolbar.superpositionTemplate}
+            </button>
           </div>
         ) : null}
         <div
@@ -109,7 +114,7 @@ function CircuitCanvasToolbar({
             data-testid="canvas-zoom-out"
             onClick={onZoomOut}
             disabled={!canZoomOut}
-            aria-label="缂╁皬鐢诲竷"
+            aria-label={WORKBENCH_COPY.toolbar.zoomOutAriaLabel}
           >
             -
           </button>
@@ -119,7 +124,7 @@ function CircuitCanvasToolbar({
             data-testid="canvas-zoom-in"
             onClick={onZoomIn}
             disabled={!canZoomIn}
-            aria-label="鏀惧ぇ鐢诲竷"
+            aria-label={WORKBENCH_COPY.toolbar.zoomInAriaLabel}
           >
             +
           </button>
@@ -128,7 +133,7 @@ function CircuitCanvasToolbar({
             className="canvas-workbench-btn canvas-workbench-btn--small"
             data-testid="canvas-zoom-reset"
             onClick={onZoomReset}
-            aria-label="閲嶇疆鐢诲竷缂╂斁"
+            aria-label={WORKBENCH_COPY.toolbar.zoomResetAriaLabel}
           >
             100%
           </button>

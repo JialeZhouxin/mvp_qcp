@@ -1,4 +1,5 @@
-﻿import type { CircuitTemplate } from "../model/templates";
+import type { CircuitTemplate } from "../model/templates";
+import { WORKBENCH_COPY } from "../ui/copy-catalog";
 
 interface WorkbenchToolbarProps {
   readonly canUndo: boolean;
@@ -37,16 +38,17 @@ function WorkbenchToolbar({
     <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <button type="button" onClick={onUndo} disabled={!canUndo}>
-          鎾ら攢
+          {WORKBENCH_COPY.toolbar.undo}
         </button>
         <button type="button" onClick={onRedo} disabled={!canRedo}>
-          閲嶅仛
+          {WORKBENCH_COPY.toolbar.redo}
         </button>
         <button type="button" onClick={onClearCircuit}>
-          娓呯┖鐢佃矾
+          {WORKBENCH_COPY.toolbar.clearCircuit}
         </button>
         <button type="button" onClick={onResetWorkbench}>
-          閲嶇疆宸ヤ綔鍙?        </button>
+          {WORKBENCH_COPY.toolbar.resetWorkbench}
+        </button>
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
         <strong>Qubits:</strong>
@@ -64,7 +66,7 @@ function WorkbenchToolbar({
         </p>
       ) : null}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-        <strong>妯℃澘:</strong>
+        <strong>{WORKBENCH_COPY.toolbar.templateLabel}:</strong>
         {templates.map((template) => (
           <button
             key={template.id}
@@ -81,5 +83,4 @@ function WorkbenchToolbar({
 }
 
 export default WorkbenchToolbar;
-
 

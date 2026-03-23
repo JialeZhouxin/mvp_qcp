@@ -7,8 +7,9 @@
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "npm run test:no-mock && vitest run --config vitest.config.mjs",
+    "test": "npm run test:no-mock && npm run test:encoding && vitest run --config vitest.config.mjs",
     "test:no-mock": "node tests-node/no-mock-tests.mjs",
+    "test:encoding": "node tests-node/encoding-guard.mjs",
     "test:node": "node tests-node/run-tests.mjs",
     "test:e2e": "playwright test --config playwright.config.ts",
     "generate:contracts": "python ../scripts/generate_openapi_contracts.py"

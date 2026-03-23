@@ -1,4 +1,6 @@
-﻿interface WorkbenchSubmitPanelProps {
+import { WORKBENCH_COPY } from "../ui/copy-catalog";
+
+interface WorkbenchSubmitPanelProps {
   readonly submitting: boolean;
   readonly canSubmit: boolean;
   readonly taskId: number | null;
@@ -39,19 +41,26 @@ function WorkbenchSubmitPanel({
         }}
       >
         <button type="button" onClick={onSubmit} disabled={submitDisabled}>
-          {submitting ? "鎻愪氦涓?.." : "鎻愪氦浠诲姟"}
+          {submitting ? WORKBENCH_COPY.submitPanel.submitting : WORKBENCH_COPY.submitPanel.submit}
         </button>
-        <span>浠诲姟 ID: {taskId ?? "-"}</span>
         <span>
-          浠诲姟鐘舵€? <span data-testid="task-status-text">{taskStatusLabel}</span>
+          {WORKBENCH_COPY.submitPanel.taskId}: {taskId ?? "-"}
         </span>
         <span>
-          宸茶€楁椂: <span data-testid="task-elapsed-seconds">{elapsedSeconds}</span> 绉?        </span>
+          {WORKBENCH_COPY.submitPanel.taskStatus}:{" "}
+          <span data-testid="task-status-text">{taskStatusLabel}</span>
+        </span>
+        <span>
+          {WORKBENCH_COPY.submitPanel.elapsed}:{" "}
+          <span data-testid="task-elapsed-seconds">{elapsedSeconds}</span>{" "}
+          {WORKBENCH_COPY.submitPanel.seconds}
+        </span>
       </div>
 
       {deduplicated ? (
         <p style={{ margin: "8px 0 0 0", color: "#1677ff" }}>
-          妫€娴嬪埌閲嶅鎻愪氦锛岀郴缁熷凡澶嶇敤宸叉湁浠诲姟銆?        </p>
+          {WORKBENCH_COPY.submitPanel.deduplicatedHint}
+        </p>
       ) : null}
       {submitError ? (
         <p style={{ margin: "8px 0 0 0", color: "#cf1322" }}>{submitError}</p>

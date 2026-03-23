@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 import CircuitWorkbenchPage from "../pages/CircuitWorkbenchPage";
+import { WORKBENCH_COPY } from "../features/circuit/ui/copy-catalog";
 
 function isBefore(first: Node, second: Node): boolean {
   return Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
@@ -33,7 +34,8 @@ describe("CircuitWorkbenchPage layout", () => {
     expect(submitRail).toHaveStyle({ position: "sticky" });
     expect(submitRail).toHaveStyle({ top: "12px" });
     expect(canvasPanel).toContainElement(canvasToolbar);
-    expect(screen.getByRole("button", { name: "清空电路" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Bell 态" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: WORKBENCH_COPY.toolbar.clearCircuit })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: WORKBENCH_COPY.toolbar.bellTemplate })).toBeInTheDocument();
   });
 });
+

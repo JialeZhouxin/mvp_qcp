@@ -1,5 +1,6 @@
-﻿import type { CircuitModel, Operation } from "../model/types";
+import type { CircuitModel, Operation } from "../model/types";
 import type { LocalizedMessage } from "../ui/message-catalog";
+import { WORKBENCH_COPY } from "../ui/copy-catalog";
 import { getParameterValues, isParameterizedGate } from "./canvas-gate-utils";
 import type { PendingPlacement } from "./canvas-gate-utils";
 
@@ -84,7 +85,7 @@ function getSymbolRole(operation: Operation, qubit: number) {
 
   if (operation.gate === "swap" && isTarget) {
     return {
-      label: "脳",
+      label: "×",
       className: "canvas-gate-box--symbol-swap",
       roleText: "swap endpoint",
     };
@@ -242,10 +243,11 @@ export function MessageBlock({ message }: { message: LocalizedMessage }) {
       <strong>{message.title}</strong>
       <p style={{ margin: "4px 0 0 0" }}>{message.detail}</p>
       {message.suggestion ? (
-        <p style={{ margin: "4px 0 0 0", color: "#595959" }}>寤鸿: {message.suggestion}</p>
+        <p style={{ margin: "4px 0 0 0", color: "#595959" }}>
+          {WORKBENCH_COPY.canvas.suggestion}: {message.suggestion}
+        </p>
       ) : null}
     </div>
   );
 }
-
 

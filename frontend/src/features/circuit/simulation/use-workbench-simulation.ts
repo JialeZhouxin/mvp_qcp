@@ -4,6 +4,7 @@ import { useState } from "react";
 import { evaluateComplexity, getLocalSimulationGuardMessage } from "../model/complexity-guard";
 import { validateCircuitModel } from "../model/circuit-validation";
 import type { CircuitModel } from "../model/types";
+import { WORKBENCH_COPY } from "../ui/copy-catalog";
 import {
   filterProbabilities,
   getProbabilityDisplayView,
@@ -24,6 +25,13 @@ interface UseWorkbenchSimulationParams {
   readonly circuit: CircuitModel;
   readonly displayMode: ProbabilityDisplayMode;
   readonly scheduler?: SimulationSchedulerLike;
+}
+
+function toComplexityErrorMessage(message?: string | null): string {
+  if (!message) {
+    return WORKBENCH_COPY.simulation.complexityTooHighPrefix;
+  }
+  return `${WORKBENCH_COPY.simulation.complexityTooHighPrefix}：${message}`;
 }
 
 export function useWorkbenchSimulation({
@@ -49,7 +57,7 @@ export function useWorkbenchSimulation({
         if (cancelled) {
           return;
         }
-        setSimError(`ç”µè·¯æ ¡éªŒå¤±è´¥ï¼š${validation.error.message}`);
+        setSimError(`${WORKBENCH_COPY.simulation.validationFailedPrefix}${validation.error.message}`);
         setProbabilityView(null);
         setSimulationState("ERROR");
         return;
@@ -71,7 +79,7 @@ export function useWorkbenchSimulation({
         if (cancelled) {
           return;
         }
-        setSimError(`æœ¬åœ°æ¨¡æ‹Ÿå¤æ‚åº¦è¿‡é«˜${complexity.message ?? ""}`.trim());
+        setSimError(toComplexityErrorMessage(complexity.message));
         setProbabilityView(null);
         setSimulationState("ERROR");
         return;
@@ -92,7 +100,8 @@ export function useWorkbenchSimulation({
         if (error instanceof SimulationScheduleError && error.code === "SIM_STALE") {
           return;
         }
-        setSimError(`æœ¬åœ°æ¨¡æ‹Ÿå¤±è´¥ï¼š${error instanceof Error ? error.message : String(error)}`);
+        const message = error instanceof Error ? error.message : String(error);
+        setSimError(`${WORKBENCH_COPY.simulation.simulationFailedPrefix}${message}`);
         setProbabilityView(null);
         setSimulationState("ERROR");
       }
@@ -117,3 +126,4 @@ export function useWorkbenchSimulation({
     epsilonText,
   };
 }
+

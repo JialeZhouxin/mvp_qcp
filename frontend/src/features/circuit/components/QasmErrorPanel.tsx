@@ -1,4 +1,5 @@
-﻿import type { QasmParseError } from "../qasm/qasm-errors";
+import type { QasmParseError } from "../qasm/qasm-errors";
+import { WORKBENCH_COPY } from "../ui/copy-catalog";
 import { toQasmErrorMessage } from "../ui/message-catalog";
 
 interface QasmErrorPanelProps {
@@ -18,11 +19,12 @@ function QasmErrorPanel({ error }: QasmErrorPanelProps) {
       <strong style={{ color: "#cf1322" }}>{localized.title}</strong>
       <p style={{ margin: "6px 0 0 0" }}>{localized.detail}</p>
       <p style={{ margin: "6px 0 0 0", color: "#8c8c8c" }}>
-        閿欒鐮? {error.code}锛屽垪: {error.column}
+        {WORKBENCH_COPY.qasmErrorPanel.code}: {error.code}，{WORKBENCH_COPY.qasmErrorPanel.column}:{" "}
+        {error.column}
       </p>
       {localized.suggestion ? (
         <p data-testid="qasm-fix-suggestion" style={{ margin: "6px 0 0 0", color: "#595959" }}>
-          寤鸿: {localized.suggestion}
+          {WORKBENCH_COPY.qasmErrorPanel.suggestion}: {localized.suggestion}
         </p>
       ) : null}
       <pre style={{ margin: "8px 0 0 0", whiteSpace: "pre-wrap" }}>{error.excerpt}</pre>
@@ -31,5 +33,4 @@ function QasmErrorPanel({ error }: QasmErrorPanelProps) {
 }
 
 export default QasmErrorPanel;
-
 
