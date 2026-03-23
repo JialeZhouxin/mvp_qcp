@@ -74,8 +74,8 @@ describe("CircuitCanvas", () => {
     expect(gateText.closest(".canvas-gate-box")).toHaveClass("canvas-gate-box");
 
     const removeButton = screen.getByTestId("remove-op-op-1");
-    expect(removeButton).toHaveTextContent("×");
-    expect(removeButton).toHaveAttribute("aria-label", "删除 gate");
+    expect(removeButton).toHaveTextContent("\u00d7");
+    expect(removeButton).toHaveAttribute("aria-label", "\u5220\u9664 gate");
 
     fireEvent.click(removeButton);
     expect(onCircuitChange).toHaveBeenCalledTimes(1);

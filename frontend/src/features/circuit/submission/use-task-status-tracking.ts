@@ -1,20 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { TaskStatusResponse } from "../../../api/tasks";
-import type { TaskStreamCallbacks, TaskStreamConnection } from "../../../api/task-stream";
+import type {
+  TaskStreamCallbacks,
+  TaskStreamConnection,
+} from "../../../api/task-stream";
+import {
+  isActiveTaskStatus,
+  isTerminalTaskStatus,
+  toTaskStatusLabel,
+} from "../../task-status/task-status";
 
 const POLLING_INTERVAL_MS = 3000;
 const ELAPSED_TICK_MS = 1000;
-const TERMINAL_TASK_STATUSES = new Set(["SUCCESS", "FAILURE", "TIMEOUT", "RETRY_EXHAUSTED"]);
-const ACTIVE_TASK_STATUSES = new Set(["PENDING", "RUNNING"]);
-const TASK_STATUS_LABELS: Record<string, string> = {
-  PENDING: "排队中",
-  RUNNING: "执行中",
-  SUCCESS: "执行成功",
-  FAILURE: "执行失败",
-  TIMEOUT: "执行超时",
-  RETRY_EXHAUSTED: "重试耗尽",
-};
 
 export type TaskTrackingMode = "idle" | "sse" | "polling";
 
@@ -37,20 +35,7 @@ interface UseTaskStatusTrackingParams {
   readonly onStatusRefreshError: (error: unknown) => void;
 }
 
-export function isActiveTaskStatus(status: string | null): boolean {
-  return status !== null && ACTIVE_TASK_STATUSES.has(status);
-}
-
-function isTerminalTaskStatus(status: string | null): boolean {
-  return status !== null && TERMINAL_TASK_STATUSES.has(status);
-}
-
-export function toTaskStatusLabel(status: string | null): string {
-  if (!status) {
-    return "-";
-  }
-  return TASK_STATUS_LABELS[status] ?? status;
-}
+export { isActiveTaskStatus, toTaskStatusLabel };
 
 export function useTaskStatusTracking({
   deps,

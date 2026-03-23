@@ -1,11 +1,13 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { toErrorMessage } from "../../api/errors";
 import { getTaskCenterDetail } from "../../api/task-center";
 import { getTaskResult, getTaskStatus, submitTask } from "../../api/tasks";
+import {
+  isFailureTaskStatus,
+  isTerminalTaskStatus,
+} from "../task-status/task-status";
 
-const TERMINAL_STATUSES = new Set(["SUCCESS", "FAILURE", "TIMEOUT", "RETRY_EXHAUSTED"]);
-const FAILURE_STATUSES = new Set(["FAILURE", "TIMEOUT", "RETRY_EXHAUSTED"]);
 const POLL_INTERVAL_MS = 1500;
 
 export function useCodeTaskRun(code: string) {
@@ -35,7 +37,7 @@ export function useCodeTaskRun(code: string) {
           : null,
       );
     } catch (nextError) {
-      setError(toErrorMessage(nextError, "加载任务结果失败"));
+      setError(toErrorMessage(nextError, "\u52a0\u8f7d\u4efb\u52a1\u7ed3\u679c\u5931\u8d25"));
     }
   };
 
@@ -47,15 +49,15 @@ export function useCodeTaskRun(code: string) {
         return;
       }
       const line = `[${detail.diagnostic.code}] ${detail.diagnostic.summary ?? detail.diagnostic.message}`;
-      const tips = detail.diagnostic.suggestions.join("；");
-      setDiagnosticText(tips ? `${line} | 建议：${tips}` : line);
+      const tips = detail.diagnostic.suggestions.join("\uff1b");
+      setDiagnosticText(tips ? `${line} | \u5efa\u8bae\uff1a${tips}` : line);
     } catch {
       setDiagnosticText(null);
     }
   };
 
   useEffect(() => {
-    if (!taskId || !autoPolling || TERMINAL_STATUSES.has(status)) {
+    if (!taskId || !autoPolling || isTerminalTaskStatus(status)) {
       return;
     }
 
@@ -64,7 +66,7 @@ export function useCodeTaskRun(code: string) {
         const data = await getTaskStatus(taskId);
         setStatus(data.status);
       } catch (nextError) {
-        setError(toErrorMessage(nextError, "刷新任务状态失败"));
+        setError(toErrorMessage(nextError, "\u5237\u65b0\u4efb\u52a1\u72b6\u6001\u5931\u8d25"));
       }
     }, POLL_INTERVAL_MS);
 
@@ -80,7 +82,7 @@ export function useCodeTaskRun(code: string) {
     if (status === "SUCCESS") {
       void loadResult();
     }
-    if (taskId && FAILURE_STATUSES.has(status)) {
+    if (taskId && isFailureTaskStatus(status)) {
       void loadTaskDiagnostic(taskId);
     }
   }, [status, taskId]);
@@ -97,7 +99,7 @@ export function useCodeTaskRun(code: string) {
       setTaskId(data.task_id);
       setStatus(data.status);
     } catch (nextError) {
-      setError(toErrorMessage(nextError, "任务提交失败"));
+      setError(toErrorMessage(nextError, "\u4efb\u52a1\u63d0\u4ea4\u5931\u8d25"));
     } finally {
       setLoading(false);
     }
@@ -112,7 +114,7 @@ export function useCodeTaskRun(code: string) {
       const data = await getTaskStatus(taskId);
       setStatus(data.status);
     } catch (nextError) {
-      setError(toErrorMessage(nextError, "刷新任务状态失败"));
+      setError(toErrorMessage(nextError, "\u5237\u65b0\u4efb\u52a1\u72b6\u6001\u5931\u8d25"));
     }
   };
 

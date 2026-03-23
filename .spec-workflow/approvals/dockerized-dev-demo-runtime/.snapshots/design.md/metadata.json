@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/dockerized-dev-demo-runtime/design.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-10T01:59:14.001Z",
+      "trigger": "initial",
+      "approvalId": "approval_1773107953969_hcvwfz5fb",
+      "approvalTitle": "Approve design for dockerized-dev-demo-runtime"
+    }
+  ]
+}

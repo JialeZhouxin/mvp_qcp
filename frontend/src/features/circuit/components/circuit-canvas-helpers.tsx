@@ -77,7 +77,7 @@ function getSymbolRole(operation: Operation, qubit: number) {
 
   if (isControl) {
     return {
-      label: "●",
+      label: "\u25cf",
       className: "canvas-gate-box--symbol-control",
       roleText: "control",
     };
@@ -85,7 +85,7 @@ function getSymbolRole(operation: Operation, qubit: number) {
 
   if (operation.gate === "swap" && isTarget) {
     return {
-      label: "×",
+      label: "\u00d7",
       className: "canvas-gate-box--symbol-swap",
       roleText: "swap endpoint",
     };
@@ -97,7 +97,7 @@ function getSymbolRole(operation: Operation, qubit: number) {
 
   if (operation.gate === "cx" || operation.gate === "ccx") {
     return {
-      label: "⊕",
+      label: "\u2295",
       className: "canvas-gate-box--symbol-target-x",
       roleText: "target [X]",
     };
@@ -191,9 +191,10 @@ export function computeLayerCount(circuit: CircuitModel, minLayers: number): num
 export function toPendingPlacementMessage(pending: PendingPlacement): LocalizedMessage {
   const selected = pending.selectedQubits.map((qubit) => `q${qubit}`).join(", ");
   return {
-    title: "继续放置量子门",
-    detail: `已选择 ${pending.gate.toUpperCase()} 的 ${pending.selectedQubits.length}/${pending.requiredQubits} 个比特：${selected}`,
-    suggestion: "点击同一层的其他线路完成放置，或点击取消。",
+    title: "\u7ee7\u7eed\u653e\u7f6e\u91cf\u5b50\u95e8",
+    detail: `\u5df2\u9009\u62e9 ${pending.gate.toUpperCase()} \u7684 ${pending.selectedQubits.length}/${pending.requiredQubits} \u4e2a\u6bd4\u7279\uff1a${selected}`,
+    suggestion:
+      "\u70b9\u51fb\u540c\u4e00\u5c42\u7684\u5176\u4ed6\u7ebf\u8def\u5b8c\u6210\u653e\u7f6e\uff0c\u6216\u70b9\u51fb\u53d6\u6d88\u3002",
   };
 }
 
@@ -250,4 +251,3 @@ export function MessageBlock({ message }: { message: LocalizedMessage }) {
     </div>
   );
 }
-

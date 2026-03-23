@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/dockerized-dev-demo-runtime/requirements.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-10T01:43:59.437Z",
+      "trigger": "initial",
+      "approvalId": "approval_1773107039413_527zhi0mw",
+      "approvalTitle": "Approve requirements for dockerized-dev-demo-runtime"
+    }
+  ]
+}

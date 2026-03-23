@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/workbench-p0-layout-qubit-sim-decoupling/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-16T02:30:11.082Z",
+      "trigger": "initial",
+      "approvalId": "approval_1773628211055_opjokgwtz",
+      "approvalTitle": "Approve tasks for workbench P0 layout/qubit/simulation decoupling"
+    }
+  ]
+}

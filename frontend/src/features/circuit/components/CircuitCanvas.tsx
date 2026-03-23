@@ -447,16 +447,19 @@ function CircuitCanvas({
       data-testid="circuit-canvas-panel"
       style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}
     >
-      <h3 style={{ marginTop: 0 }}>电路画布</h3>
+      <h3 style={{ marginTop: 0 }}>{"\u7535\u8def\u753b\u5e03"}</h3>
       {interactionMessage ? <MessageBlock message={interactionMessage} /> : null}
       {pendingPlacement ? (
         <div style={{ marginBottom: 8, display: "flex", gap: 8, alignItems: "center" }}>
           <span>
-            待放置 {pendingPlacement.gate.toUpperCase()}：已选择 {pendingPlacement.selectedQubits.length}/
-            {pendingPlacement.requiredQubits}，层 {pendingPlacement.layer}
+            {"\u5f85\u653e\u7f6e"} {pendingPlacement.gate.toUpperCase()}
+            {"\uff1a\u5df2\u9009\u62e9"} {pendingPlacement.selectedQubits.length}/
+            {pendingPlacement.requiredQubits}
+            {"\uff0c\u5c42 "}
+            {pendingPlacement.layer}
           </span>
           <button type="button" onClick={cancelPendingPlacement}>
-            取消放置
+            {"\u53d6\u6d88\u653e\u7f6e"}
           </button>
         </div>
       ) : null}
@@ -566,10 +569,10 @@ function CircuitCanvas({
                           onDelete(operation.id);
                         }}
                         className="canvas-delete-btn"
-                        aria-label="删除 gate"
+                        aria-label={"\u5220\u9664 gate"}
                         data-testid={`remove-op-${operation.id}`}
                       >
-                        ×
+                        {"\u00d7"}
                       </button>
                     ) : null}
                   </div>
@@ -586,7 +589,8 @@ function CircuitCanvas({
           style={{ marginTop: 12, padding: 10, borderRadius: 6, border: "1px solid #eee" }}
         >
           <h4 style={{ margin: "0 0 8px 0" }}>
-            选中门: {selectedOperation.gate.toUpperCase()} (layer {selectedOperation.layer})
+            {"\u9009\u4e2d\u95e8: "} {selectedOperation.gate.toUpperCase()} (layer{" "}
+            {selectedOperation.layer})
           </h4>
           <OperationParameterPanel
             operation={selectedOperation}

@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/task-reliability-observability/requirements.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-10T09:50:21.745Z",
+      "trigger": "initial",
+      "approvalId": "approval_1773136221620_uorxcfxzw",
+      "approvalTitle": "Approve requirements for task-reliability-observability"
+    }
+  ]
+}

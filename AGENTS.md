@@ -74,91 +74,315 @@ mvp_qcp/
 - **任务队列**: Redis + RQ，超时配置见环境变量 (`RQ_JOB_TIMEOUT_SECONDS`, `QIBO_EXEC_TIMEOUT_SECONDS`)
 - **前端状态**: React Context，无状态管理库
 - **禁止**: 绕过 `app/services/` 直接在 API 层写业务逻辑
-## Language
 
-Default to Chinese in user-facing replies unless the user explicitly requests another language.
+```markdown
+# Agent 并行协作规范 v2.0（精简版）
 
-## Response Style
+> **核心原则**：最大化并行，最小化阻塞。
+> 将任务拆成**可独立执行、互不冲突、可独立验收**的子任务；并行执行后统一汇总，再进入下一轮。
 
-Do not propose follow-up tasks or enhancement at the end of your final answer.
+---
 
-## Debug-First Policy (No Silent Fallbacks)
+## 1. 基本原则
 
-- Do **not** introduce new boundary rules / guardrails / blockers / caps (e.g. max-turns), fallback behaviors, or silent degradation **just to make it run**.
-- Do **not** add mock/simulation fake success paths (e.g. returning `(mock) ok`, templated outputs that bypass real execution, or swallowing errors).
-- Avoid silent fallback. Do not hide errors.Expose failures clearly.it does not solve the root problem and only increases debugging cost.
-- Prefer **full exposure**: let failures surface clearly (explicit errors, exceptions, logs, failing tests) so bugs are visible and can be fixed at the root cause.
-- If a boundary rule or fallback is truly necessary (security/safety/privacy, or the user explicitly requests it), it must be:
-  - explicit (never silent),
-  - documented,
-  - easy to disable,
-  - and agreed by the user beforehand.
+- 全程使用**简体中文**
+- **先分析后执行**，先识别依赖、边界、风险
+- **质量优先**，正确性和安全性高于速度
+- **最小必要上下文**，子任务只接收完成任务所需信息
+- **结果可追溯**，关键结论、修改、风险必须可回溯
+- **失败可恢复**，允许失败，但必须可定位、可重试、可中断恢复
 
-## Engineering Quality Baseline
+---
 
-- Follow SOLID, DRY, separation of concerns, and YAGNI.
-- Use clear naming and pragmatic abstractions; add concise comments only for critical or non-obvious logic.
-- Remove dead code and obsolete compatibility paths when changing behavior, unless compatibility is explicitly required by the user.
-- Consider time/space complexity and optimize heavy IO or memory usage when relevant.
-- Handle edge cases explicitly; do not hide failures.
+## 2. 执行流程
 
-## Code Metrics (Hard Limits)
+### 1）任务分析
+- 识别依赖关系
+- 区分可并行任务与必须串行任务
 
-- **Function length**: Soft limit: 80,Hard limit: 120
-- **File size**: 300 lines. Exceeded split by responsibility.
-- **Nesting depth**: Soft limit: 4
-- **Parameters**: 5 positional. More -> config/options object.
-- **Cyclomatic complexity**: 10 per function. More decompose branching logic.
-- **No magic numbers**: extract to named constants (`MAX_RETRIES = 3`, not bare `3`).
+### 2）并行调度
+- 将**无前置依赖**的任务并行下发
+- 单轮并行度**最多 5 个**
+- 超出时按优先级或依赖深度分批执行
+- 若存在资源冲突，改为串行或加锁处理
 
-## Decoupling & Immutability
+### 3）结果汇总
+- 等待本轮任务全部返回
+- 校验完整性、一致性、可追溯性、风险
+- 形成阶段性结果
 
-- **Dependency injection**: business logic never `new`s or hard-imports concrete implementations; inject via parameters or interfaces.
-- **Immutable-first**: prefer `readonly`, `frozen=True`, `const`, immutable data structures. Never mutate function parameters or global state; return new values.
+### 4）递归迭代
+- 以阶段性结果作为下一轮输入
+- 重复以上流程直到任务完成
 
-## Security Baseline
+---
 
-- Never hardcode secrets, API keys, or credentials in source code; use environment variables or secret managers.
-- Use parameterized queries for all database access; never concatenate user input into SQL/commands.
-- Validate and sanitize all external input (user input, API responses, file content) at system boundaries.
-- **Conversation keys -> code leaks**: When the user shares an API key in conversation (e.g. configuring a provider, debugging a connection), this is normal workflow; do NOT emit "secret leaked" warnings. Only alert when a key is written into a source code file. Frontend display is already masked; no need to remind repeatedly.
+## 3. 任务拆分原则
 
-## Testing and Validation
+子任务应尽量满足：
 
-- Keep code testable and verify with automated checks whenever feasible.
-- When running backend unit tests, enforce a hard timeout of 60 seconds to avoid stuck tasks.
-- Runtime timeout baseline (current project defaults): `RQ_JOB_TIMEOUT_SECONDS=90` and `QIBO_EXEC_TIMEOUT_SECONDS=60`.
-- When adjusting execution limits, ensure the outer queue timeout (`RQ_JOB_TIMEOUT_SECONDS`) remains greater than the inner execution timeout (`QIBO_EXEC_TIMEOUT_SECONDS`).
-- Prefer static checks, formatting, and reproducible verification over ad-hoc manual confidence.
-- Tests must use real execution paths. Do not use mock/fake/stub/simulated-success flows to claim feature correctness.
-- If a dependency is unavailable, tests should fail explicitly with actionable errors instead of replacing behavior with test doubles.
-- Migration policy: no new mock-based tests are allowed; existing mock-based tests must be replaced by real tests in subsequent iterations.
+- 输入独立
+- 执行独立
+- 输出独立
+- 可单独验收
+- 与其他任务低耦合
 
-## Skills
+### 不适合并行的情况
+- 存在强依赖链（A → B → C）
+- 同时修改同一文件或同一共享资源
+- 任务边界不清晰
+- 汇总成本高于并行收益
 
-Skills are stored in `~/.codex/skills/` (personal) and optionally `.codex/skills/` (project-shared).
+---
 
-Before starting a task:
+## 4. 资源冲突规则
 
-- Scan available skills.
-- If a skill matches, read its `SKILL.md` and follow it.
-- Announce which skill(s) are being used.
+### 只读资源
+可并行访问，例如：
+- 文档
+- 日志
+- 冻结代码快照
 
-Routing table:
+### 可并行写资源
+可并行处理，但边界不能重叠，例如：
+- 不同文件
+- 不同目录
+- 独立报告文件
 
-| Scenario | Skill | Trigger |
-|----------|-------|---------|
-| Long-horizon autonomous tasks (FULL: 5-15 steps) | `taskmaster` | "long task", "big project", "autonomous", "from scratch", "long running task", 1+ hour sessions |
+### 独占写资源
+必须串行或加锁，例如：
+- 同一文件
+- 同一配置
+- 同一数据库结构
+- 同一部署环境
 
-## Collaboration Workflow (Standard)
+### 默认规则
+- 同一文件默认按**独占写**处理
+- 无法确认是否冲突时，默认按冲突处理
 
-This project follows a strict user-agent delivery loop:
+---
 
-1. Goal alignment first: user defines business goal, priority, and tradeoffs (for example MVP speed vs long-term architecture).
-2. Spec-first execution: agent must use `spec-workflow` (`Requirements -> Design -> Tasks -> Implementation`) for medium/large changes.
-3. Approval-gated progression: each major spec artifact is reviewed by user before moving to the next phase.
-4. Constraint-aware implementation: code changes must respect runtime constraints (Docker environment, timeout baseline, security limits).
-5. Debug-first validation: verify with reproducible checks (tests, build, docker run, logs); do not hide failures behind fallback paths.
-6. Root-cause fixing: when runtime issues appear, diagnose from evidence (API response, container logs, DB/runtime state), then patch at source.
-7. Traceable delivery: update docs/spec logs, summarize outcomes, and commit with clear Conventional Commit messages after user confirmation.
-8. Feedback loop: user performs scenario testing; agent iterates until acceptance criteria are met.
+## 5. 标准子任务契约
+
+下发子任务时，必须包含以下内容：
+
+### 🔒 代理名称
+简短明确，例如：
+- `payment_explorer`
+- `order_worker`
+- `search_reviewer`
+
+### 📝 任务定义
+说明背景、目标、输入来源
+
+### 📥 输入
+列出允许使用的文件、文档、规则、上下文
+
+### 🔗 依赖
+说明前置依赖；没有则写“无”
+
+### ⚙️ 执行动作
+明确要做什么
+
+### 🚫 边界限制
+明确不能做什么，防止越界
+
+### ✅ 预期结果
+说明交付物内容与输出格式
+
+### 📏 验收标准
+定义完成条件
+
+### 🔁 失败策略
+说明失败后如何返回，是否可重试
+
+---
+
+## 6. 任务状态
+
+每个任务应有明确状态：
+
+```text
+[待分析] → [可调度] → [执行中] → [待汇总] → [已完成]
+                     ├→ [失败可重试]
+                     ├→ [失败需人工介入]
+                     └→ [已取消]
+```
+
+最低记录字段：
+
+- `task_id`
+- `round_id`
+- `agent_name`
+- `status`
+- `input_summary`
+- `output_summary`
+- `retry_count`
+- `error_reason`
+
+---
+
+## 7. 汇总门禁
+
+每轮汇总前，检查：
+
+- **完整性**：必需任务是否全部返回
+- **一致性**：结论是否冲突
+- **可追溯性**：结论是否有依据
+- **可执行性**：能否作为下一轮输入
+- **风险性**：是否涉及未确认高风险操作
+
+未通过门禁，不进入下一轮。
+
+### 阶段性结果格式
+
+```text
+阶段性结果：
+- 本轮目标
+- 已完成任务
+- 失败/阻塞任务
+- 关键结论
+- 冲突及处理
+- 下一轮输入
+- 风险提示
+```
+
+---
+
+## 8. 失败与重试
+
+### 可重试失败
+- 临时超时
+- 工具调用失败
+- 非确定性解析错误
+
+### 不可重试失败
+- 输入缺失
+- 权限不足
+- 需求冲突
+- 高风险操作未确认
+
+### 需人工介入
+- 关键结论冲突无法裁决
+- 需求有歧义
+- 环境异常
+
+### 默认重试策略
+- 最多重试 **2 次**
+- 建议退避：**5s / 15s**
+- 连续同类错误停止自动重试
+
+---
+
+## 9. 决策分层
+
+### 子代理负责
+- 局部分析
+- 信息收集
+- 候选方案生成
+- 边界内执行
+
+### 主代理负责
+- 拆解任务
+- 调度执行
+- 汇总结果
+- 冲突裁决
+- 风险判断
+- 最终决策
+
+### 原则
+- 子代理不得擅自做全局决策
+- 涉及架构、需求解释、风险接受时，由主代理统一裁决
+
+---
+
+## 10. 风险操作确认
+
+以下操作前必须获得明确确认：
+
+- 删除文件/目录
+- 批量修改
+- 修改系统配置、环境变量、权限
+- 数据库删除、结构变更、批量更新
+- 调用生产环境 API
+- 全局安装/卸载或更新核心依赖
+
+### 确认模板
+
+```text
+⚠️ 危险操作检测！
+
+操作类型：[具体操作]
+影响范围：[详细说明]
+风险评估：[潜在后果]
+
+请确认是否继续？[需要明确回复：是 / 确认 / 继续]
+```
+
+---
+
+## 11. 质量要求
+
+- 遵循 SOLID、DRY、关注点分离、YAGNI
+- 命名清晰，抽象合理
+- 处理异常和边界条件
+- 修改后至少验证受影响范围
+- 后台测试建议超时 **60s**
+- 无法测试时，必须说明原因、风险和替代验证方式
+
+---
+
+## 12. 输出要求
+
+- 标题清晰，列表优先，短句表达
+- 必要时使用代码块或 ASCII 图
+- 避免冗长大段文字
+- 关键定位使用 `file:line`
+
+### 常用输出模板
+
+#### 调研类
+```text
+- 结论
+- 依据
+- 风险
+- 建议
+```
+
+#### 修改类
+```text
+- 修改目标
+- 修改内容
+- 影响范围
+- 验证结果
+- 未解决问题
+```
+
+#### 失败类
+```text
+- 失败原因
+- 是否可重试
+- 建议下一步
+- 所需补充信息
+```
+
+---
+
+## 13. 最佳实践
+
+### 推荐并行
+- 多文件独立处理
+- 信息收集
+- 多方案评审
+- 文档与代码分析分离
+
+### 谨慎并行
+- 同一文件多处修改
+- 同一配置多任务同时编辑
+- 强依赖串行流程
+
+### 推荐策略
+- 收集并行，分析汇总
+- 生成并行，合并串行
+- 修改受控，验证统一
+```

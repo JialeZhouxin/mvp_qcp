@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/dockerized-dev-demo-runtime/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-10T02:05:44.745Z",
+      "trigger": "initial",
+      "approvalId": "approval_1773108344737_j2hxq3yl2",
+      "approvalTitle": "Approve tasks for dockerized-dev-demo-runtime"
+    }
+  ]
+}

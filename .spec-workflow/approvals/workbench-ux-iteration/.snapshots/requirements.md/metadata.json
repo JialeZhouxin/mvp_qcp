@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/workbench-ux-iteration/requirements.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-13T00:41:23.348Z",
+      "trigger": "initial",
+      "approvalId": "approval_1773362483128_ymwq4tfgr",
+      "approvalTitle": "Approve requirements for workbench UX iteration (items 4-10)"
+    }
+  ]
+}

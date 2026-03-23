@@ -3,7 +3,6 @@ import hmac
 import secrets
 from datetime import datetime, timedelta
 
-from fastapi import HTTPException, status
 from sqlmodel import Session, select
 
 from app.core.config import settings
@@ -13,6 +12,29 @@ PBKDF2_ALGORITHM = "pbkdf2_sha256"
 PBKDF2_ITERATIONS = 260000
 PASSWORD_SALT_BYTES = 16
 PBKDF2_SEPARATOR = "$"
+
+
+class AuthServiceError(RuntimeError):
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
+class UsernameAlreadyExistsError(AuthServiceError):
+    pass
+
+
+class InvalidCredentialsError(AuthServiceError):
+    pass
+
+
+class InvalidTokenError(AuthServiceError):
+    pass
+
+
+class TokenExpiredError(AuthServiceError):
+    pass
 
 
 def _hash_legacy_password(password: str, salt: str) -> str:
@@ -65,7 +87,10 @@ def _verify_password(user: User, password: str) -> bool:
 def register_user(session: Session, username: str, password: str) -> User:
     existing_user = session.exec(select(User).where(User.username == username)).first()
     if existing_user:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="username already exists")
+        raise UsernameAlreadyExistsError(
+            code="USERNAME_EXISTS",
+            message="username already exists",
+        )
 
     salt = secrets.token_hex(PASSWORD_SALT_BYTES)
     user = User(
@@ -82,7 +107,10 @@ def register_user(session: Session, username: str, password: str) -> User:
 def login_user(session: Session, username: str, password: str) -> str:
     user = session.exec(select(User).where(User.username == username)).first()
     if not user or not _verify_password(user, password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid username or password")
+        raise InvalidCredentialsError(
+            code="INVALID_CREDENTIALS",
+            message="invalid username or password",
+        )
 
     if not _is_pbkdf2_password(user.password_hash):
         upgraded_salt = user.password_salt or secrets.token_hex(PASSWORD_SALT_BYTES)
@@ -101,7 +129,7 @@ def login_user(session: Session, username: str, password: str) -> str:
 def verify_token(session: Session, token: str) -> User:
     user = session.exec(select(User).where(User.token == token)).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token")
+        raise InvalidTokenError(code="INVALID_TOKEN", message="invalid token")
     if not user.token_expires_at or user.token_expires_at <= datetime.utcnow():
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token expired")
+        raise TokenExpiredError(code="TOKEN_EXPIRED", message="token expired")
     return user

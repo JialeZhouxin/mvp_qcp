@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/workbench-ux-iteration/design.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-13T00:52:51.858Z",
+      "trigger": "initial",
+      "approvalId": "approval_1773363171752_pqksqlu52",
+      "approvalTitle": "Approve design for workbench UX iteration"
+    }
+  ]
+}

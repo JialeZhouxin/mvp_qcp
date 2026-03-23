@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/workbench-gate-catalog-enhancements/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-16T06:35:48.615Z",
+      "trigger": "initial",
+      "approvalId": "approval_1773642948585_hx71xtxwc",
+      "approvalTitle": "Approve tasks for workbench gate catalog enhancements"
+    }
+  ]
+}

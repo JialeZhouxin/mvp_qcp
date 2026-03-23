@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/workbench-gate-catalog-enhancements/requirements.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-16T06:26:13.347Z",
+      "trigger": "initial",
+      "approvalId": "approval_1773642372682_qib6yd3qp",
+      "approvalTitle": "Approve requirements for workbench gate catalog enhancements"
+    }
+  ]
+}

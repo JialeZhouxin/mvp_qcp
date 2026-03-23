@@ -30,11 +30,25 @@ def test_task_use_cases_do_not_depend_on_fastapi_or_infrastructure_modules() -> 
 
 
 def test_services_do_not_depend_on_http_schema_models() -> None:
-    task_query_source = _read("app", "services", "task_query_service.py")
+    for relative_path in (
+        ("app", "services", "task_query_service.py"),
+        ("app", "services", "task_event_stream_service.py"),
+        ("app", "services", "auth_service.py"),
+    ):
+        source = _read(*relative_path)
+        assert "from app.schemas" not in source
+        assert "TaskCenterListResponse" not in source
+        assert "TaskCenterDetailResponse" not in source
+        assert "TaskStatusStreamEvent" not in source
+        assert "TaskHeartbeatEvent" not in source
 
-    assert "from app.schemas" not in task_query_source
-    assert "TaskCenterListResponse" not in task_query_source
-    assert "TaskCenterDetailResponse" not in task_query_source
+
+def test_auth_service_does_not_depend_on_fastapi_http_layer() -> None:
+    source = _read("app", "services", "auth_service.py")
+
+    assert "from fastapi" not in source
+    assert "HTTPException" not in source
+    assert "status.HTTP_" not in source
 
 
 def test_runtime_services_do_not_create_sessions_from_global_engine() -> None:

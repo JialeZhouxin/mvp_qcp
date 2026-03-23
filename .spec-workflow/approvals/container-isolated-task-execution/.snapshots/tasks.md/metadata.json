@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/container-isolated-task-execution/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-10T06:59:41.338Z",
+      "trigger": "initial",
+      "approvalId": "approval_1773125981172_q2004ol51",
+      "approvalTitle": "Approve tasks for container-isolated-task-execution"
+    }
+  ]
+}

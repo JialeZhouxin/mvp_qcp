@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/graphical-qasm3-workbench/requirements.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-12T07:51:57.159Z",
+      "trigger": "initial",
+      "approvalId": "approval_1773301917019_ethkdpyyf",
+      "approvalTitle": "Approve requirements for graphical-qasm3-workbench"
+    }
+  ]
+}

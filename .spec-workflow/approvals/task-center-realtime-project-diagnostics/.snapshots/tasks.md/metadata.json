@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/task-center-realtime-project-diagnostics/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-13T03:25:42.089Z",
+      "trigger": "initial",
+      "approvalId": "approval_1773372340373_75la3frga",
+      "approvalTitle": "Approve tasks for task-center-realtime-project-diagnostics"
+    }
+  ]
+}
