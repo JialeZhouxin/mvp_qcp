@@ -1,20 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
-import type { TaskStatusStreamEvent } from "../../api/task-stream";
-import {
-  subscribeTaskStream,
-  type TaskStreamConnection,
-} from "../../api/task-stream";
-
-const FALLBACK_POLL_INTERVAL_MS = 3000;
-
-interface UseTaskCenterRealtimeParams {
-  readonly statusFilter: string;
-  readonly selectedTaskId: number | null;
-  readonly refreshList: () => Promise<void>;
-  readonly refreshDetail: () => Promise<void>;
-  readonly onTaskStatus: (event: TaskStatusStreamEvent) => void;
-}
+import { useTaskCenterFallbackPolling } from "./use-task-center-fallback-polling";
+import { useTaskCenterStream } from "./use-task-center-stream";
+import type { UseTaskCenterRealtimeParams } from "./use-task-center-realtime.types";
 
 export function useTaskCenterRealtime({
   statusFilter,
@@ -23,61 +11,25 @@ export function useTaskCenterRealtime({
   refreshDetail,
   onTaskStatus,
 }: UseTaskCenterRealtimeParams) {
-  const [streamDisconnected, setStreamDisconnected] = useState(false);
   const [streamVersion, setStreamVersion] = useState(0);
-  const streamRef = useRef<TaskStreamConnection | null>(null);
-  const pollTimerRef = useRef<number | null>(null);
   const selectedTaskIdRef = useRef<number | null>(selectedTaskId);
 
   selectedTaskIdRef.current = selectedTaskId;
 
-  useEffect(() => {
-    if (streamRef.current) {
-      streamRef.current.close();
-      streamRef.current = null;
-    }
-    setStreamDisconnected(false);
-    streamRef.current = subscribeTaskStream(null, {
-      onStatus: (event) => {
-        onTaskStatus(event);
-        if (selectedTaskIdRef.current === event.task_id) {
-          void refreshDetail();
-        }
-      },
-      onError: () => setStreamDisconnected(true),
-      onDisconnect: () => setStreamDisconnected(true),
-    });
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.close();
-        streamRef.current = null;
-      }
-    };
-  }, [refreshDetail, onTaskStatus, streamVersion]);
+  const { streamDisconnected } = useTaskCenterStream({
+    streamVersion,
+    selectedTaskIdRef,
+    refreshDetail,
+    onTaskStatus,
+  });
 
-  useEffect(() => {
-    if (!streamDisconnected) {
-      if (pollTimerRef.current !== null) {
-        window.clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
-      }
-      return;
-    }
-
-    pollTimerRef.current = window.setInterval(() => {
-      void refreshList();
-      if (selectedTaskIdRef.current !== null) {
-        void refreshDetail();
-      }
-    }, FALLBACK_POLL_INTERVAL_MS);
-
-    return () => {
-      if (pollTimerRef.current !== null) {
-        window.clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
-      }
-    };
-  }, [refreshDetail, refreshList, statusFilter, streamDisconnected]);
+  useTaskCenterFallbackPolling({
+    enabled: streamDisconnected,
+    statusFilter,
+    selectedTaskIdRef,
+    refreshList,
+    refreshDetail,
+  });
 
   return {
     streamDisconnected,
