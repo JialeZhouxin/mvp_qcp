@@ -8,6 +8,7 @@ from app.services.backpressure_service import BackpressureService
 from app.services.task_submit_dispatch_preflight import TaskDispatchPreflight
 from app.services.task_submit_dispatch_service import TaskDispatchService
 from app.services.task_submit_idempotency import TaskSubmitIdempotencyCoordinator
+from app.services.task_submit_persistence import TaskSubmitPersistence
 from app.services.task_submit_ports import BackpressureFactory, NowProvider, QueueGetter, WorkerTask
 from app.services.task_submit_service import TaskSubmitService
 from app.services.task_submit_shared import TaskSubmitConfig
@@ -34,7 +35,6 @@ def build_submit_task_service(
     resolved_backpressure_factory = backpressure_factory or BackpressureService.from_settings
 
     return TaskSubmitService(
-        session=session,
         validator=TaskSubmitValidator(),
         idempotency=TaskSubmitIdempotencyCoordinator(session, config),
         preflight=TaskDispatchPreflight(resolved_backpressure_factory),
@@ -45,6 +45,7 @@ def build_submit_task_service(
             worker_task=resolved_worker_task,
             now_provider=now_provider,
         ),
+        persistence=TaskSubmitPersistence(session),
         now_provider=now_provider,
     )
 

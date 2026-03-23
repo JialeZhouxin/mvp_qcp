@@ -1,11 +1,10 @@
 import logging
 
-from sqlmodel import Session
-
-from app.models.task import Task, TaskStatus
+from app.models.task import Task
 from app.services.task_submit_dispatch_preflight import TaskDispatchPreflight
 from app.services.task_submit_dispatch_service import TaskDispatchService
 from app.services.task_submit_idempotency import TaskSubmitIdempotencyCoordinator
+from app.services.task_submit_persistence import TaskSubmitPersistence
 from app.services.task_submit_ports import NowProvider
 from app.services.task_submit_shared import TaskSubmitCommand, TaskSubmitOutcome
 from app.services.task_submit_validator import TaskSubmitValidator
@@ -16,18 +15,18 @@ logger = logging.getLogger(__name__)
 class TaskSubmitService:
     def __init__(
         self,
-        session: Session,
         validator: TaskSubmitValidator,
         idempotency: TaskSubmitIdempotencyCoordinator,
         preflight: TaskDispatchPreflight,
         dispatch: TaskDispatchService,
+        persistence: TaskSubmitPersistence,
         now_provider: NowProvider,
     ) -> None:
-        self._session = session
         self._validator = validator
         self._idempotency = idempotency
         self._preflight = preflight
         self._dispatch = dispatch
+        self._persistence = persistence
         self._now_provider = now_provider
 
     def submit(self, command: TaskSubmitCommand) -> TaskSubmitOutcome:
@@ -52,7 +51,7 @@ class TaskSubmitService:
                 )
 
         queue_depth = self._preflight.ensure_submit_capacity(command.user_id)
-        task = self._create_pending_task(command.user_id, command.code)
+        task = self._persistence.create_pending_task(command.user_id, command.code)
         task_id = self._require_task_id(task)
 
         if normalized_key is not None:
@@ -73,13 +72,6 @@ class TaskSubmitService:
             deduplicated=False,
             queue_depth=queue_depth,
         )
-
-    def _create_pending_task(self, user_id: int, code: str) -> Task:
-        task = Task(user_id=user_id, code=code, status=TaskStatus.PENDING)
-        self._session.add(task)
-        self._session.commit()
-        self._session.refresh(task)
-        return task
 
     def _require_task_id(self, task: Task) -> int:
         if task.id is None:

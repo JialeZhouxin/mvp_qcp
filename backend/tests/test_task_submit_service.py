@@ -11,6 +11,7 @@ from app.services.idempotency_service import IdempotencyService
 from app.services.task_submit_dispatch_preflight import TaskDispatchPreflight
 from app.services.task_submit_dispatch_service import TaskDispatchService
 from app.services.task_submit_idempotency import TaskSubmitIdempotencyCoordinator
+from app.services.task_submit_persistence import TaskSubmitPersistence
 from app.services.task_submit_service import (
     TaskSubmitService,
 )
@@ -75,7 +76,6 @@ def _build_submit_service(
     now_provider: Callable[[], datetime] = datetime.utcnow,
 ) -> TaskSubmitService:
     return TaskSubmitService(
-        session=session,
         validator=TaskSubmitValidator(),
         idempotency=TaskSubmitIdempotencyCoordinator(
             session,
@@ -97,6 +97,7 @@ def _build_submit_service(
             worker_task=lambda task_id: {"task_id": task_id},
             now_provider=now_provider,
         ),
+        persistence=TaskSubmitPersistence(session),
         now_provider=now_provider,
     )
 
@@ -204,6 +205,20 @@ def test_submit_marks_failure_and_refreshes_idempotency_on_enqueue_failure(sessi
     ).first()
     assert record is not None
     assert record.updated_at == failure_time
+
+
+def test_persistence_creates_pending_task(session: Session) -> None:
+    from app.services.task_submit_persistence import TaskSubmitPersistence
+
+    persistence = TaskSubmitPersistence(session)
+
+    task = persistence.create_pending_task(user_id=9, code="def main():\n    return {'counts': {'01': 2}}")
+
+    assert task.id is not None
+    assert task.status == TaskStatus.PENDING
+    saved = session.exec(select(Task).where(Task.id == task.id)).first()
+    assert saved is not None
+    assert saved.user_id == 9
 
 
 def test_submit_enqueues_pending_task_successfully(session: Session) -> None:
