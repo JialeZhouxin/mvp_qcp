@@ -4,13 +4,13 @@ import {
   addOperation,
   removeOperation,
   updateOperation,
-} from "../../features/circuit/model/circuit-model";
-import { validateCircuitModel } from "../../features/circuit/model/circuit-validation";
-import type { CircuitModel, Operation } from "../../features/circuit/model/types";
+} from "../model/circuit-model";
+import { validateCircuitModel } from "../model/circuit-validation";
+import type { CircuitModel, Operation } from "../model/types";
 import {
   type LocalizedMessage,
   toCanvasMessage,
-} from "../../features/circuit/ui/message-catalog";
+} from "../ui/message-catalog";
 import OperationParameterPanel from "./OperationParameterPanel";
 import {
   GateLabel,
@@ -35,6 +35,7 @@ import {
   validateParameterValue,
   type ParameterValidationResult,
 } from "./parameter-validation";
+import CircuitCanvasToolbar from "./CircuitCanvasToolbar";
 import { useCircuitCanvasHotkeys } from "./use-circuit-canvas-hotkeys";
 import { useCircuitCanvasViewport } from "./use-circuit-canvas-viewport";
 import "./CircuitCanvas.css";
@@ -459,109 +460,29 @@ function CircuitCanvas({
           </button>
         </div>
       ) : null}
-      <div className="canvas-workbench-toolbar" data-testid="canvas-workbench-toolbar">
-        {hasWorkbenchControls ? (
-          <div className="canvas-workbench-group" data-testid="canvas-workbench-actions">
-            <button type="button" className="canvas-workbench-btn" onClick={onUndo} disabled={!canUndoAction}>
-              撤销
-            </button>
-            <button type="button" className="canvas-workbench-btn" onClick={onRedo} disabled={!canRedoAction}>
-              重做
-            </button>
-            <button type="button" className="canvas-workbench-btn" onClick={onClearCircuit}>
-              清空电路
-            </button>
-            <button type="button" className="canvas-workbench-btn" onClick={onResetWorkbench}>
-              重置工作台
-            </button>
-          </div>
-        ) : null}
-        {hasWorkbenchControls ? (
-          <div className="canvas-workbench-group" data-testid="canvas-workbench-qubits">
-            <span className="canvas-workbench-label">Qubits</span>
-            <button
-              type="button"
-              className="canvas-workbench-btn canvas-workbench-btn--small"
-              onClick={onDecreaseQubits}
-              disabled={!canDecreaseQubits}
-            >
-              -Qubit
-            </button>
-            <span className="canvas-workbench-value" data-testid="canvas-qubit-count">
-              {currentQubits}
-            </span>
-            <button
-              type="button"
-              className="canvas-workbench-btn canvas-workbench-btn--small"
-              onClick={onIncreaseQubits}
-              disabled={!canIncreaseQubits}
-            >
-              +Qubit
-            </button>
-          </div>
-        ) : null}
-        {hasWorkbenchControls ? (
-          <div className="canvas-workbench-group" data-testid="canvas-workbench-templates">
-            <span className="canvas-workbench-label">模板</span>
-            <button
-              type="button"
-              className="canvas-workbench-btn"
-              onClick={() => onLoadTemplate(BELL_TEMPLATE_ID)}
-            >
-              Bell 态
-            </button>
-            <button
-              type="button"
-              className="canvas-workbench-btn"
-              onClick={() => onLoadTemplate(SUPERPOSITION_TEMPLATE_ID)}
-            >
-              均匀叠加态
-            </button>
-          </div>
-        ) : null}
-        <div
-          className="canvas-workbench-group canvas-workbench-group--zoom"
-          data-testid="canvas-zoom-toolbar"
-        >
-          <span className="canvas-zoom-percent" data-testid="canvas-zoom-percent">
-            {zoomPercentText}
-          </span>
-          <button
-            type="button"
-            className="canvas-workbench-btn canvas-workbench-btn--small"
-            data-testid="canvas-zoom-out"
-            onClick={onZoomOut}
-            disabled={!canZoomOut}
-            aria-label="缩小画布"
-          >
-            -
-          </button>
-          <button
-            type="button"
-            className="canvas-workbench-btn canvas-workbench-btn--small"
-            data-testid="canvas-zoom-in"
-            onClick={onZoomIn}
-            disabled={!canZoomIn}
-            aria-label="放大画布"
-          >
-            +
-          </button>
-          <button
-            type="button"
-            className="canvas-workbench-btn canvas-workbench-btn--small"
-            data-testid="canvas-zoom-reset"
-            onClick={onZoomReset}
-            aria-label="重置画布缩放"
-          >
-            100%
-          </button>
-        </div>
-      </div>
-      {hasWorkbenchControls && qubitMessage ? (
-        <p style={{ margin: "0 0 8px 0", color: "#cf1322" }} data-testid="qubit-message">
-          {qubitMessage}
-        </p>
-      ) : null}
+      <CircuitCanvasToolbar
+        hasWorkbenchControls={hasWorkbenchControls}
+        canUndoAction={canUndoAction}
+        canRedoAction={canRedoAction}
+        canIncreaseQubits={canIncreaseQubits}
+        canDecreaseQubits={canDecreaseQubits}
+        currentQubits={currentQubits}
+        qubitMessage={qubitMessage}
+        zoomPercentText={zoomPercentText}
+        canZoomIn={canZoomIn}
+        canZoomOut={canZoomOut}
+        onUndo={onUndo}
+        onRedo={onRedo}
+        onClearCircuit={onClearCircuit}
+        onResetWorkbench={onResetWorkbench}
+        onIncreaseQubits={onIncreaseQubits}
+        onDecreaseQubits={onDecreaseQubits}
+        onLoadBellTemplate={() => onLoadTemplate(BELL_TEMPLATE_ID)}
+        onLoadSuperpositionTemplate={() => onLoadTemplate(SUPERPOSITION_TEMPLATE_ID)}
+        onZoomOut={onZoomOut}
+        onZoomIn={onZoomIn}
+        onZoomReset={onZoomReset}
+      />
       <div
         ref={viewportRef}
         className={viewportClassName}
@@ -681,3 +602,6 @@ function CircuitCanvas({
 }
 
 export default CircuitCanvas;
+
+
+

@@ -1,4 +1,4 @@
-import type { CircuitTemplate } from "../../features/circuit/model/templates";
+﻿import type { CircuitTemplate } from "../model/templates";
 
 interface WorkbenchToolbarProps {
   readonly canUndo: boolean;
@@ -37,17 +37,16 @@ function WorkbenchToolbar({
     <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <button type="button" onClick={onUndo} disabled={!canUndo}>
-          撤销
+          鎾ら攢
         </button>
         <button type="button" onClick={onRedo} disabled={!canRedo}>
-          重做
+          閲嶅仛
         </button>
         <button type="button" onClick={onClearCircuit}>
-          清空电路
+          娓呯┖鐢佃矾
         </button>
         <button type="button" onClick={onResetWorkbench}>
-          重置工作台
-        </button>
+          閲嶇疆宸ヤ綔鍙?        </button>
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
         <strong>Qubits:</strong>
@@ -65,7 +64,7 @@ function WorkbenchToolbar({
         </p>
       ) : null}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-        <strong>模板:</strong>
+        <strong>妯℃澘:</strong>
         {templates.map((template) => (
           <button
             key={template.id}
@@ -82,3 +81,5 @@ function WorkbenchToolbar({
 }
 
 export default WorkbenchToolbar;
+
+

@@ -1,4 +1,4 @@
-interface WorkbenchSubmitPanelProps {
+﻿interface WorkbenchSubmitPanelProps {
   readonly submitting: boolean;
   readonly canSubmit: boolean;
   readonly taskId: number | null;
@@ -39,21 +39,19 @@ function WorkbenchSubmitPanel({
         }}
       >
         <button type="button" onClick={onSubmit} disabled={submitDisabled}>
-          {submitting ? "提交中..." : "提交任务"}
+          {submitting ? "鎻愪氦涓?.." : "鎻愪氦浠诲姟"}
         </button>
-        <span>任务 ID: {taskId ?? "-"}</span>
+        <span>浠诲姟 ID: {taskId ?? "-"}</span>
         <span>
-          任务状态: <span data-testid="task-status-text">{taskStatusLabel}</span>
+          浠诲姟鐘舵€? <span data-testid="task-status-text">{taskStatusLabel}</span>
         </span>
         <span>
-          已耗时: <span data-testid="task-elapsed-seconds">{elapsedSeconds}</span> 秒
-        </span>
+          宸茶€楁椂: <span data-testid="task-elapsed-seconds">{elapsedSeconds}</span> 绉?        </span>
       </div>
 
       {deduplicated ? (
         <p style={{ margin: "8px 0 0 0", color: "#1677ff" }}>
-          检测到重复提交，系统已复用已有任务。
-        </p>
+          妫€娴嬪埌閲嶅鎻愪氦锛岀郴缁熷凡澶嶇敤宸叉湁浠诲姟銆?        </p>
       ) : null}
       {submitError ? (
         <p style={{ margin: "8px 0 0 0", color: "#cf1322" }}>{submitError}</p>
@@ -63,3 +61,4 @@ function WorkbenchSubmitPanel({
 }
 
 export default WorkbenchSubmitPanel;
+

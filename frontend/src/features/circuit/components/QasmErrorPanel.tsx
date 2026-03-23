@@ -1,5 +1,5 @@
-import type { QasmParseError } from "../../features/circuit/qasm/qasm-errors";
-import { toQasmErrorMessage } from "../../features/circuit/ui/message-catalog";
+﻿import type { QasmParseError } from "../qasm/qasm-errors";
+import { toQasmErrorMessage } from "../ui/message-catalog";
 
 interface QasmErrorPanelProps {
   readonly error: QasmParseError | null;
@@ -18,11 +18,11 @@ function QasmErrorPanel({ error }: QasmErrorPanelProps) {
       <strong style={{ color: "#cf1322" }}>{localized.title}</strong>
       <p style={{ margin: "6px 0 0 0" }}>{localized.detail}</p>
       <p style={{ margin: "6px 0 0 0", color: "#8c8c8c" }}>
-        错误码: {error.code}，列: {error.column}
+        閿欒鐮? {error.code}锛屽垪: {error.column}
       </p>
       {localized.suggestion ? (
         <p data-testid="qasm-fix-suggestion" style={{ margin: "6px 0 0 0", color: "#595959" }}>
-          建议: {localized.suggestion}
+          寤鸿: {localized.suggestion}
         </p>
       ) : null}
       <pre style={{ margin: "8px 0 0 0", whiteSpace: "pre-wrap" }}>{error.excerpt}</pre>
@@ -31,3 +31,5 @@ function QasmErrorPanel({ error }: QasmErrorPanelProps) {
 }
 
 export default QasmErrorPanel;
+
+

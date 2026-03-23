@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 
 import {
   isDeleteShortcut,
@@ -48,3 +48,4 @@ export function useCircuitCanvasHotkeys({
     return () => window.removeEventListener("keydown", onWindowKeyDown);
   }, [onDeleteSelected, onRedo, onUndo, selectedOperationId]);
 }
+

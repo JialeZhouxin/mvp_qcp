@@ -1,5 +1,5 @@
-﻿import { getGateCatalog, getGateCatalogItem } from "../../features/circuit/gates/gate-catalog";
-import type { GateName, Operation } from "../../features/circuit/model/types";
+﻿import { getGateCatalog, getGateCatalogItem } from "../gates/gate-catalog";
+import type { GateName, Operation } from "../model/types";
 
 export type ParameterizedGate = "rx" | "ry" | "rz" | "u" | "p" | "cp";
 
@@ -133,3 +133,5 @@ export function getParameterValues(operation: Operation): readonly number[] {
   }
   return getDefaultParams(operation.gate) ?? [];
 }
+
+

@@ -14,8 +14,7 @@ function WorkbenchGuide({ visible, onDismiss }: WorkbenchGuideProps) {
     >
       <strong>快速引导</strong>
       <p style={{ margin: "6px 0 0 0" }}>
-        1. 从左侧门库拖拽到线路。2. 双比特门需在同一层完成第二步选择。3.
-        下方会实时显示测量概率直方图。
+        1. 从左侧门库拖拽到线路。2. 双比特门需要在同一层完成第二步选择。3. 下方会实时显示测量概率直方图。
       </p>
       <button type="button" onClick={onDismiss} style={{ marginTop: 8 }}>
         我知道了

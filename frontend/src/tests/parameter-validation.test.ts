@@ -1,4 +1,4 @@
-import { validateParameterValue } from "../components/circuit/parameter-validation";
+﻿import { validateParameterValue } from "../features/circuit/components/parameter-validation";
 
 describe("parameter validation", () => {
   it("accepts finite values in suggested range", () => {
@@ -24,3 +24,5 @@ describe("parameter validation", () => {
     expect(result.normalizedValue).toBeNull();
   });
 });
+
+

@@ -1,7 +1,7 @@
-import { render, screen } from "@testing-library/react";
+﻿import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import QasmErrorPanel from "../components/circuit/QasmErrorPanel";
+import QasmErrorPanel from "../features/circuit/components/QasmErrorPanel";
 
 describe("QasmErrorPanel", () => {
   it("renders nothing when parse error is null", () => {
@@ -26,3 +26,5 @@ describe("QasmErrorPanel", () => {
     expect(screen.getByTestId("qasm-fix-suggestion")).toBeInTheDocument();
   });
 });
+
+

@@ -79,6 +79,34 @@ run("shared project panel is not owned by task-center feature", () => {
   assert.equal(fs.existsSync(path.join(root, "src/components/task-center/ProjectPanel.tsx")), false);
 });
 
+run("shared components do not depend on feature modules", () => {
+  const componentRoot = path.join(root, "src/components");
+  const stack = [componentRoot];
+  const sources = [];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) {
+      continue;
+    }
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const fullPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+        continue;
+      }
+      if (!/\.(ts|tsx)$/.test(entry.name)) {
+        continue;
+      }
+      sources.push(fs.readFileSync(fullPath, "utf8"));
+    }
+  }
+
+  for (const source of sources) {
+    assert.doesNotMatch(source, /from\s+["'][^"']*features\//);
+  }
+});
+
 if (process.exitCode && process.exitCode !== 0) {
   console.error("architecture boundary tests failed");
 } else {

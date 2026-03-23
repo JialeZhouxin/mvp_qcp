@@ -1,4 +1,4 @@
-import {
+﻿import {
   useCallback,
   useEffect,
   useMemo,
@@ -267,3 +267,4 @@ export function useCircuitCanvasViewport(): UseCircuitCanvasViewportResult {
     onViewportPointerCancel,
   };
 }
+

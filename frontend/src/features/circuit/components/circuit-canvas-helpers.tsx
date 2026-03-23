@@ -1,5 +1,5 @@
-import type { CircuitModel, Operation } from "../../features/circuit/model/types";
-import type { LocalizedMessage } from "../../features/circuit/ui/message-catalog";
+﻿import type { CircuitModel, Operation } from "../model/types";
+import type { LocalizedMessage } from "../ui/message-catalog";
 import { getParameterValues, isParameterizedGate } from "./canvas-gate-utils";
 import type { PendingPlacement } from "./canvas-gate-utils";
 
@@ -76,7 +76,7 @@ function getSymbolRole(operation: Operation, qubit: number) {
 
   if (isControl) {
     return {
-      label: "•",
+      label: "●",
       className: "canvas-gate-box--symbol-control",
       roleText: "control",
     };
@@ -84,7 +84,7 @@ function getSymbolRole(operation: Operation, qubit: number) {
 
   if (operation.gate === "swap" && isTarget) {
     return {
-      label: "×",
+      label: "脳",
       className: "canvas-gate-box--symbol-swap",
       roleText: "swap endpoint",
     };
@@ -242,8 +242,10 @@ export function MessageBlock({ message }: { message: LocalizedMessage }) {
       <strong>{message.title}</strong>
       <p style={{ margin: "4px 0 0 0" }}>{message.detail}</p>
       {message.suggestion ? (
-        <p style={{ margin: "4px 0 0 0", color: "#595959" }}>建议: {message.suggestion}</p>
+        <p style={{ margin: "4px 0 0 0", color: "#595959" }}>寤鸿: {message.suggestion}</p>
       ) : null}
     </div>
   );
 }
+
+

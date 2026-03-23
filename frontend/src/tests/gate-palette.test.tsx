@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+﻿import { fireEvent, render, screen, within } from "@testing-library/react";
 
-import GatePalette from "../components/circuit/GatePalette";
+import GatePalette from "../features/circuit/components/GatePalette";
 
 describe("GatePalette", () => {
   it("renders gates in category order without section titles", () => {
@@ -57,3 +57,5 @@ describe("GatePalette", () => {
     expect(screen.queryByTestId("gate-matrix-tooltip-cp")).not.toBeInTheDocument();
   });
 });
+
+

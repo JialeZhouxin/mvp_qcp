@@ -1,4 +1,4 @@
-.canvas-workbench-toolbar {
+﻿.canvas-workbench-toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -410,3 +410,4 @@
   outline: 2px solid #93c5fd;
   outline-offset: 1px;
 }
+

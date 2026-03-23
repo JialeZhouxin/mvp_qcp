@@ -1,4 +1,4 @@
-import type { Operation } from "../../features/circuit/model/types";
+﻿import type { Operation } from "../model/types";
 import {
   PARAMETER_LABELS,
   getParameterValues,
@@ -97,3 +97,5 @@ function OperationParameterPanel({
 }
 
 export default OperationParameterPanel;
+
+

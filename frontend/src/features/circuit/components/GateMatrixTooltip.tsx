@@ -1,5 +1,5 @@
-import { getGateMatrixPreview } from "../../features/circuit/gates/gate-matrix-preview";
-import type { GateName } from "../../features/circuit/model/types";
+import { getGateMatrixPreview } from "../gates/gate-matrix-preview";
+import type { GateName } from "../model/types";
 
 interface GateMatrixTooltipProps {
   readonly gate: GateName;
@@ -7,26 +7,26 @@ interface GateMatrixTooltipProps {
 }
 
 const GATE_DESCRIPTIONS: Readonly<Record<GateName, string>> = Object.freeze({
-  i: "保持量子态不变，常用于占位或对齐电路层。",
-  x: "实现比特翻转，将 |0> 与 |1> 互换。",
-  y: "绕 Y 轴旋转 pi，包含相位变化与比特翻转。",
-  z: "绕 Z 轴旋转 pi，仅改变相位不改测量概率。",
-  h: "创建叠加态，将基态映射到均匀叠加。",
-  s: "相位门，对 |1> 态施加 pi/2 相位。",
-  sdg: "S 门的逆操作，对 |1> 态施加 -pi/2 相位。",
-  t: "对 |1> 态施加 pi/4 相位，常用于容错门集。",
-  tdg: "T 门的逆操作，对 |1> 态施加 -pi/4 相位。",
-  rx: "按参数 theta 绕 X 轴旋转。",
-  ry: "按参数 theta 绕 Y 轴旋转。",
-  rz: "按参数 theta 绕 Z 轴旋转。",
-  u: "通用单比特门，可表示任意单比特旋转。",
-  p: "相位门，对 |1> 态施加可调相位 lambda。",
-  cx: "受控非门，控制位为 1 时翻转目标位。",
-  cp: "受控相位门，控制位为 1 时对目标态施加相位。",
-  cz: "受控 Z 门，控制位与目标位同时为 1 时施加负相位。",
-  ccx: "Toffoli 门，两个控制位为 1 时翻转目标位。",
-  swap: "交换两个量子位的状态。",
-  m: "测量门，将量子态投影到经典比特结果。",
+  i: "Identity gate.",
+  x: "Pauli-X gate (bit flip).",
+  y: "Pauli-Y gate.",
+  z: "Pauli-Z gate (phase flip).",
+  h: "Hadamard gate, creates superposition.",
+  s: "S phase gate.",
+  sdg: "Inverse S phase gate.",
+  t: "T phase gate.",
+  tdg: "Inverse T phase gate.",
+  rx: "Rotation around X-axis.",
+  ry: "Rotation around Y-axis.",
+  rz: "Rotation around Z-axis.",
+  u: "General single-qubit U gate.",
+  p: "Phase gate.",
+  cx: "Controlled-X (CNOT) gate.",
+  cp: "Controlled phase gate.",
+  cz: "Controlled-Z gate.",
+  ccx: "Toffoli (CCX) gate.",
+  swap: "Swap gate.",
+  m: "Measurement gate.",
 });
 
 function GateMatrixTooltip({ gate, accentColor }: GateMatrixTooltipProps) {
@@ -91,4 +91,3 @@ function GateMatrixTooltip({ gate, accentColor }: GateMatrixTooltipProps) {
 }
 
 export default GateMatrixTooltip;
-

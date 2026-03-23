@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+﻿import { fireEvent, render, screen, within } from "@testing-library/react";
 
-import CircuitCanvas from "../components/circuit/CircuitCanvas";
+import CircuitCanvas from "../features/circuit/components/CircuitCanvas";
 import type { CircuitModel } from "../features/circuit/model/types";
 
 const GATE_DRAG_MIME = "application/x-qcp-gate";
@@ -626,3 +626,5 @@ describe("CircuitCanvas", () => {
     expect(within(inlinePanel).getByTestId("param-error-0")).toBeInTheDocument();
   });
 });
+
+

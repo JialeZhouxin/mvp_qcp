@@ -1,15 +1,15 @@
-import Editor from "@monaco-editor/react";
+﻿import Editor from "@monaco-editor/react";
 import { useEffect, useRef } from "react";
 
-import type { CircuitModel } from "../../features/circuit/model/types";
-import type { QasmParseError } from "../../features/circuit/qasm/qasm-errors";
-import { fromQasm3, toQasm3 } from "../../features/circuit/qasm/qasm-bridge";
+import type { CircuitModel } from "../model/types";
+import type { QasmParseError } from "../qasm/qasm-errors";
+import { fromQasm3, toQasm3 } from "../qasm/qasm-bridge";
 import {
   buildQasmErrorMarkers,
   QASM_LANGUAGE_ID,
   QASM_MARKER_OWNER,
   registerQasmLanguage,
-} from "../../features/circuit/qasm/qasm-monaco";
+} from "../qasm/qasm-monaco";
 
 const DEFAULT_DEBOUNCE_MS = 200;
 const QASM_EDITOR_HEIGHT = 280;
@@ -137,3 +137,5 @@ function QasmEditorPane({
 }
 
 export default QasmEditorPane;
+
+

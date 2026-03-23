@@ -4,9 +4,9 @@ import type {
   ProbabilityDisplayMode,
   ProbabilityDisplayView,
   ProbabilityFilterResult,
-} from "../../features/circuit/simulation/probability-filter";
-import { toSimulationStateLabel } from "../../features/circuit/ui/message-catalog";
-import ResultChart, { type ResultChartSortMode } from "../ResultChart";
+} from "../simulation/probability-filter";
+import { toSimulationStateLabel } from "../ui/message-catalog";
+import ResultChart, { type ResultChartSortMode } from "../../../components/ResultChart";
 
 type SimulationViewState = "IDLE" | "RUNNING" | "READY" | "ERROR";
 
@@ -42,7 +42,7 @@ function WorkbenchResultPanel({
       {simError ? <p style={{ margin: "0 0 6px 0", color: "#cf1322" }}>{simError}</p> : null}
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", marginBottom: 6, fontSize: 13 }}>
-        <span>显示</span>
+        <span>展示模式</span>
         <label>
           <input
             type="radio"
@@ -53,11 +53,16 @@ function WorkbenchResultPanel({
           过滤后
         </label>
         <label>
-          <input type="radio" name="displayMode" checked={displayMode === "ALL"} onChange={() => onDisplayModeChange("ALL")} />
+          <input
+            type="radio"
+            name="displayMode"
+            checked={displayMode === "ALL"}
+            onChange={() => onDisplayModeChange("ALL")}
+          />
           全部
         </label>
 
-        <span>排序</span>
+        <span>排序方式</span>
         <label>
           <input
             type="radio"
@@ -66,7 +71,7 @@ function WorkbenchResultPanel({
             checked={sortMode === "BASIS"}
             onChange={() => setSortMode("BASIS")}
           />
-          基态序
+          基态顺序
         </label>
         <label>
           <input
@@ -76,7 +81,7 @@ function WorkbenchResultPanel({
             checked={sortMode === "PROB_DESC"}
             onChange={() => setSortMode("PROB_DESC")}
           />
-          概率序
+          概率降序
         </label>
       </div>
 
@@ -95,7 +100,7 @@ function WorkbenchResultPanel({
             adaptiveBarWidth
           />
         ) : (
-          <p style={{ margin: 0, color: "#999" }}>当前模式无可见状态，切换到“全部”可查看完整分布。</p>
+          <p style={{ margin: 0, color: "#999" }}>当前过滤条件下没有可展示状态，请调整阈值或切换为“全部”。</p>
         )
       ) : (
         <p style={{ margin: 0, color: "#999" }}>等待仿真结果...</p>

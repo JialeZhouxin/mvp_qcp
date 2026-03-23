@@ -4,8 +4,8 @@ import {
   getGateCatalog,
   type GateCatalogItem,
   type GateCategory,
-} from "../../features/circuit/gates/gate-catalog";
-import type { GateName } from "../../features/circuit/model/types";
+} from "../gates/gate-catalog";
+import type { GateName } from "../model/types";
 import GateMatrixTooltip from "./GateMatrixTooltip";
 
 const CATEGORY_ORDER: readonly GateCategory[] = [
@@ -108,3 +108,5 @@ function GatePalette({ gates, showMatrixTooltip = true }: GatePaletteProps) {
 }
 
 export default GatePalette;
+
+
