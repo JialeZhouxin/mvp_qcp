@@ -3,7 +3,7 @@ from sqlmodel import select
 from app.core.config import settings
 from app.db.session import SessionFactory, create_session
 from app.queue.redis_conn import get_redis_connection
-from app.services.execution.factory import get_execution_backend
+from app.services.execution.gateway import get_execution_gateway
 
 
 class ReadinessService:
@@ -53,11 +53,7 @@ class ReadinessService:
 
     def _check_execution_backend(self) -> dict[str, object]:
         try:
-            backend = get_execution_backend()
-            client = getattr(backend, "_client", None)
-            ping = getattr(client, "ping", None)
-            if callable(ping):
-                ping()
-            return {"ok": True, "backend": backend.name}
+            gateway = get_execution_gateway()
+            return gateway.check_health()
         except Exception as exc:
             return {"ok": False, "error": str(exc)}

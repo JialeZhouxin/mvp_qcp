@@ -1,7 +1,7 @@
 from typing import Any
 
 from app.core.config import settings
-from app.services.execution.factory import get_execution_backend
+from app.services.execution.gateway import get_execution_gateway
 
 
 class QiboExecutionError(ValueError):
@@ -30,8 +30,8 @@ def _counts_to_probabilities(counts: dict[str, int]) -> dict[str, float]:
 
 
 def execute_qibo_script(code: str) -> dict:
-    backend = get_execution_backend()
-    raw_result = backend.execute(code, timeout_seconds=settings.qibo_exec_timeout_seconds)
+    gateway = get_execution_gateway()
+    raw_result = gateway.execute(code, timeout_seconds=settings.qibo_exec_timeout_seconds)
 
     if not isinstance(raw_result, dict):
         raise QiboExecutionError("INVALID_EXEC_RESULT", "execution result must be a dict")

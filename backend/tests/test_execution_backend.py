@@ -10,6 +10,11 @@ from app.core.config import settings
 from app.services.execution.base import ExecutionBackendError
 from app.services.execution.docker_executor import DockerExecutor
 from app.services.execution.factory import get_execution_backend, reset_execution_backend_cache
+from app.services.execution.gateway import (
+    BackendExecutionGateway,
+    get_execution_gateway,
+    reset_execution_gateway_cache,
+)
 from app.services.execution.local_executor import LocalExecutor
 
 
@@ -79,9 +84,11 @@ def _build_executor(container: FakeContainer) -> tuple[DockerExecutor, FakeConta
 def _reset_backend_selector() -> None:
     original_backend = settings.execution_backend
     reset_execution_backend_cache()
+    reset_execution_gateway_cache()
     yield
     settings.execution_backend = original_backend
     reset_execution_backend_cache()
+    reset_execution_gateway_cache()
 
 
 def test_docker_executor_success_and_cleanup() -> None:
@@ -147,3 +154,39 @@ def test_factory_rejects_unknown_backend() -> None:
 
     with pytest.raises(ValueError, match="unsupported execution backend"):
         get_execution_backend()
+
+
+def test_gateway_delegates_to_selected_backend() -> None:
+    settings.execution_backend = "local"
+    reset_execution_backend_cache()
+    reset_execution_gateway_cache()
+
+    gateway = get_execution_gateway()
+
+    assert isinstance(gateway, BackendExecutionGateway)
+    assert gateway.name == "local"
+
+
+def test_backend_execution_gateway_reports_backend_health() -> None:
+    class ClientStub:
+        def __init__(self) -> None:
+            self.called = False
+
+        def ping(self) -> None:
+            self.called = True
+
+    class BackendStub:
+        name = "docker"
+
+        def __init__(self) -> None:
+            self._client = ClientStub()
+
+        def execute(self, code: str, timeout_seconds: int) -> dict[str, object]:
+            return {"code": code, "timeout": timeout_seconds}
+
+    gateway = BackendExecutionGateway(backend=BackendStub())
+
+    payload = gateway.check_health()
+
+    assert payload == {"ok": True, "backend": "docker"}
+    assert gateway.backend._client.called is True
