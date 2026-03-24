@@ -4,9 +4,11 @@ from app.core.config import settings
 from app.services.execution.base import ExecutionBackend
 from app.services.execution.docker_executor import DockerExecutor
 from app.services.execution.local_executor import LocalExecutor
+from app.services.execution.remote_executor import RemoteExecutor
 
 BACKEND_DOCKER = "docker"
 BACKEND_LOCAL = "local"
+BACKEND_REMOTE = "remote"
 
 
 def _build_docker_executor() -> DockerExecutor:
@@ -22,6 +24,13 @@ def _build_docker_executor() -> DockerExecutor:
     )
 
 
+def _build_remote_executor() -> RemoteExecutor:
+    return RemoteExecutor(
+        service_url=settings.execution_service_url,
+        request_timeout_seconds=settings.execution_service_timeout_seconds,
+    )
+
+
 @lru_cache(maxsize=1)
 def get_execution_backend() -> ExecutionBackend:
     backend_name = settings.execution_backend.strip().lower()
@@ -29,6 +38,8 @@ def get_execution_backend() -> ExecutionBackend:
         return _build_docker_executor()
     if backend_name == BACKEND_LOCAL:
         return LocalExecutor()
+    if backend_name == BACKEND_REMOTE:
+        return _build_remote_executor()
     raise ValueError(f"unsupported execution backend: {settings.execution_backend}")
 
 

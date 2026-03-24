@@ -3,12 +3,14 @@ from app.services.execution.docker_executor import DockerExecutor
 from app.services.execution.factory import get_execution_backend, reset_execution_backend_cache
 from app.services.execution.gateway import get_execution_gateway, reset_execution_gateway_cache
 from app.services.execution.local_executor import LocalExecutor
+from app.services.execution.remote_executor import RemoteExecutor
 
 __all__ = [
     "DockerExecutor",
     "ExecutionBackend",
     "ExecutionBackendError",
     "LocalExecutor",
+    "RemoteExecutor",
     "ensure_positive_timeout",
     "get_execution_backend",
     "get_execution_gateway",

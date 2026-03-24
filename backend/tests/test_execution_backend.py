@@ -16,6 +16,7 @@ from app.services.execution.gateway import (
     reset_execution_gateway_cache,
 )
 from app.services.execution.local_executor import LocalExecutor
+from app.services.execution.remote_executor import RemoteExecutor
 
 
 @dataclass
@@ -156,6 +157,19 @@ def test_factory_rejects_unknown_backend() -> None:
         get_execution_backend()
 
 
+def test_factory_selects_remote_backend() -> None:
+    settings.execution_backend = "remote"
+    settings.execution_service_url = "http://executor.internal"
+    settings.execution_service_timeout_seconds = 12
+    reset_execution_backend_cache()
+
+    backend = get_execution_backend()
+
+    assert isinstance(backend, RemoteExecutor)
+    assert backend.service_url == "http://executor.internal"
+    assert backend.request_timeout_seconds == 12
+
+
 def test_gateway_delegates_to_selected_backend() -> None:
     settings.execution_backend = "local"
     reset_execution_backend_cache()
@@ -190,3 +204,18 @@ def test_backend_execution_gateway_reports_backend_health() -> None:
 
     assert payload == {"ok": True, "backend": "docker"}
     assert gateway.backend._client.called is True
+
+
+def test_backend_execution_gateway_prefers_backend_health_check() -> None:
+    class BackendStub:
+        name = "remote"
+
+        def execute(self, code: str, timeout_seconds: int) -> dict[str, object]:
+            return {"code": code, "timeout": timeout_seconds}
+
+        def check_health(self) -> dict[str, object]:
+            return {"ok": True, "backend": "remote"}
+
+    gateway = BackendExecutionGateway(backend=BackendStub())
+
+    assert gateway.check_health() == {"ok": True, "backend": "remote"}

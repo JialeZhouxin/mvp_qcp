@@ -31,6 +31,12 @@ class BackendExecutionGateway:
         return self.backend.execute(code, timeout_seconds=timeout_seconds)
 
     def check_health(self) -> dict[str, object]:
+        health_check = getattr(self.backend, "check_health", None)
+        if callable(health_check):
+            payload = health_check()
+            if isinstance(payload, dict):
+                return payload
+
         client = getattr(self.backend, "_client", None)
         ping = getattr(client, "ping", None)
         if callable(ping):
