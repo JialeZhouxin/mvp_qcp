@@ -6,7 +6,7 @@
 
 1. 用户注册/登录并获取 Token
 2. 在线提交 Python 量子脚本
-3. 后端将任务异步入队（Redis + RQ）
+3. 后端将任务异步入队（Redis + Celery）
 4. Worker 在受限环境执行脚本并产出标准化结果
 5. 前端轮询任务状态并展示概率分布图
 
@@ -33,7 +33,7 @@
    - SQLite + SQLModel 数据层（User、Task）
    - 轻量鉴权（register/login/token）
    - 任务 API（submit/status/result）
-   - RQ Worker 与任务状态流转
+   - Celery Worker 与任务状态流转
    - Qibo 受限执行器（含 AST 校验、超时、结果标准化）
 3. 前端核心模块
    - 登录/注册/任务页路由（`/tasks/circuit` + `/tasks/code`）
@@ -61,7 +61,7 @@
 
 - 前端：React + Vite + React Router + Monaco + ECharts
 - 后端：FastAPI + SQLModel + SQLite
-- 队列：Redis + RQ
+- 队列：Redis + Celery
 - 量子执行：Qibo
 - 测试：pytest（后端），Vitest + Node fallback（前端）
 
@@ -77,7 +77,7 @@ mvp_qcp/
 │  │  ├─ models/         # User, Task
 │  │  ├─ schemas/        # 请求/响应模型
 │  │  ├─ services/       # 鉴权、sandbox、qibo 执行器
-│  │  └─ worker/         # rq worker、任务执行
+│  │  └─ worker/         # celery worker、任务执行
 │  ├─ tests/
 │  └─ requirements.txt
 ├─ frontend/
@@ -118,7 +118,7 @@ uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ```powershell
 cd "backend"
-uv run python -m app.worker.rq_worker
+uv run celery -A app.worker.celery_app:celery_app worker --loglevel=info --pool=solo
 ```
 
 ### 5.4 启动前端
@@ -134,6 +134,8 @@ npm run dev
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1"
 ```
+
+`start-dev.ps1` 在宿主机模式下会显式设置 `EXECUTION_BACKEND=local`，避免本机 worker 依赖 Docker API 权限；`docker compose` 模式仍保持 `EXECUTION_BACKEND=docker`。
 
 ### 5.6 联调健康检查
 
@@ -417,8 +419,8 @@ powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker 
 
 ## Reliability and Observability Update (2026-03-10)
 
-- Runtime knobs: `RQ_JOB_TIMEOUT_SECONDS`, `QIBO_EXEC_TIMEOUT_SECONDS`, `TASK_MAX_RETRIES`, `TASK_RETRY_BACKOFF_SECONDS`, `QUEUE_MAX_DEPTH`, `IDEMPOTENCY_TTL_HOURS`, `IDEMPOTENCY_CLEANUP_BATCH_SIZE`.
-- Invariant: `RQ_JOB_TIMEOUT_SECONDS` must be greater than `QIBO_EXEC_TIMEOUT_SECONDS`.
+- Runtime knobs: `TASK_JOB_TIMEOUT_SECONDS`, `QIBO_EXEC_TIMEOUT_SECONDS`, `TASK_MAX_RETRIES`, `TASK_RETRY_BACKOFF_SECONDS`, `QUEUE_MAX_DEPTH`, `IDEMPOTENCY_TTL_HOURS`, `IDEMPOTENCY_CLEANUP_BATCH_SIZE`.
+- Invariant: `TASK_JOB_TIMEOUT_SECONDS` must be greater than `QIBO_EXEC_TIMEOUT_SECONDS`.
 - `POST /api/tasks/submit` accepts optional `Idempotency-Key` header and response now includes `deduplicated`.
 - Added endpoints: `GET /api/health/live`, `GET /api/health/ready`, `GET /api/metrics`.
 
@@ -446,3 +448,4 @@ powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker 
 7. 提交后在同页查看 `任务 ID` 与 `任务状态`，可点击“刷新状态”拉取最新状态。
 8. 如提示“已复用已有任务（幂等去重）”，说明重复提交已绑定到同一任务而非新建任务。
 9. 需要查看完整执行详情与诊断时，点击“进入任务中心”跳转到 `/tasks/center`。
+

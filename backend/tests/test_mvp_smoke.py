@@ -33,6 +33,7 @@ if initial_db_path and initial_db_path.exists():
 from app.db.session import engine, init_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models.task import Task, TaskStatus  # noqa: E402
+from app.worker.tasks import RUN_QUANTUM_TASK_NAME  # noqa: E402
 
 
 SQLModel.metadata.drop_all(engine)
@@ -94,8 +95,8 @@ def test_task_submit_queue_success_sets_pending(monkeypatch) -> None:
     class QueueStub:
         count = 0
 
-        def enqueue(self, func, task_id: int, job_timeout: int) -> None:
-            assert func.__name__ == "run_quantum_task"
+        def enqueue(self, task_name: str, task_id: int, job_timeout: int) -> None:
+            assert task_name == RUN_QUANTUM_TASK_NAME
             assert job_timeout > 0
             queued["task_id"] = task_id
 

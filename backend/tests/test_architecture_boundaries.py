@@ -79,3 +79,12 @@ def test_task_submit_provider_is_not_kept_under_use_cases() -> None:
 
 def test_legacy_task_query_compatibility_service_is_removed() -> None:
     assert not (ROOT / "app" / "services" / "user_task_query_service.py").exists()
+
+
+def test_rq_runtime_modules_are_removed() -> None:
+    assert not (ROOT / "app" / "queue" / "rq_queue.py").exists()
+    assert not (ROOT / "app" / "worker" / "rq_worker.py").exists()
+
+    config_source = _read("app", "core", "config.py")
+    assert "rq_queue_name" not in config_source
+    assert "rq_job_timeout_seconds" not in config_source

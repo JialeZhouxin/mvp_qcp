@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/qcp.db"
     redis_url: str = "redis://127.0.0.1:6379/0"
     cors_allow_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
-    rq_queue_name: str = "qcp-default"
-    rq_job_timeout_seconds: int = 90
+    task_queue_name: str = "qcp-default"
+    task_job_timeout_seconds: int = 90
     token_expire_hours: int = 24
     qibo_exec_timeout_seconds: int = 60
     execution_backend: str = "docker"

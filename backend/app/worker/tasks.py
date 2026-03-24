@@ -14,6 +14,7 @@ from app.services.retry_policy import RetryPolicy
 from app.services.task_lifecycle import TaskLifecycleService
 
 logger = logging.getLogger(__name__)
+RUN_QUANTUM_TASK_NAME = "app.worker.tasks.run_quantum_task"
 
 
 def _resolve_error_code(exc: Exception) -> str:
@@ -36,8 +37,8 @@ def _build_retry_policy() -> RetryPolicy:
 
 
 def _validate_timeout_invariant() -> None:
-    if settings.rq_job_timeout_seconds <= settings.qibo_exec_timeout_seconds:
-        raise ValueError("RQ_JOB_TIMEOUT_SECONDS must be greater than QIBO_EXEC_TIMEOUT_SECONDS")
+    if settings.task_job_timeout_seconds <= settings.qibo_exec_timeout_seconds:
+        raise ValueError("TASK_JOB_TIMEOUT_SECONDS must be greater than QIBO_EXEC_TIMEOUT_SECONDS")
 
 
 def run_quantum_task(task_id: int) -> dict:

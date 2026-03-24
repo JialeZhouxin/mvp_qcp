@@ -1,12 +1,8 @@
-# 量子任务端到端数据流（MVP）
+﻿# 閲忓瓙浠诲姟绔埌绔暟鎹祦锛圡VP锛?
+鏈枃妗ｆ弿杩扮敤鎴峰湪鍓嶇鐐瑰嚮鈥滆繍琛岃绠?鎻愪氦浠诲姟鈥濆悗锛屼唬鐮佷笌娴嬮噺姒傜巼鍦ㄧ郴缁熶腑鐨勫畬鏁存祦鍔ㄨ矾寰勩€?
+## 1. 鍓嶇瑙﹀彂鎻愪氦
 
-本文档描述用户在前端点击“运行计算/提交任务”后，代码与测量概率在系统中的完整流动路径。
-
-## 1. 前端触发提交
-
-1. 用户在 `Monaco Editor` 输入 Python 脚本（基于 Qibo）。
-2. 点击“提交任务”按钮，触发 `TasksPage.onSubmit`。
-3. 前端调用 `submitTask(code)`，发起：
+1. 鐢ㄦ埛鍦?`Monaco Editor` 杈撳叆 Python 鑴氭湰锛堝熀浜?Qibo锛夈€?2. 鐐瑰嚮鈥滄彁浜や换鍔♀€濇寜閽紝瑙﹀彂 `TasksPage.onSubmit`銆?3. 鍓嶇璋冪敤 `submitTask(code)`锛屽彂璧凤細
    - `POST /api/tasks/submit`
    - Header: `Authorization: Bearer <token>`
    - Body:
@@ -17,15 +13,12 @@
 }
 ```
 
-## 2. 后端接收并入队
-
-1. FastAPI `submit_task` 接收请求，先做鉴权（Bearer Token）。
-2. 将任务写入 SQLite `tasks` 表：
-   - `user_id`: 当前用户
-   - `code`: 用户脚本原文
+## 2. 鍚庣鎺ユ敹骞跺叆闃?
+1. FastAPI `submit_task` 鎺ユ敹璇锋眰锛屽厛鍋氶壌鏉冿紙Bearer Token锛夈€?2. 灏嗕换鍔″啓鍏?SQLite `tasks` 琛細
+   - `user_id`: 褰撳墠鐢ㄦ埛
+   - `code`: 鐢ㄦ埛鑴氭湰鍘熸枃
    - `status`: `PENDING`
-3. 调用 `queue.enqueue(run_quantum_task, task_id)` 将任务发布到 Redis（RQ Queue）。
-4. 立即返回给前端（异步，不阻塞）：
+3. 璋冪敤 `queue.enqueue("app.worker.tasks.run_quantum_task", task_id)` 灏嗕换鍔″彂甯冨埌 Redis锛圧Q Queue锛夈€?4. 绔嬪嵆杩斿洖缁欏墠绔紙寮傛锛屼笉闃诲锛夛細
 
 ```json
 {
@@ -34,41 +27,24 @@
 }
 ```
 
-## 3. 前端轮询任务状态
-
-1. 前端保存 `task_id`，启动定时轮询（默认 1.5 秒）。
-2. 轮询接口：
-   - `GET /api/tasks/{task_id}`
-3. 返回状态可能为：
-   - `PENDING`
+## 3. 鍓嶇杞浠诲姟鐘舵€?
+1. 鍓嶇淇濆瓨 `task_id`锛屽惎鍔ㄥ畾鏃惰疆璇紙榛樿 1.5 绉掞級銆?2. 杞鎺ュ彛锛?   - `GET /api/tasks/{task_id}`
+3. 杩斿洖鐘舵€佸彲鑳戒负锛?   - `PENDING`
    - `RUNNING`
    - `SUCCESS`
    - `FAILURE`
 
-## 4. Worker 执行量子脚本
+## 4. Worker 鎵ц閲忓瓙鑴氭湰
 
-1. RQ Worker 从 Redis 拉取任务 `task_id`。
-2. 将数据库状态更新为 `RUNNING`。
-3. 调用执行器 `execute_qibo_script(task.code)`，内部流程：
-   - 沙箱校验：AST 检查、导入白名单、危险调用限制。
-   - 子进程执行：限制超时，避免阻塞主进程。
-   - 获取用户返回值：要求 `main()` 或 `RESULT` 给出结果。
-4. 结果规范化逻辑：
-   - 期望核心为 `counts`（bitstring -> 计数）。
-   - 若未提供 `probabilities`，后端按 `count / total` 自动计算。
-5. 执行成功：
-   - `status = SUCCESS`
+1. Celery Worker 浠?Redis 鎷夊彇浠诲姟 `task_id`銆?2. 灏嗘暟鎹簱鐘舵€佹洿鏂颁负 `RUNNING`銆?3. 璋冪敤鎵ц鍣?`execute_qibo_script(task.code)`锛屽唴閮ㄦ祦绋嬶細
+   - 娌欑鏍￠獙锛欰ST 妫€鏌ャ€佸鍏ョ櫧鍚嶅崟銆佸嵄闄╄皟鐢ㄩ檺鍒躲€?   - 瀛愯繘绋嬫墽琛岋細闄愬埗瓒呮椂锛岄伩鍏嶉樆濉炰富杩涚▼銆?   - 鑾峰彇鐢ㄦ埛杩斿洖鍊硷細瑕佹眰 `main()` 鎴?`RESULT` 缁欏嚭缁撴灉銆?4. 缁撴灉瑙勮寖鍖栭€昏緫锛?   - 鏈熸湜鏍稿績涓?`counts`锛坆itstring -> 璁℃暟锛夈€?   - 鑻ユ湭鎻愪緵 `probabilities`锛屽悗绔寜 `count / total` 鑷姩璁＄畻銆?5. 鎵ц鎴愬姛锛?   - `status = SUCCESS`
    - `result_json = {"counts": ..., "probabilities": ...}`
-6. 执行失败：
-   - `status = FAILURE`
-   - `error_message` 记录错误信息。
+6. 鎵ц澶辫触锛?   - `status = FAILURE`
+   - `error_message` 璁板綍閿欒淇℃伅銆?
+## 5. 缁撴灉鍥炰紶鍓嶇
 
-## 5. 结果回传前端
-
-1. 当前端轮询到 `status = SUCCESS`，会请求结果接口：
-   - `GET /api/tasks/{task_id}/result`
-2. 后端返回：
-
+1. 褰撳墠绔疆璇㈠埌 `status = SUCCESS`锛屼細璇锋眰缁撴灉鎺ュ彛锛?   - `GET /api/tasks/{task_id}/result`
+2. 鍚庣杩斿洖锛?
 ```json
 {
   "task_id": 123,
@@ -87,19 +63,17 @@
 }
 ```
 
-3. 前端将：
-   - `result` 原文展示在结果面板
-   - `result.probabilities` 传给 ECharts 组件渲染概率柱状图。
+3. 鍓嶇灏嗭細
+   - `result` 鍘熸枃灞曠ず鍦ㄧ粨鏋滈潰鏉?   - `result.probabilities` 浼犵粰 ECharts 缁勪欢娓叉煋姒傜巼鏌辩姸鍥俱€?
+## 6. 鏁版嵁涓荤嚎鎬荤粨
 
-## 6. 数据主线总结
+1. **浠ｇ爜鏁版嵁娴?*锛歚Monaco -> POST /submit -> SQLite(code) -> Worker(sandbox+qibo)`
+2. **姒傜巼鏁版嵁娴?*锛歚Worker璁＄畻/褰掍竴鍖?-> SQLite(result_json) -> GET /result -> ECharts鍙鍖朻
 
-1. **代码数据流**：`Monaco -> POST /submit -> SQLite(code) -> Worker(sandbox+qibo)`
-2. **概率数据流**：`Worker计算/归一化 -> SQLite(result_json) -> GET /result -> ECharts可视化`
-
-## 7. 状态机（任务维度）
+## 7. 鐘舵€佹満锛堜换鍔＄淮搴︼級
 
 `PENDING -> RUNNING -> SUCCESS`
 
 `PENDING -> RUNNING -> FAILURE`
 
-状态由后端单向推进，前端只读展示。
+鐘舵€佺敱鍚庣鍗曞悜鎺ㄨ繘锛屽墠绔彧璇诲睍绀恒€?

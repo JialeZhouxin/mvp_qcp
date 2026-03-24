@@ -1,207 +1,163 @@
-# QCP MVP 项目使用指南（当前版）
+﻿# QCP MVP 椤圭洰浣跨敤鎸囧崡锛堝綋鍓嶇増锛?
+## 1. 鏂囨。鐩爣
 
-## 1. 文档目标
+鏈寚鍗楃敤浜庡揩閫熶笂鎵嬪綋鍓嶄粨搴?`mvp_qcp`锛岃鐩栦互涓嬪唴瀹癸細
 
-本指南用于快速上手当前仓库 `mvp_qcp`，覆盖以下内容：
+- 杩愯鐜鍑嗗
+- Docker 涓庢湰鍦颁袱绉嶅惎鍔ㄦ柟寮?- 鍓嶇椤甸潰浣跨敤璺緞
+- 鏍稿績 API 涓庤仈璋冩柟寮?- 甯歌鏁呴殰鎺掓煡
 
-- 运行环境准备
-- Docker 与本地两种启动方式
-- 前端页面使用路径
-- 核心 API 与联调方式
-- 常见故障排查
+閫傜敤鏃堕棿锛?026-03锛堜笌褰撳墠 `master` 鍒嗘敮瀹炵幇涓€鑷达級銆?
+## 2. 椤圭洰姒傝
 
-适用时间：2026-03（与当前 `master` 分支实现一致）。
+QCP MVP 鏄竴涓噺瀛愪换鍔℃彁浜や笌鎵ц骞冲彴锛屼富娴佺▼涓猴細
 
-## 2. 项目概览
+1. 鐢ㄦ埛娉ㄥ唽/鐧诲綍鑾峰彇 Token銆?2. 鍓嶇鎻愪氦閲忓瓙浠诲姟锛堝浘褰㈠寲鐢佃矾鎴栦唬鐮佹ā寮忥級銆?3. 鍚庣鍐欏叆浠诲姟骞跺叆闃燂紙Redis + Celery锛夈€?4. Worker 鍦ㄥ彈闄愭墽琛岀幆澧冧腑杩愯浠诲姟锛圦ibo锛夈€?5. 鍓嶇灞曠ず浠诲姟鐘舵€佷笌缁撴灉锛堜换鍔′腑蹇?+ 鍙鍖栫粨鏋滐級銆?
+## 3. 鎶€鏈爤涓庣鍙?
+- 鍓嶇锛歊eact + Vite锛堥粯璁?`5173`锛?- 鍚庣锛欶astAPI + SQLModel + SQLite锛堥粯璁?`8000`锛?- 闃熷垪锛歊edis + RQ锛堥粯璁?`6379`锛?- 鎵ц锛歈ibo锛圵orker 渚ф墽琛岋級
 
-QCP MVP 是一个量子任务提交与执行平台，主流程为：
+榛樿璁块棶鍦板潃锛?
+- 鍓嶇锛歚http://127.0.0.1:5173`
+- 鍚庣鍋ュ悍妫€鏌ワ細`http://127.0.0.1:8000/api/health`
+- OpenAPI锛歚http://127.0.0.1:8000/docs`
 
-1. 用户注册/登录获取 Token。
-2. 前端提交量子任务（图形化电路或代码模式）。
-3. 后端写入任务并入队（Redis + RQ）。
-4. Worker 在受限执行环境中运行任务（Qibo）。
-5. 前端展示任务状态与结果（任务中心 + 可视化结果）。
+## 4. 鐜鍑嗗
 
-## 3. 技术栈与端口
+## 4.1 蹇呭渚濊禆
 
-- 前端：React + Vite（默认 `5173`）
-- 后端：FastAPI + SQLModel + SQLite（默认 `8000`）
-- 队列：Redis + RQ（默认 `6379`）
-- 执行：Qibo（Worker 侧执行）
+- Docker Desktop锛堟帹鑽愶紝鏈€蹇笂鎵嬶級
+- Node.js + npm锛堟湰鍦板墠绔繍琛岋級
+- Python 3.11 + `uv`锛堟湰鍦板悗绔繍琛岋級
+- Redis锛堟湰鍦版ā寮忛渶瑕侊級
 
-默认访问地址：
+## 4.2 鐜鍙橀噺
 
-- 前端：`http://127.0.0.1:5173`
-- 后端健康检查：`http://127.0.0.1:8000/api/health`
-- OpenAPI：`http://127.0.0.1:8000/docs`
-
-## 4. 环境准备
-
-## 4.1 必备依赖
-
-- Docker Desktop（推荐，最快上手）
-- Node.js + npm（本地前端运行）
-- Python 3.11 + `uv`（本地后端运行）
-- Redis（本地模式需要）
-
-## 4.2 环境变量
-
-1. 复制示例文件：
-
+1. 澶嶅埗绀轰緥鏂囦欢锛?
 ```powershell
 Copy-Item ".env.example" ".env"
 ```
 
-2. 默认值可直接运行；常用关键项如下：
-
-- `RQ_JOB_TIMEOUT_SECONDS=90`
+2. 榛樿鍊煎彲鐩存帴杩愯锛涘父鐢ㄥ叧閿」濡備笅锛?
+- `TASK_JOB_TIMEOUT_SECONDS=90`
 - `QIBO_EXEC_TIMEOUT_SECONDS=60`
 - `EXECUTION_BACKEND=docker`
-- `REDIS_URL=redis://127.0.0.1:6379/0`（本地模式）
+- `REDIS_URL=redis://127.0.0.1:6379/0`锛堟湰鍦版ā寮忥級
 
-## 5. 启动方式
+## 5. 鍚姩鏂瑰紡
 
-## 5.1 方式 A：Docker（推荐）
+## 5.1 鏂瑰紡 A锛欴ocker锛堟帹鑽愶級
 
-1. 在项目根目录启动：
-
+1. 鍦ㄩ」鐩牴鐩綍鍚姩锛?
 ```powershell
 cd "E:/02_Projects/quantuncloudplatform/mvp_qcp"
 docker compose up --build -d
 ```
 
-2. 运行健康检查：
+2. 杩愯鍋ュ悍妫€鏌ワ細
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker
 ```
 
-3. 深度联调检查（可选）：
-
+3. 娣卞害鑱旇皟妫€鏌ワ紙鍙€夛級锛?
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker -Deep
 ```
 
-4. 停止服务：
-
+4. 鍋滄鏈嶅姟锛?
 ```powershell
 docker compose down
 ```
 
-5. 清理卷（会删除容器卷中的数据）：
+5. 娓呯悊鍗凤紙浼氬垹闄ゅ鍣ㄥ嵎涓殑鏁版嵁锛夛細
 
 ```powershell
 docker compose down -v
 ```
 
-## 5.2 方式 B：本地进程启动
-
-1. 一键启动（会拉起后端 API、Worker、前端）：
-
+## 5.2 鏂瑰紡 B锛氭湰鍦拌繘绋嬪惎鍔?
+1. 涓€閿惎鍔紙浼氭媺璧峰悗绔?API銆乄orker銆佸墠绔級锛?
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1"
 ```
 
-2. 启动后检查：
+说明：该脚本会在宿主机模式下注入 `EXECUTION_BACKEND=local`。容器模式仍由 `docker-compose.yml` 维持 `EXECUTION_BACKEND=docker`。
+
+2. 鍚姩鍚庢鏌ワ細
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1"
 ```
 
-3. 若依赖未安装，可使用：
-
+3. 鑻ヤ緷璧栨湭瀹夎锛屽彲浣跨敤锛?
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1" -InstallDeps
 ```
 
-## 6. 前端使用路径
+## 6. 鍓嶇浣跨敤璺緞
 
-登录后默认进入图形化工作台：
+鐧诲綍鍚庨粯璁よ繘鍏ュ浘褰㈠寲宸ヤ綔鍙帮細
 
-- `/tasks/circuit`：图形化电路 + OpenQASM 3 编辑 + 本地模拟 + 提交任务
-- `/tasks/code`：代码提交模式（兼容入口）
-- `/tasks/center`：任务中心（列表、详情、SSE 实时状态流）
-
-认证页面：
-
+- `/tasks/circuit`锛氬浘褰㈠寲鐢佃矾 + OpenQASM 3 缂栬緫 + 鏈湴妯℃嫙 + 鎻愪氦浠诲姟
+- `/tasks/code`锛氫唬鐮佹彁浜ゆā寮忥紙鍏煎鍏ュ彛锛?- `/tasks/center`锛氫换鍔′腑蹇冿紙鍒楄〃銆佽鎯呫€丼SE 瀹炴椂鐘舵€佹祦锛?
+璁よ瘉椤甸潰锛?
 - `/login`
 - `/register`
 
-## 7. 核心 API（当前）
+## 7. 鏍稿績 API锛堝綋鍓嶏級
 
-## 7.1 健康与监控
-
+## 7.1 鍋ュ悍涓庣洃鎺?
 - `GET /api/health`
 - `GET /api/health/live`
 - `GET /api/health/ready`
 - `GET /api/metrics`
 
-## 7.2 认证
+## 7.2 璁よ瘉
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 
-## 7.3 任务
+## 7.3 浠诲姟
 
 - `POST /api/tasks/submit`
 - `GET /api/tasks/{task_id}`
 - `GET /api/tasks/{task_id}/result`
-- `GET /api/tasks`（任务中心列表，支持 `status/limit/offset`）
-- `GET /api/tasks/{task_id}/detail`
-- `GET /api/tasks/stream`（SSE）
+- `GET /api/tasks`锛堜换鍔′腑蹇冨垪琛紝鏀寔 `status/limit/offset`锛?- `GET /api/tasks/{task_id}/detail`
+- `GET /api/tasks/stream`锛圫SE锛?
+璇存槑锛?
+- 浠诲姟鐩稿叧鎺ュ彛闇€瑕?`Authorization: Bearer <access_token>`銆?- `POST /api/tasks/submit` 鏀寔 `Idempotency-Key` 璇锋眰澶村幓閲嶃€?- 浠诲姟缁堟€佸寘鍚細`SUCCESS`銆乣FAILURE`銆乣TIMEOUT`銆乣RETRY_EXHAUSTED`銆?
+## 7.4 椤圭洰鎸佷箙鍖?
+- `PUT /api/projects/{name}`锛堜繚瀛?鏇存柊锛?- `GET /api/projects`锛堝垎椤靛垪琛級
+- `GET /api/projects/{project_id}`锛堣鎯咃級
 
-说明：
+## 8. 甯哥敤楠岃瘉鍛戒护
 
-- 任务相关接口需要 `Authorization: Bearer <access_token>`。
-- `POST /api/tasks/submit` 支持 `Idempotency-Key` 请求头去重。
-- 任务终态包含：`SUCCESS`、`FAILURE`、`TIMEOUT`、`RETRY_EXHAUSTED`。
-
-## 7.4 项目持久化
-
-- `PUT /api/projects/{name}`（保存/更新）
-- `GET /api/projects`（分页列表）
-- `GET /api/projects/{project_id}`（详情）
-
-## 8. 常用验证命令
-
-后端 smoke 测试：
-
+鍚庣 smoke 娴嬭瘯锛?
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/run-backend-tests.ps1"
 ```
 
-前端测试：
-
+鍓嶇娴嬭瘯锛?
 ```powershell
 cd "frontend"
 npm test
 ```
 
-前端 Node fallback 测试：
-
+鍓嶇 Node fallback 娴嬭瘯锛?
 ```powershell
 cd "frontend"
 npm run test:node
 ```
 
-## 9. 常见问题排查
+## 9. 甯歌闂鎺掓煡
 
-1. `api/health` 不通：
-- 先确认 `backend` 与 `worker` 是否正常启动。
-- Docker 模式执行 `docker compose ps` 查看容器状态。
-
-2. 提交任务失败（503）：
-- 可能是队列拥塞（`QUEUE_OVERLOADED`）或入队失败（`QUEUE_PUBLISH_ERROR`）。
-- 优先检查 Redis 连通性和 Worker 日志。
-
-3. PowerShell 执行脚本受限：
-- 使用文档中的 `-ExecutionPolicy Bypass` 启动脚本。
-
-4. 前端可打开但任务状态不更新：
-- 检查登录态是否有效（Bearer Token）。
-- 检查 `/api/tasks/stream` 是否可达（任务中心依赖 SSE）。
-
-## 10. 关键文件索引
+1. `api/health` 涓嶉€氾細
+- 鍏堢‘璁?`backend` 涓?`worker` 鏄惁姝ｅ父鍚姩銆?- Docker 妯″紡鎵ц `docker compose ps` 鏌ョ湅瀹瑰櫒鐘舵€併€?
+2. 鎻愪氦浠诲姟澶辫触锛?03锛夛細
+- 鍙兘鏄槦鍒楁嫢濉烇紙`QUEUE_OVERLOADED`锛夋垨鍏ラ槦澶辫触锛坄QUEUE_PUBLISH_ERROR`锛夈€?- 浼樺厛妫€鏌?Redis 杩為€氭€у拰 Worker 鏃ュ織銆?
+3. PowerShell 鎵ц鑴氭湰鍙楅檺锛?- 浣跨敤鏂囨。涓殑 `-ExecutionPolicy Bypass` 鍚姩鑴氭湰銆?
+4. 鍓嶇鍙墦寮€浣嗕换鍔＄姸鎬佷笉鏇存柊锛?- 妫€鏌ョ櫥褰曟€佹槸鍚︽湁鏁堬紙Bearer Token锛夈€?- 妫€鏌?`/api/tasks/stream` 鏄惁鍙揪锛堜换鍔′腑蹇冧緷璧?SSE锛夈€?
+## 10. 鍏抽敭鏂囦欢绱㈠紩
 
 - `README.md`
 - `docker-compose.yml`
@@ -211,29 +167,16 @@ npm run test:node
 - `backend/app/main.py`
 - `frontend/src/App.tsx`
 
-## 11. Workbench P0 更新（2026-03）
+## 11. Workbench P0 鏇存柊锛?026-03锛?
+`/tasks/circuit` 鐨勪氦浜掗『搴忓凡璋冩暣涓猴細
 
-`/tasks/circuit` 的交互顺序已调整为：
+1. 缂栬緫鍖猴紙鎷栨嫿鐢佃矾 + QASM锛?2. 鏈湴妯℃嫙缁撴灉鍖猴紙绱ч偦缂栬緫鍖轰笅鏂癸級
+3. 鎻愪氦鍖猴紙绱ч偦缁撴灉鍖轰笅鏂癸級
+4. 椤圭洰鍖?
+鏂板鎺т欢锛?
+- `+Qubit` / `-Qubit`锛氱敤浜庤皟鏁寸數璺噺瀛愭瘮鐗规暟閲忋€?
+瑙勫垯璇存槑锛?
+- 褰撻噺瀛愭瘮鐗规暟閲?`<= 10` 鏃讹紝椤甸潰鏀寔娴忚鍣ㄦ湰鍦板疄鏃舵ā鎷熶笌鐩存柟鍥惧睍绀恒€?- 褰撻噺瀛愭瘮鐗规暟閲?`> 10` 鏃讹紝椤甸潰浼氭樉绀衡€滃凡鍏抽棴瀹炴椂妯℃嫙锛屼絾浠嶅彲鎻愪氦鍚庣鎵ц鈥濈殑鎻愮ず銆?- `> 10` 涓嶄細闃诲浠诲姟鎻愪氦锛涙彁浜よ涓轰笌鏅€氫换鍔′竴鑷淬€?
+## 12. Task 瀵艰埅涓庝俊鎭灦鏋?P0 鏇存柊锛?026-03锛?
+- `/tasks` 榛樿鍏ュ彛宸茶皟鏁翠负 `/tasks/center`锛屽厛杩涘叆浠诲姟涓績鍐嶅垎娴佸埌鍏蜂綋鎵ц妯″潡銆?- 浠诲姟鍩熸柊澧炲叏灞€椤堕儴瀵艰埅锛岀粺涓€鏄剧ず鍥涗釜妯″潡锛歚浠诲姟涓績`銆乣鍥惧舰鍖栫紪绋媊銆乣浠ｇ爜鎻愪氦`銆乣甯姪鏂囨。`銆?- 浠诲姟鍩熸柊澧炲叏灞€闈㈠寘灞戯紝褰撳墠缁熶竴鏄剧ず涓猴細`浠诲姟 / 褰撳墠妯″潡`銆?- 鏂板甯姪椤甸潰锛歚/tasks/help`锛岀敤浜庤鏄庝换鍔℃祦杞矾寰勪笌鏂囨。绱㈠紩銆?- 浠诲姟涓績椤靛ご鏂板鈥滃府鍔╂枃妗ｂ€濆叆鍙ｏ紝渚夸簬鐢ㄦ埛浠庝换鍔¤瘖鏂洿鎺ヨ繘鍏ヨ鏄庨〉銆?
 
-1. 编辑区（拖拽电路 + QASM）
-2. 本地模拟结果区（紧邻编辑区下方）
-3. 提交区（紧邻结果区下方）
-4. 项目区
-
-新增控件：
-
-- `+Qubit` / `-Qubit`：用于调整电路量子比特数量。
-
-规则说明：
-
-- 当量子比特数量 `<= 10` 时，页面支持浏览器本地实时模拟与直方图展示。
-- 当量子比特数量 `> 10` 时，页面会显示“已关闭实时模拟，但仍可提交后端执行”的提示。
-- `> 10` 不会阻塞任务提交；提交行为与普通任务一致。
-
-## 12. Task 导航与信息架构 P0 更新（2026-03）
-
-- `/tasks` 默认入口已调整为 `/tasks/center`，先进入任务中心再分流到具体执行模块。
-- 任务域新增全局顶部导航，统一显示四个模块：`任务中心`、`图形化编程`、`代码提交`、`帮助文档`。
-- 任务域新增全局面包屑，当前统一显示为：`任务 / 当前模块`。
-- 新增帮助页面：`/tasks/help`，用于说明任务流转路径与文档索引。
-- 任务中心页头新增“帮助文档”入口，便于用户从任务诊断直接进入说明页。

@@ -9,7 +9,7 @@ QUEUE_PUBLISH_ERROR_CODE = "QUEUE_PUBLISH_ERROR"
 class TaskSubmitConfig:
     idempotency_ttl_hours: int
     idempotency_cleanup_batch_size: int
-    rq_job_timeout_seconds: int
+    task_job_timeout_seconds: int
 
 
 @dataclass(frozen=True)

@@ -5,11 +5,11 @@ from app.services.backpressure_service import BackpressureService
 
 
 class TaskQueuePort(Protocol):
-    def enqueue(self, func: Callable[..., Any], task_id: int, job_timeout: int) -> Any:
+    def enqueue(self, task_name: str, task_id: int, job_timeout: int) -> Any:
         ...
 
 
 QueueGetter = Callable[[], TaskQueuePort]
-WorkerTask = Callable[[int], dict[str, Any]]
+WorkerTaskName = str
 BackpressureFactory = Callable[[], BackpressureService]
 NowProvider = Callable[[], datetime]

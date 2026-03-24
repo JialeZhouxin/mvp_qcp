@@ -4,7 +4,7 @@ from sqlmodel import select
 
 from app.db.session import SessionFactory, create_session
 from app.models.task import Task, TaskStatus
-from app.queue.rq_queue import get_task_queue_depth
+from app.queue.celery_queue import get_task_queue_depth
 
 
 def _percentile(values: list[int], ratio: float) -> int:

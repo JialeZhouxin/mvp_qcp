@@ -1,166 +1,132 @@
-# QCP MVP 项目进度与使用指南（当前版）
+﻿# QCP MVP 椤圭洰杩涘害涓庝娇鐢ㄦ寚鍗楋紙褰撳墠鐗堬級
 
-## 1. 项目简介
+## 1. 椤圭洰绠€浠?
+Quantum Cloud Platform锛圦CP锛夋槸涓€涓潰鍚戦噺瀛愪换鍔℃彁浜や笌缁撴灉鍙鍖栫殑 MVP 椤圭洰銆傚綋鍓嶅疄鐜颁簡浠庣敤鎴疯璇佸埌浠诲姟鎵ц涓庡墠绔睍绀虹殑鏈€灏忎笟鍔￠棴鐜細
 
-Quantum Cloud Platform（QCP）是一个面向量子任务提交与结果可视化的 MVP 项目。当前实现了从用户认证到任务执行与前端展示的最小业务闭环：
+1. 鐢ㄦ埛娉ㄥ唽/鐧诲綍锛岃幏鍙栬闂护鐗?2. 鍓嶇鎻愪氦 Python 閲忓瓙鑴氭湰
+3. 鍚庣灏嗕换鍔″紓姝ュ叆闃燂紙Redis + Celery锛?4. Worker 鎵ц鑴氭湰骞跺洖鍐欑粨鏋?5. 鍓嶇杞鐘舵€佸苟灞曠ず缁撴灉锛圝SON + 姒傜巼鍒嗗竷鍥撅級
 
-1. 用户注册/登录，获取访问令牌
-2. 前端提交 Python 量子脚本
-3. 后端将任务异步入队（Redis + RQ）
-4. Worker 执行脚本并回写结果
-5. 前端轮询状态并展示结果（JSON + 概率分布图）
+## 2. 褰撳墠椤圭洰杩涘害
 
-## 2. 当前项目进度
+## 2.1 宸插畬鎴?
+- 鍓嶇锛氱櫥褰?娉ㄥ唽/浠诲姟椤点€丮onaco 缂栬緫鍣ㄣ€丒Charts 缁撴灉鍥俱€佽疆璇笌鍒锋柊
+- 鍚庣锛欶astAPI API銆丼QLite + SQLModel銆佽璇併€佷换鍔℃彁浜?鐘舵€?缁撴灉鎺ュ彛
+- 寮傛鎵ц锛歊edis 闃熷垪 + Celery Worker
+- 鎵ц寮曟搸锛歈ibo 鍙楅檺鎵ц锛堝惈 AST 鏍￠獙鍜岃秴鏃舵帶鍒讹級
+- 娴嬭瘯锛氬悗绔?smoke/integration銆佸墠绔?Vitest + `test:node` 鍏滃簳
+- 杩愯妯″紡锛氭湰鏈烘ā寮?+ Docker 寮€鍙?婕旂ず妯″紡
 
-## 2.1 已完成
-
-- 前端：登录/注册/任务页、Monaco 编辑器、ECharts 结果图、轮询与刷新
-- 后端：FastAPI API、SQLite + SQLModel、认证、任务提交/状态/结果接口
-- 异步执行：Redis 队列 + RQ Worker
-- 执行引擎：Qibo 受限执行（含 AST 校验和超时控制）
-- 测试：后端 smoke/integration、前端 Vitest + `test:node` 兜底
-- 运行模式：本机模式 + Docker 开发/演示模式
-
-## 2.2 容器化迁移状态
-
-- 已完成 `spec-workflow` 全流程（Requirements/Design/Tasks/Implementation）
-- `dockerized-dev-demo-runtime` 规格已完成，8/8 任务完成
-- 已新增并验证：
-  - `docker-compose.yml`
+## 2.2 瀹瑰櫒鍖栬縼绉荤姸鎬?
+- 宸插畬鎴?`spec-workflow` 鍏ㄦ祦绋嬶紙Requirements/Design/Tasks/Implementation锛?- `dockerized-dev-demo-runtime` 瑙勬牸宸插畬鎴愶紝8/8 浠诲姟瀹屾垚
+- 宸叉柊澧炲苟楠岃瘉锛?  - `docker-compose.yml`
   - `backend/Dockerfile`, `frontend/Dockerfile`
   - `backend/.dockerignore`, `frontend/.dockerignore`
-  - Docker 模式健康检查（`scripts/dev-health-check.ps1 -Docker`）
-- 已验证 SQLite 持久化卷：容器重启后数据保留
+  - Docker 妯″紡鍋ュ悍妫€鏌ワ紙`scripts/dev-health-check.ps1 -Docker`锛?- 宸查獙璇?SQLite 鎸佷箙鍖栧嵎锛氬鍣ㄩ噸鍚悗鏁版嵁淇濈暀
 
-## 2.3 仍待完善（MVP 后续）
+## 2.3 浠嶅緟瀹屽杽锛圡VP 鍚庣画锛?
+- 鐢熶骇绾ф矙绠变笌璧勬簮闅旂寮哄寲锛圕PU/鍐呭瓨绮掑害锛?- 鍓嶇 UI 涓庝氦浜掔粏鑺備紭鍖?- 鍓嶇娴嬭瘯鎵弿瑙勫垯杩涗竴姝ユ竻鐞嗭紙tests-node 涓?Vitest 杈圭晫锛?
+## 3. 鎶€鏈爤涓庢灦鏋?
+- 鍓嶇锛歊eact + Vite + React Router + Monaco + ECharts
+- 鍚庣锛欶astAPI + SQLModel + SQLite
+- 闃熷垪锛歊edis + RQ
+- 鎵ц锛歈ibo
+- 娴嬭瘯锛歱ytest / Vitest
 
-- 生产级沙箱与资源隔离强化（CPU/内存粒度）
-- 前端 UI 与交互细节优化
-- 前端测试扫描规则进一步清理（tests-node 与 Vitest 边界）
-
-## 3. 技术栈与架构
-
-- 前端：React + Vite + React Router + Monaco + ECharts
-- 后端：FastAPI + SQLModel + SQLite
-- 队列：Redis + RQ
-- 执行：Qibo
-- 测试：pytest / Vitest
-
-核心运行链路：
-
+鏍稿績杩愯閾捐矾锛?
 `Browser -> Frontend(5173) -> Backend(8000) -> Redis -> Worker -> SQLite -> Frontend`
 
-## 4. 如何使用本项目（重点）
+## 4. 濡備綍浣跨敤鏈」鐩紙閲嶇偣锛?
+鎺ㄨ崘浼樺厛浣跨敤 Docker 妯″紡锛岀粺涓€鐜銆佸惎鍔ㄧ畝鍗曘€佽仈璋冪ǔ瀹氥€?
+## 4.1 Docker 妯″紡锛堟帹鑽愶級
 
-推荐优先使用 Docker 模式，统一环境、启动简单、联调稳定。
+鍓嶇疆鏉′欢锛?
+- 宸插畨瑁?Docker Desktop
+- 宸插惎鍔?Docker Engine
 
-## 4.1 Docker 模式（推荐）
-
-前置条件：
-
-- 已安装 Docker Desktop
-- 已启动 Docker Engine
-
-启动：
-
+鍚姩锛?
 ```powershell
 cd "E:/02_Projects/quantuncloudplatform/mvp_qcp"
 docker compose up --build -d
 ```
 
-访问：
+璁块棶锛?
+- 鍓嶇锛歚http://127.0.0.1:5173`
+- 鍚庣鍋ュ悍妫€鏌ワ細`http://127.0.0.1:8000/api/health`
+- API 鏂囨。锛歚http://127.0.0.1:8000/docs`
 
-- 前端：`http://127.0.0.1:5173`
-- 后端健康检查：`http://127.0.0.1:8000/api/health`
-- API 文档：`http://127.0.0.1:8000/docs`
-
-健康检查：
+鍋ュ悍妫€鏌ワ細
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker
 ```
 
-深度检查（认证 + 提交任务 + 查询状态）：
-
+娣卞害妫€鏌ワ紙璁よ瘉 + 鎻愪氦浠诲姟 + 鏌ヨ鐘舵€侊級锛?
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker -Deep
 ```
 
-停止：
-
+鍋滄锛?
 ```powershell
 docker compose down
 ```
 
-停止并删除卷（会清空 SQLite 数据）：
+鍋滄骞跺垹闄ゅ嵎锛堜細娓呯┖ SQLite 鏁版嵁锛夛細
 
 ```powershell
 docker compose down -v
 ```
 
-## 4.2 本机模式（备选）
+## 4.2 鏈満妯″紡锛堝閫夛級
 
-一键启动：
+涓€閿惎鍔細
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1"
 ```
 
-本机健康检查：
+本机启动脚本默认以 `EXECUTION_BACKEND=local` 运行 API/worker，避免宿主机进程直接依赖 Docker API 权限。
+
+鏈満鍋ュ悍妫€鏌ワ細
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1"
 ```
 
-## 5. 典型使用流程（业务视角）
+## 5. 鍏稿瀷浣跨敤娴佺▼锛堜笟鍔¤瑙掞級
 
-1. 打开前端页面并注册账号
-2. 登录后进入任务页
-3. 在编辑器中提交量子脚本
-4. 观察任务状态从 `PENDING/RUNNING` 到 `SUCCESS/FAILURE`
-5. 查看返回结果与概率分布图
+1. 鎵撳紑鍓嶇椤甸潰骞舵敞鍐岃处鍙?2. 鐧诲綍鍚庤繘鍏ヤ换鍔￠〉
+3. 鍦ㄧ紪杈戝櫒涓彁浜ら噺瀛愯剼鏈?4. 瑙傚療浠诲姟鐘舵€佷粠 `PENDING/RUNNING` 鍒?`SUCCESS/FAILURE`
+5. 鏌ョ湅杩斿洖缁撴灉涓庢鐜囧垎甯冨浘
 
-## 6. 关键接口速览
+## 6. 鍏抽敭鎺ュ彛閫熻
 
-- `GET /api/health`：服务健康检查
-- `POST /api/auth/register`：注册
-- `POST /api/auth/login`：登录
-- `POST /api/tasks/submit`：提交任务（需 Bearer Token）
-- `GET /api/tasks/{task_id}`：查询状态（需 Bearer Token）
-- `GET /api/tasks/{task_id}/result`：查询结果（需 Bearer Token）
-
-## 7. 常见问题与排障
-
-## 7.1 `/api/health` 浏览器“看起来没内容”
-
-该接口返回的是 JSON，不是 HTML 页面。可直接在终端验证：
+- `GET /api/health`锛氭湇鍔″仴搴锋鏌?- `POST /api/auth/register`锛氭敞鍐?- `POST /api/auth/login`锛氱櫥褰?- `POST /api/tasks/submit`锛氭彁浜や换鍔★紙闇€ Bearer Token锛?- `GET /api/tasks/{task_id}`锛氭煡璇㈢姸鎬侊紙闇€ Bearer Token锛?- `GET /api/tasks/{task_id}/result`锛氭煡璇㈢粨鏋滐紙闇€ Bearer Token锛?
+## 7. 甯歌闂涓庢帓闅?
+## 7.1 `/api/health` 娴忚鍣ㄢ€滅湅璧锋潵娌″唴瀹光€?
+璇ユ帴鍙ｈ繑鍥炵殑鏄?JSON锛屼笉鏄?HTML 椤甸潰銆傚彲鐩存帴鍦ㄧ粓绔獙璇侊細
 
 ```powershell
 Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:8000/api/health"
 ```
 
-## 7.2 Docker 命令权限报错
+## 7.2 Docker 鍛戒护鏉冮檺鎶ラ敊
 
-- 在当前环境中，部分 Docker 命令可能需要更高权限才能访问 `dockerDesktopLinuxEngine`
-- 先执行 `docker version` 验证引擎状态，再执行 `docker compose ps` 排查服务状态
+- 鍦ㄥ綋鍓嶇幆澧冧腑锛岄儴鍒?Docker 鍛戒护鍙兘闇€瑕佹洿楂樻潈闄愭墠鑳借闂?`dockerDesktopLinuxEngine`
+- 鍏堟墽琛?`docker version` 楠岃瘉寮曟搸鐘舵€侊紝鍐嶆墽琛?`docker compose ps` 鎺掓煡鏈嶅姟鐘舵€?
+## 7.3 鍓嶇鍙墦寮€浣嗕换鍔℃彁浜ゅけ璐?
+浼樺厛妫€鏌ワ細
 
-## 7.3 前端可打开但任务提交失败
+1. `backend` 涓?`worker` 鏄惁閮藉湪杩愯锛坄docker compose ps`锛?2. Redis 鏄惁鍋ュ悍
+3. 鐧诲綍鍚庢槸鍚︽惡甯?Bearer Token
 
-优先检查：
-
-1. `backend` 与 `worker` 是否都在运行（`docker compose ps`）
-2. Redis 是否健康
-3. 登录后是否携带 Bearer Token
-
-## 8. 文档与代码入口
-
-- 主说明：`README.md`
-- 健康检查脚本：`scripts/dev-health-check.ps1`
-- 一键启动脚本（本机模式）：`scripts/start-dev.ps1`
-- Docker 编排：`docker-compose.yml`
-- 后端入口：`backend/app/main.py`
-- Worker 入口：`backend/app/worker/rq_worker.py`
-- 前端入口：`frontend/src/main.tsx`
+## 8. 鏂囨。涓庝唬鐮佸叆鍙?
+- 涓昏鏄庯細`README.md`
+- 鍋ュ悍妫€鏌ヨ剼鏈細`scripts/dev-health-check.ps1`
+- 涓€閿惎鍔ㄨ剼鏈紙鏈満妯″紡锛夛細`scripts/start-dev.ps1`
+- Docker 缂栨帓锛歚docker-compose.yml`
+- 鍚庣鍏ュ彛锛歚backend/app/main.py`
+- Worker 鍏ュ彛锛歚backend/app/worker/celery_app.py`
+- 鍓嶇鍏ュ彛锛歚frontend/src/main.tsx`
 ## Reliability and Observability Update (2026-03-10)
 
 ### New task terminal states
@@ -211,7 +177,7 @@ Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:8000/api/health"
 ### New capabilities
 
 - Two-qubit gate placement now has step guidance and actionable Chinese error hints.
-- Added toolbar operations: `撤销` / `重做` / `清空线路` / `重置工作台`.
+- Added toolbar operations: `鎾ら攢` / `閲嶅仛` / `娓呯┖绾胯矾` / `閲嶇疆宸ヤ綔鍙癭.
 - Added result display mode toggle: filtered-only vs all states.
 - Added epsilon visibility (`2^-(n+2)`) and display statistics in result panel.
 - Added built-in templates (Bell / superposition) for quick demo startup.
@@ -230,3 +196,5 @@ Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:8000/api/health"
 7. Check `task_id` and `task status` in-place, and use `Refresh Status` to fetch latest progress.
 8. If the UI shows deduplicated hint, repeated submit was bound to an existing task.
 9. Jump to `/tasks/center` for full task timeline and diagnostics.
+
+

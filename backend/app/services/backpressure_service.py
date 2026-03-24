@@ -1,5 +1,5 @@
 from app.core.config import settings
-from app.queue.rq_queue import get_task_queue_depth
+from app.queue.celery_queue import get_task_queue_depth
 
 
 class QueueOverloadedError(RuntimeError):

@@ -130,12 +130,12 @@ Pop-Location
 Write-Host "[3/7] Checking backend dependencies..."
 Push-Location $backend
 try {
-  uv run python -c "import fastapi, sqlmodel, redis, rq, qibo, docker, requests; print('backend deps ok')"
+  uv run python -c "import fastapi, sqlmodel, redis, celery, qibo, docker, requests; print('backend deps ok')"
 } catch {
   if ($InstallDeps) {
     Write-Host "Installing backend dependencies..."
     uv pip install -r requirements.txt
-    uv run python -c "import fastapi, sqlmodel, redis, rq, qibo, docker, requests; print('backend deps ok')"
+    uv run python -c "import fastapi, sqlmodel, redis, celery, qibo, docker, requests; print('backend deps ok')"
   } else {
     Write-Error "Backend dependencies missing. Run: cd `"$backend`"; uv pip install -r requirements.txt"
     Pop-Location
@@ -164,15 +164,15 @@ Start-Process powershell -ArgumentList @(
   "-NoProfile",
   "-NoExit",
   "-Command",
-  "cd `"$backend`"; uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+  "$env:EXECUTION_BACKEND='local'; cd `"$backend`"; uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
 )
 
-Write-Host "[6/7] Starting RQ worker..."
+Write-Host "[6/7] Starting Celery worker..."
 Start-Process powershell -ArgumentList @(
   "-NoProfile",
   "-NoExit",
   "-Command",
-  "cd `"$backend`"; uv run python -m app.worker.rq_worker"
+  "$env:EXECUTION_BACKEND='local'; cd `"$backend`"; uv run celery -A app.worker.celery_app:celery_app worker --loglevel=info --pool=solo"
 )
 
 Write-Host "[7/7] Starting frontend..."
@@ -183,4 +183,5 @@ Start-Process powershell -ArgumentList @(
   "cd `"$frontend`"; npm run dev"
 )
 
-Write-Host "All start commands dispatched. Use scripts/dev-health-check.ps1 to verify runtime health."
+Write-Host "All start commands dispatched. Local host mode uses EXECUTION_BACKEND=local; Docker Compose keeps EXECUTION_BACKEND=docker."
+Write-Host "Use scripts/dev-health-check.ps1 to verify runtime health."

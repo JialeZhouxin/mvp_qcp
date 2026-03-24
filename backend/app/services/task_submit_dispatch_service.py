@@ -5,7 +5,7 @@ from sqlmodel import Session
 from app.models.task import Task
 from app.services.task_lifecycle import TaskLifecycleService
 from app.services.task_submit_idempotency import TaskSubmitIdempotencyCoordinator
-from app.services.task_submit_ports import NowProvider, QueueGetter, WorkerTask
+from app.services.task_submit_ports import NowProvider, QueueGetter, WorkerTaskName
 from app.services.task_submit_shared import (
     QUEUE_PUBLISH_ERROR_CODE,
     TaskSubmitConfig,
@@ -21,13 +21,13 @@ class TaskDispatchService:
         session: Session,
         config: TaskSubmitConfig,
         queue_getter: QueueGetter,
-        worker_task: WorkerTask,
+        worker_task_name: WorkerTaskName,
         now_provider: NowProvider,
     ) -> None:
         self._session = session
         self._config = config
         self._queue_getter = queue_getter
-        self._worker_task = worker_task
+        self._worker_task_name = worker_task_name
         self._now_provider = now_provider
 
     def dispatch(
@@ -40,7 +40,11 @@ class TaskDispatchService:
     ) -> None:
         try:
             queue = self._queue_getter()
-            queue.enqueue(self._worker_task, task_id, job_timeout=self._config.rq_job_timeout_seconds)
+            queue.enqueue(
+                self._worker_task_name,
+                task_id,
+                job_timeout=self._config.task_job_timeout_seconds,
+            )
         except Exception as exc:
             lifecycle = TaskLifecycleService(self._session)
             failed_at = self._now_provider()

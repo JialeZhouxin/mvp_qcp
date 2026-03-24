@@ -23,6 +23,8 @@ services:
       API_PORT: "8000"
       DATABASE_URL: sqlite:///./data/qcp.db
       REDIS_URL: redis://redis:6379/0
+      TASK_QUEUE_NAME: qcp-default
+      TASK_JOB_TIMEOUT_SECONDS: "90"
       WATCHFILES_FORCE_POLLING: "true"
     volumes:
       - ./backend:/app/backend
@@ -39,12 +41,14 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     image: qcp-backend-dev:latest
-    command: python -m app.worker.rq_worker
+    command: celery -A app.worker.celery_app:celery_app worker --loglevel=info
     working_dir: /app/backend
     environment:
       ENV: dev
       DATABASE_URL: sqlite:///./data/qcp.db
       REDIS_URL: redis://redis:6379/0
+      TASK_QUEUE_NAME: qcp-default
+      TASK_JOB_TIMEOUT_SECONDS: "90"
       EXECUTION_BACKEND: docker
       EXECUTION_IMAGE: qcp-backend-dev:latest
       EXECUTION_RUNNER_MODULE: app.services.execution.runner

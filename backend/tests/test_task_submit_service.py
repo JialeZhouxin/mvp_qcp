@@ -22,17 +22,18 @@ from app.services.task_submit_shared import (
     TaskSubmitValidationError,
 )
 from app.services.task_submit_validator import TaskSubmitValidator
+from app.worker.tasks import RUN_QUANTUM_TASK_NAME
 
 
 class QueueRecorder:
     def __init__(self, should_fail: bool = False) -> None:
         self.should_fail = should_fail
-        self.calls: list[tuple[Callable[..., Any], int, int]] = []
+        self.calls: list[tuple[str, int, int]] = []
 
-    def enqueue(self, func: Callable[..., Any], task_id: int, job_timeout: int) -> None:
+    def enqueue(self, task_name: str, task_id: int, job_timeout: int) -> None:
         if self.should_fail:
             raise RuntimeError("redis unavailable")
-        self.calls.append((func, task_id, job_timeout))
+        self.calls.append((task_name, task_id, job_timeout))
 
 
 class BackpressureStub:
@@ -82,7 +83,7 @@ def _build_submit_service(
             TaskSubmitConfig(
                 idempotency_ttl_hours=24,
                 idempotency_cleanup_batch_size=200,
-                rq_job_timeout_seconds=90,
+                task_job_timeout_seconds=90,
             ),
         ),
         preflight=TaskDispatchPreflight(lambda: backpressure),
@@ -91,10 +92,10 @@ def _build_submit_service(
             config=TaskSubmitConfig(
                 idempotency_ttl_hours=24,
                 idempotency_cleanup_batch_size=200,
-                rq_job_timeout_seconds=90,
+                task_job_timeout_seconds=90,
             ),
             queue_getter=lambda: queue,
-            worker_task=lambda task_id: {"task_id": task_id},
+            worker_task_name=RUN_QUANTUM_TASK_NAME,
             now_provider=now_provider,
         ),
         now_provider=now_provider,
@@ -219,7 +220,8 @@ def test_submit_enqueues_pending_task_successfully(session: Session) -> None:
     assert outcome.status == "PENDING"
     assert outcome.queue_depth == 7
     assert len(queue.calls) == 1
-    _, task_id, job_timeout = queue.calls[0]
+    task_name, task_id, job_timeout = queue.calls[0]
+    assert task_name == RUN_QUANTUM_TASK_NAME
     assert task_id == outcome.task_id
     assert job_timeout == 90
 

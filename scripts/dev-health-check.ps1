@@ -4,7 +4,8 @@ Param(
   [string]$ApiBase = "http://127.0.0.1:8000",
   [string]$FrontendBase = "http://127.0.0.1:5173",
   [switch]$Deep,
-  [switch]$Docker
+  [switch]$Docker,
+  [switch]$SkipFrontend
 )
 
 $ErrorActionPreference = "Stop"
@@ -59,6 +60,38 @@ function Assert-DockerComposeServices {
   Write-Host "OK  docker compose services running: $($RequiredServices -join ', ')"
 }
 
+function Get-HttpStatusCode {
+  param(
+    [string]$Url,
+    [int]$TimeoutSeconds = 6
+  )
+
+  $response = Invoke-WebRequest -UseBasicParsing -Method Get -Uri $Url -TimeoutSec $TimeoutSeconds
+  return [int]$response.StatusCode
+}
+
+function Wait-TaskTerminalStatus {
+  param(
+    [string]$TaskUrl,
+    [hashtable]$Headers,
+    [int]$TimeoutSeconds = 20
+  )
+
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  $lastStatus = $null
+
+  while ((Get-Date) -lt $deadline) {
+    $statusResp = Invoke-RestMethod -Method Get -Uri $TaskUrl -Headers $Headers -TimeoutSec 10
+    $lastStatus = $statusResp.status
+    if ($lastStatus -in @("SUCCESS", "FAILURE", "TIMEOUT", "RETRY_EXHAUSTED")) {
+      return $statusResp
+    }
+    Start-Sleep -Seconds 1
+  }
+
+  throw "task did not reach terminal status within ${TimeoutSeconds}s; last_status=$lastStatus"
+}
+
 if ($Docker) {
   Write-Host "[0/4] Checking Docker Compose services..."
   Assert-DockerComposeServices -RequiredServices @("redis", "backend", "worker", "frontend")
@@ -81,14 +114,18 @@ try {
 }
 
 Write-Host "[3/4] Checking frontend endpoint..."
-try {
-  $frontResp = Invoke-WebRequest -Method Get -Uri $FrontendBase -TimeoutSec 6
-  Assert-Ok -Condition ($frontResp.StatusCode -ge 200 -and $frontResp.StatusCode -lt 400) `
-    -OkMessage "Frontend reachable at $FrontendBase" `
-    -FailMessage "Frontend status code: $($frontResp.StatusCode)"
-} catch {
-  Write-Error "FAIL Frontend unreachable: $FrontendBase"
-  exit 1
+if ($SkipFrontend) {
+  Write-Host "SKIP Frontend check skipped by -SkipFrontend."
+} else {
+  try {
+    $frontStatusCode = Get-HttpStatusCode -Url $FrontendBase -TimeoutSeconds 6
+    Assert-Ok -Condition ($frontStatusCode -ge 200 -and $frontStatusCode -lt 400) `
+      -OkMessage "Frontend reachable at $FrontendBase" `
+      -FailMessage "Frontend status code: $frontStatusCode"
+  } catch {
+    Write-Error "FAIL Frontend unreachable: $FrontendBase"
+    exit 1
+  }
 }
 
 Write-Host "[4/4] Checking API auth+task contract (optional)..."
@@ -122,12 +159,17 @@ try {
     -OkMessage "Task submitted: id=$taskId" `
     -FailMessage "Task submit response invalid"
 
-  $statusResp = Invoke-RestMethod -Method Get -Uri "$ApiBase/api/tasks/$taskId" -Headers $headers -TimeoutSec 10
+  $statusResp = Wait-TaskTerminalStatus -TaskUrl "$ApiBase/api/tasks/$taskId" -Headers $headers
   Assert-Ok -Condition (-not [string]::IsNullOrWhiteSpace($statusResp.status)) `
-    -OkMessage "Task status returned: $($statusResp.status)" `
+    -OkMessage "Task reached terminal status: $($statusResp.status)" `
     -FailMessage "Task status missing"
+
+  $resultResp = Invoke-RestMethod -Method Get -Uri "$ApiBase/api/tasks/$taskId/result" -Headers $headers -TimeoutSec 10
+  Assert-Ok -Condition ($resultResp.status -eq $statusResp.status) `
+    -OkMessage "Task result endpoint status matches: $($resultResp.status)" `
+    -FailMessage "Task result status mismatch"
 } catch {
-  Write-Error "FAIL Deep check failed: $($_.Exception.Message)"
+  Write-Error "FAIL Deep check failed: $($_.Exception.Message). If status stays PENDING, inspect Celery worker logs and Redis connectivity."
   exit 1
 }
 
