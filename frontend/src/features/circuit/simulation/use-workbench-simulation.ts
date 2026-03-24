@@ -11,19 +11,25 @@ import {
   type ProbabilityDisplayMode,
   type ProbabilityFilterResult,
 } from "./probability-filter";
-import { SimulationScheduleError, createSimulationScheduler } from "./scheduler";
+import {
+  type SimulationExecutionOptions,
+  SimulationScheduleError,
+  createSimulationScheduler,
+} from "./scheduler";
 
 export type SimulationViewState = "IDLE" | "RUNNING" | "READY" | "ERROR";
 
 export interface SimulationSchedulerLike {
   readonly schedule: (
     model: CircuitModel,
+    options?: SimulationExecutionOptions,
   ) => Promise<{ requestId: string; probabilities: Record<string, number> }>;
 }
 
 interface UseWorkbenchSimulationParams {
   readonly circuit: CircuitModel;
   readonly displayMode: ProbabilityDisplayMode;
+  readonly executionGateCount?: number;
   readonly scheduler?: SimulationSchedulerLike;
 }
 
@@ -37,6 +43,7 @@ function toComplexityErrorMessage(message?: string | null): string {
 export function useWorkbenchSimulation({
   circuit,
   displayMode,
+  executionGateCount,
   scheduler,
 }: UseWorkbenchSimulationParams) {
   const resolvedScheduler = useMemo<SimulationSchedulerLike>(
@@ -86,7 +93,7 @@ export function useWorkbenchSimulation({
       }
 
       try {
-        const response = await resolvedScheduler.schedule(circuit);
+        const response = await resolvedScheduler.schedule(circuit, { executionGateCount });
         if (cancelled) {
           return;
         }
@@ -111,7 +118,7 @@ export function useWorkbenchSimulation({
     return () => {
       cancelled = true;
     };
-  }, [circuit, resolvedScheduler]);
+  }, [circuit, executionGateCount, resolvedScheduler]);
 
   const probabilityDisplayView = probabilityView
     ? getProbabilityDisplayView(displayMode, probabilityView)

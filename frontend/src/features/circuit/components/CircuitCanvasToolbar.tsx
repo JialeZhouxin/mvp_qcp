@@ -1,3 +1,11 @@
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type KeyboardEvent,
+} from "react";
+
 import { WORKBENCH_COPY } from "../ui/copy-catalog";
 
 interface CircuitCanvasToolbarProps {
@@ -8,6 +16,8 @@ interface CircuitCanvasToolbarProps {
   readonly canDecreaseQubits: boolean;
   readonly currentQubits: number;
   readonly qubitMessage: string | null;
+  readonly executionGateCount: number;
+  readonly executionGateCountMax: number;
   readonly zoomPercentText: string;
   readonly canZoomIn: boolean;
   readonly canZoomOut: boolean;
@@ -19,9 +29,17 @@ interface CircuitCanvasToolbarProps {
   readonly onDecreaseQubits: () => void;
   readonly onLoadBellTemplate: () => void;
   readonly onLoadSuperpositionTemplate: () => void;
+  readonly onExecutionGateCountCommit: (gateCount: number) => void;
   readonly onZoomOut: () => void;
   readonly onZoomIn: () => void;
   readonly onZoomReset: () => void;
+}
+
+const EXECUTION_GATE_COUNT_SLIDER_ID = "canvas-execution-gate-count-slider";
+
+function normalizeExecutionGateCount(value: number, max: number): number {
+  const normalized = Number.isFinite(value) ? Math.trunc(value) : 0;
+  return Math.min(Math.max(normalized, 0), max);
 }
 
 function CircuitCanvasToolbar({
@@ -32,6 +50,8 @@ function CircuitCanvasToolbar({
   canDecreaseQubits,
   currentQubits,
   qubitMessage,
+  executionGateCount,
+  executionGateCountMax,
   zoomPercentText,
   canZoomIn,
   canZoomOut,
@@ -43,10 +63,59 @@ function CircuitCanvasToolbar({
   onDecreaseQubits,
   onLoadBellTemplate,
   onLoadSuperpositionTemplate,
+  onExecutionGateCountCommit,
   onZoomOut,
   onZoomIn,
   onZoomReset,
 }: CircuitCanvasToolbarProps) {
+  const normalizedExecutionGateCountMax = Math.max(0, Math.trunc(executionGateCountMax));
+  const committedExecutionGateCount = normalizeExecutionGateCount(
+    executionGateCount,
+    normalizedExecutionGateCountMax,
+  );
+  const [draftExecutionGateCount, setDraftExecutionGateCount] = useState(committedExecutionGateCount);
+
+  useEffect(() => {
+    setDraftExecutionGateCount(committedExecutionGateCount);
+  }, [committedExecutionGateCount]);
+
+  const onExecutionGateCountChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setDraftExecutionGateCount(
+      normalizeExecutionGateCount(Number(event.target.value), normalizedExecutionGateCountMax),
+    );
+  };
+
+  const commitExecutionGateCount = useCallback(() => {
+    const normalizedDraft = normalizeExecutionGateCount(
+      draftExecutionGateCount,
+      normalizedExecutionGateCountMax,
+    );
+    if (normalizedDraft === committedExecutionGateCount) {
+      return;
+    }
+    onExecutionGateCountCommit(normalizedDraft);
+  }, [
+    draftExecutionGateCount,
+    normalizedExecutionGateCountMax,
+    committedExecutionGateCount,
+    onExecutionGateCountCommit,
+  ]);
+
+  const onSliderKeyUp = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (
+      event.key === "ArrowLeft" ||
+      event.key === "ArrowRight" ||
+      event.key === "ArrowUp" ||
+      event.key === "ArrowDown" ||
+      event.key === "Home" ||
+      event.key === "End" ||
+      event.key === "PageUp" ||
+      event.key === "PageDown"
+    ) {
+      commitExecutionGateCount();
+    }
+  };
+
   return (
     <>
       <div className="canvas-workbench-toolbar" data-testid="canvas-workbench-toolbar">
@@ -101,6 +170,33 @@ function CircuitCanvasToolbar({
             </button>
           </div>
         ) : null}
+        {hasWorkbenchControls ? (
+          <div className="canvas-workbench-group" data-testid="canvas-workbench-execution-gates">
+            <label htmlFor={EXECUTION_GATE_COUNT_SLIDER_ID} className="canvas-workbench-label">
+              {WORKBENCH_COPY.toolbar.executionGateCountLabel}
+            </label>
+            <input
+              id={EXECUTION_GATE_COUNT_SLIDER_ID}
+              type="range"
+              min={0}
+              max={normalizedExecutionGateCountMax}
+              step={1}
+              value={draftExecutionGateCount}
+              onChange={onExecutionGateCountChange}
+              onPointerUp={commitExecutionGateCount}
+              onKeyUp={onSliderKeyUp}
+              aria-label={WORKBENCH_COPY.toolbar.executionGateCountAriaLabel}
+              data-testid="canvas-execution-gate-count-slider"
+              disabled={normalizedExecutionGateCountMax === 0}
+            />
+            <span
+              className="canvas-workbench-value"
+              data-testid="canvas-execution-gate-count-value"
+            >
+              {WORKBENCH_COPY.toolbar.executionGateCountValuePrefix} {draftExecutionGateCount} {WORKBENCH_COPY.toolbar.executionGateCountValueUnit}
+            </span>
+          </div>
+        ) : null}
         <div
           className="canvas-workbench-group canvas-workbench-group--zoom"
           data-testid="canvas-zoom-toolbar"
@@ -149,4 +245,3 @@ function CircuitCanvasToolbar({
 }
 
 export default CircuitCanvasToolbar;
-

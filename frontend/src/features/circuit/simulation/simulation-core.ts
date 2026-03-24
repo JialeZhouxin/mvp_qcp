@@ -202,14 +202,37 @@ function toBasisState(index: number, numQubits: number): string {
   return index.toString(2).padStart(numQubits, "0");
 }
 
-export function simulateCircuit(model: CircuitModel): Record<string, number> {
+function toExecutionOperations(
+  model: CircuitModel,
+  executionGateCount?: number,
+): readonly Operation[] {
+  const orderedOperations = [...model.operations].sort((left, right) => {
+    if (left.layer !== right.layer) {
+      return left.layer - right.layer;
+    }
+    return left.id.localeCompare(right.id);
+  });
+
+  if (executionGateCount === undefined) {
+    return orderedOperations;
+  }
+
+  const normalized = Number.isFinite(executionGateCount) ? Math.trunc(executionGateCount) : 0;
+  const cappedCount = Math.min(Math.max(normalized, 0), orderedOperations.length);
+  return orderedOperations.slice(0, cappedCount);
+}
+
+export function simulateCircuit(
+  model: CircuitModel,
+  executionGateCount?: number,
+): Record<string, number> {
   if (model.numQubits < 1 || model.numQubits > 10) {
     throw new Error(`numQubits must be between 1 and 10, got ${model.numQubits}`);
   }
 
   const dimension = 1 << model.numQubits;
   const { real, imag } = createStateVector(dimension);
-  const operations = [...model.operations].sort((left, right) => left.layer - right.layer);
+  const operations = toExecutionOperations(model, executionGateCount);
   for (const operation of operations) {
     applyOperation(real, imag, model.numQubits, operation);
   }

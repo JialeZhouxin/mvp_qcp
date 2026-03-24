@@ -4,6 +4,7 @@ import { simulateCircuit } from "./simulation-core";
 export interface SimulationWorkerRequest {
   readonly requestId: string;
   readonly model: CircuitModel;
+  readonly executionGateCount?: number;
 }
 
 export interface SimulationWorkerResult {
@@ -26,7 +27,7 @@ function executeRequest(request: SimulationWorkerRequest): SimulationWorkerRespo
     return {
       type: "result",
       requestId: request.requestId,
-      probabilities: simulateCircuit(request.model),
+      probabilities: simulateCircuit(request.model, request.executionGateCount),
     };
   } catch (error) {
     return {

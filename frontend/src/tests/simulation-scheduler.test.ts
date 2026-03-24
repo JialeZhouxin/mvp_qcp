@@ -41,6 +41,26 @@ describe("simulation scheduler", () => {
     await secondResolved;
   });
 
+  it("passes execution options to runner", async () => {
+    const runner = vi.fn(async (requestId: string) => ({
+      type: "result" as const,
+      requestId,
+      probabilities: { "0": 1 },
+    }));
+    const scheduler = createSimulationScheduler({
+      debounceMs: 10,
+      timeoutMs: 500,
+      runner,
+    });
+
+    const resultPromise = scheduler.schedule(MODEL, { executionGateCount: 2 });
+    await vi.runAllTimersAsync();
+    await expect(resultPromise).resolves.toMatchObject({ requestId: "sim-1" });
+
+    expect(runner).toHaveBeenCalledTimes(1);
+    expect(runner).toHaveBeenCalledWith("sim-1", MODEL, { executionGateCount: 2 });
+  });
+
   it("raises timeout when runner does not resolve", async () => {
     const runner = vi.fn(
       () =>

@@ -1,10 +1,16 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { getTotalGates } from "../model/circuit-model";
 import { useWorkbenchTaskSubmit } from "../submission/use-workbench-task-submit";
 import {
   type SimulationSchedulerLike,
   useWorkbenchSimulation,
 } from "../simulation/use-workbench-simulation";
 import { useWorkbenchDraftSync } from "./use-workbench-draft-sync";
-import { useWorkbenchEditorState } from "./use-workbench-editor-state";
+import {
+  type WorkbenchProjectPayload,
+  useWorkbenchEditorState,
+} from "./use-workbench-editor-state";
 import { useWorkbenchGuideState } from "./use-workbench-guide-state";
 import { useWorkbenchProjects } from "./use-workbench-projects";
 
@@ -25,17 +31,61 @@ export function useCircuitWorkbenchController({ scheduler }: UseCircuitWorkbench
     onValidQasmChange,
     replaceFromProject,
     historyState,
-    canvasControls,
+    canvasControls: baseCanvasControls,
     resetVersion,
   } = useWorkbenchEditorState();
   const { showGuide, dismissGuide } = useWorkbenchGuideState();
+  const totalGates = getTotalGates(circuit);
+  const [executionGateCount, setExecutionGateCount] = useState(totalGates);
+
+  useEffect(() => {
+    setExecutionGateCount((current) => {
+      const capped = Math.min(Math.max(current, 0), totalGates);
+      return capped === current ? current : capped;
+    });
+  }, [totalGates]);
+
+  const previousResetVersionRef = useRef(resetVersion);
+  useEffect(() => {
+    if (previousResetVersionRef.current === resetVersion) {
+      return;
+    }
+    previousResetVersionRef.current = resetVersion;
+    setExecutionGateCount(getTotalGates(circuit));
+  }, [circuit, resetVersion]);
+
+  const restoreWorkbench = useCallback(
+    (payload: WorkbenchProjectPayload) => {
+      replaceFromProject(payload);
+      setExecutionGateCount(getTotalGates(payload.circuit));
+    },
+    [replaceFromProject],
+  );
+
+  const onExecutionGateCountCommit = useCallback(
+    (nextValue: number) => {
+      const normalized = Number.isFinite(nextValue) ? Math.trunc(nextValue) : 0;
+      setExecutionGateCount(Math.min(Math.max(normalized, 0), totalGates));
+    },
+    [totalGates],
+  );
+
+  const canvasControls = useMemo(
+    () => ({
+      ...baseCanvasControls,
+      executionGateCount,
+      executionGateCountMax: totalGates,
+      onExecutionGateCountCommit,
+    }),
+    [baseCanvasControls, executionGateCount, totalGates, onExecutionGateCountCommit],
+  );
 
   useWorkbenchDraftSync({
     circuit,
     qasm,
     displayMode,
     resetVersion,
-    onRestore: replaceFromProject,
+    onRestore: restoreWorkbench,
   });
 
   const {
@@ -47,6 +97,7 @@ export function useCircuitWorkbenchController({ scheduler }: UseCircuitWorkbench
   } = useWorkbenchSimulation({
     circuit,
     displayMode,
+    executionGateCount,
     scheduler,
   });
 
@@ -63,7 +114,7 @@ export function useCircuitWorkbenchController({ scheduler }: UseCircuitWorkbench
     circuit,
     qasm,
     displayMode,
-    onProjectLoaded: replaceFromProject,
+    onProjectLoaded: restoreWorkbench,
   });
 
   const {

@@ -2,6 +2,10 @@ import type { CircuitModel } from "../model/types";
 import { runSimulationRequest } from "./simulation-client";
 import type { SimulationWorkerResponse } from "./simulation-worker";
 
+export interface SimulationExecutionOptions {
+  readonly executionGateCount?: number;
+}
+
 export type SimulationScheduleErrorCode =
   | "SIM_STALE"
   | "SIM_TIMEOUT"
@@ -24,6 +28,7 @@ export interface ScheduledSimulationResult {
 type SimulationRunner = (
   requestId: string,
   model: CircuitModel,
+  options?: SimulationExecutionOptions,
 ) => Promise<SimulationWorkerResponse>;
 
 interface SchedulerOptions {
@@ -92,7 +97,10 @@ export function createSimulationScheduler(options: SchedulerOptions = {}) {
     pending = null;
   };
 
-  const schedule = (model: CircuitModel): Promise<ScheduledSimulationResult> => {
+  const schedule = (
+    model: CircuitModel,
+    simulationOptions?: SimulationExecutionOptions,
+  ): Promise<ScheduledSimulationResult> => {
     version += 1;
     const requestVersion = version;
     cancelPending();
@@ -102,7 +110,7 @@ export function createSimulationScheduler(options: SchedulerOptions = {}) {
         pending = null;
         try {
           const response = await withTimeout(
-            runner(`sim-${requestVersion}`, model),
+            runner(`sim-${requestVersion}`, model, simulationOptions),
             timeoutMs,
           );
           if (requestVersion !== version) {

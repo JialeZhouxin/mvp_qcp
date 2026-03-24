@@ -93,4 +93,65 @@ describe("simulation worker execution", () => {
     }
     expect(response.code).toBe("SIM_EXEC_ERROR");
   });
+
+  it("executes only the first N gates when executionGateCount is provided", () => {
+    // Full circuit: |0> --H--> |+> --X--> |+> --H--> |0>
+    // Expected full result: P("0") ≈ 1
+    // With executionGateCount=1 (H gate only): P("0")=0.5, P("1")=0.5
+    const model: CircuitModel = {
+      numQubits: 1,
+      operations: [
+        { id: "op-h", gate: "h", targets: [0], layer: 0 },
+        { id: "op-x", gate: "x", targets: [0], layer: 1 },
+        { id: "op-h2", gate: "h", targets: [0], layer: 2 },
+      ],
+    };
+
+    const fullResult = executeRequest({ requestId: "full", model });
+    expect(fullResult.type).toBe("result");
+    if (fullResult.type === "result") {
+      // After H-X-H: |0>
+      expectClose(fullResult.probabilities["0"], 1);
+      expectClose(fullResult.probabilities["1"], 0);
+    }
+
+    const prefix1Result = executeRequest({ requestId: "prefix-1", model, executionGateCount: 1 });
+    expect(prefix1Result.type).toBe("result");
+    if (prefix1Result.type === "result") {
+      // After H only: (|0>+|1>)/√2
+      expectClose(prefix1Result.probabilities["0"], 0.5);
+      expectClose(prefix1Result.probabilities["1"], 0.5);
+    }
+
+    const prefix2Result = executeRequest({ requestId: "prefix-2", model, executionGateCount: 2 });
+    expect(prefix2Result.type).toBe("result");
+    if (prefix2Result.type === "result") {
+      // After H-X: |+>
+      expectClose(prefix2Result.probabilities["0"], 0.5);
+      expectClose(prefix2Result.probabilities["1"], 0.5);
+    }
+  });
+
+  it("clamps executionGateCount to valid range", () => {
+    const model: CircuitModel = {
+      numQubits: 1,
+      operations: [{ id: "op-h", gate: "h", targets: [0], layer: 0 }],
+    };
+
+    // executionGateCount > total gates → same as total
+    const overCount = executeRequest({ requestId: "over", model, executionGateCount: 99 });
+    expect(overCount.type).toBe("result");
+    if (overCount.type === "result") {
+      expectClose(overCount.probabilities["0"], 0.5);
+      expectClose(overCount.probabilities["1"], 0.5);
+    }
+
+    // executionGateCount < 0 → same as 0 gates (identity)
+    const negativeCount = executeRequest({ requestId: "negative", model, executionGateCount: -5 });
+    expect(negativeCount.type).toBe("result");
+    if (negativeCount.type === "result") {
+      expectClose(negativeCount.probabilities["0"], 1);
+      expectClose(negativeCount.probabilities["1"], 0);
+    }
+  });
 });

@@ -1,4 +1,5 @@
 import type { CircuitModel } from "../model/types";
+import type { SimulationExecutionOptions } from "./scheduler";
 import type {
   SimulationWorkerRequest,
   SimulationWorkerResponse,
@@ -13,6 +14,7 @@ function createSimulationWorker(): Worker {
 export function runSimulationRequest(
   requestId: string,
   model: CircuitModel,
+  options?: SimulationExecutionOptions,
 ): Promise<SimulationWorkerResponse> {
   return new Promise((resolve, reject) => {
     const worker = createSimulationWorker();
@@ -35,6 +37,7 @@ export function runSimulationRequest(
     const request: SimulationWorkerRequest = {
       requestId,
       model,
+      executionGateCount: options?.executionGateCount,
     };
     worker.postMessage(request);
   });

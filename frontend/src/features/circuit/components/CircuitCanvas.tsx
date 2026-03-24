@@ -43,6 +43,7 @@ import "./CircuitCanvas.css";
 const DEFAULT_MIN_LAYERS = 8;
 const GATE_DRAG_MIME = "application/x-qcp-gate";
 const NOOP_HANDLER = () => {};
+const NOOP_EXECUTION_GATE_COUNT_HANDLER = (_gateCount: number) => {};
 const BELL_TEMPLATE_ID = "bell";
 const SUPERPOSITION_TEMPLATE_ID = "superposition";
 const CELL_WIDTH_PADDING_PX = 10;
@@ -71,6 +72,9 @@ interface CircuitCanvasControls {
   readonly canIncreaseQubits: boolean;
   readonly canDecreaseQubits: boolean;
   readonly qubitMessage: string | null;
+  readonly executionGateCount: number;
+  readonly executionGateCountMax: number;
+  readonly onExecutionGateCountCommit: (gateCount: number) => void;
   readonly onIncreaseQubits: () => void;
   readonly onDecreaseQubits: () => void;
   readonly onClearCircuit: () => void;
@@ -129,6 +133,10 @@ function CircuitCanvas({
   const canDecreaseQubits = controls?.canDecreaseQubits ?? false;
   const currentQubits = controls?.currentQubits ?? circuit.numQubits;
   const qubitMessage = controls?.qubitMessage ?? null;
+  const executionGateCount = controls?.executionGateCount ?? circuit.operations.length;
+  const executionGateCountMax = controls?.executionGateCountMax ?? circuit.operations.length;
+  const onExecutionGateCountCommit =
+    controls?.onExecutionGateCountCommit ?? NOOP_EXECUTION_GATE_COUNT_HANDLER;
   const onIncreaseQubits = controls?.onIncreaseQubits ?? NOOP_HANDLER;
   const onDecreaseQubits = controls?.onDecreaseQubits ?? NOOP_HANDLER;
   const onClearCircuit = controls?.onClearCircuit ?? NOOP_HANDLER;
@@ -468,6 +476,8 @@ function CircuitCanvas({
         canDecreaseQubits={canDecreaseQubits}
         currentQubits={currentQubits}
         qubitMessage={qubitMessage}
+        executionGateCount={executionGateCount}
+        executionGateCountMax={executionGateCountMax}
         zoomPercentText={zoomPercentText}
         canZoomIn={canZoomIn}
         canZoomOut={canZoomOut}
@@ -479,6 +489,7 @@ function CircuitCanvas({
         onDecreaseQubits={onDecreaseQubits}
         onLoadBellTemplate={() => onLoadTemplate(BELL_TEMPLATE_ID)}
         onLoadSuperpositionTemplate={() => onLoadTemplate(SUPERPOSITION_TEMPLATE_ID)}
+        onExecutionGateCountCommit={onExecutionGateCountCommit}
         onZoomOut={onZoomOut}
         onZoomIn={onZoomIn}
         onZoomReset={onZoomReset}

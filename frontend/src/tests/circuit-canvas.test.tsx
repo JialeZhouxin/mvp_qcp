@@ -219,6 +219,7 @@ describe("CircuitCanvas", () => {
     const onClearCircuit = vi.fn();
     const onResetWorkbench = vi.fn();
     const onLoadTemplate = vi.fn();
+    const onExecutionGateCountCommit = vi.fn();
 
     render(
       <CircuitCanvas
@@ -234,6 +235,9 @@ describe("CircuitCanvas", () => {
           canIncreaseQubits: true,
           canDecreaseQubits: true,
           qubitMessage: "Qubit test warning",
+          executionGateCount: 0,
+          executionGateCountMax: 0,
+          onExecutionGateCountCommit,
           onIncreaseQubits,
           onDecreaseQubits,
           onClearCircuit,
@@ -274,6 +278,89 @@ describe("CircuitCanvas", () => {
     expect(onDecreaseQubits).toHaveBeenCalledTimes(1);
     expect(onLoadTemplate).toHaveBeenNthCalledWith(1, "bell");
     expect(onLoadTemplate).toHaveBeenNthCalledWith(2, "superposition");
+  });
+
+  it("slider commits on pointer release without calling commit during drag", () => {
+    const model: CircuitModel = {
+      numQubits: 2,
+      operations: [
+        { id: "op-1", gate: "h", targets: [0], layer: 0 },
+        { id: "op-2", gate: "x", targets: [0], layer: 1 },
+        { id: "op-3", gate: "h", targets: [0], layer: 2 },
+      ],
+    };
+    const onCircuitChange = vi.fn();
+    const onExecutionGateCountCommit = vi.fn();
+
+    render(
+      <CircuitCanvas
+        circuit={model}
+        onCircuitChange={onCircuitChange}
+        minLayers={4}
+        controls={{
+          canUndo: false,
+          canRedo: false,
+          currentQubits: 2,
+          canIncreaseQubits: false,
+          canDecreaseQubits: false,
+          qubitMessage: null,
+          executionGateCount: 3,
+          executionGateCountMax: 3,
+          onExecutionGateCountCommit,
+          onIncreaseQubits: vi.fn(),
+          onDecreaseQubits: vi.fn(),
+          onClearCircuit: vi.fn(),
+          onResetWorkbench: vi.fn(),
+          onLoadTemplate: vi.fn(),
+        }}
+      />,
+    );
+
+    const slider = screen.getByTestId("canvas-execution-gate-count-slider") as HTMLInputElement;
+    expect(slider).not.toBeDisabled();
+    expect(slider.value).toBe("3");
+
+    fireEvent.change(slider, { target: { value: "1" } });
+    expect(slider.value).toBe("1");
+    expect(onExecutionGateCountCommit).not.toHaveBeenCalled();
+
+    fireEvent.pointerUp(slider);
+    expect(onExecutionGateCountCommit).toHaveBeenCalledTimes(1);
+    expect(onExecutionGateCountCommit).toHaveBeenCalledWith(1);
+  });
+
+  it("slider is disabled when circuit has zero gates", () => {
+    const model: CircuitModel = { numQubits: 2, operations: [] };
+    const onCircuitChange = vi.fn();
+    const onExecutionGateCountCommit = vi.fn();
+
+    render(
+      <CircuitCanvas
+        circuit={model}
+        onCircuitChange={onCircuitChange}
+        minLayers={2}
+        controls={{
+          canUndo: false,
+          canRedo: false,
+          currentQubits: 2,
+          canIncreaseQubits: false,
+          canDecreaseQubits: false,
+          qubitMessage: null,
+          executionGateCount: 0,
+          executionGateCountMax: 0,
+          onExecutionGateCountCommit,
+          onIncreaseQubits: vi.fn(),
+          onDecreaseQubits: vi.fn(),
+          onClearCircuit: vi.fn(),
+          onResetWorkbench: vi.fn(),
+          onLoadTemplate: vi.fn(),
+        }}
+      />,
+    );
+
+    const slider = screen.getByTestId("canvas-execution-gate-count-slider") as HTMLInputElement;
+    expect(slider).toBeDisabled();
+    expect(screen.queryByTestId("canvas-workbench-execution-gates")).toBeInTheDocument();
   });
 
   it("ignores canvas shortcuts when focus is in editable element", () => {

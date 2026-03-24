@@ -21,6 +21,7 @@ describe("useWorkbenchSimulation", () => {
       useWorkbenchSimulation({
         circuit: MODEL,
         displayMode: "FILTERED",
+        executionGateCount: 1,
         scheduler,
       }),
     );
@@ -29,7 +30,7 @@ describe("useWorkbenchSimulation", () => {
       await Promise.resolve();
     });
 
-    expect(scheduler.schedule).toHaveBeenCalled();
+    expect(scheduler.schedule).toHaveBeenCalledWith(MODEL, { executionGateCount: 1 });
     expect(result.current.simulationState).toBe("READY");
     expect(result.current.probabilityView?.visible["1"]).toBe(0.75);
     expect(result.current.epsilonText).not.toBe("--");
