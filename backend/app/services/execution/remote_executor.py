@@ -77,6 +77,12 @@ class RemoteExecutor(ExecutionBackend):
 
         if response.status_code >= 400:
             error_payload = payload.get("error")
+            if not isinstance(error_payload, dict):
+                detail_payload = payload.get("detail")
+                if isinstance(detail_payload, dict):
+                    nested_error = detail_payload.get("error")
+                    if isinstance(nested_error, dict):
+                        error_payload = nested_error
             if isinstance(error_payload, dict):
                 code = str(error_payload.get("code", "REMOTE_EXECUTION_ERROR"))
                 message = str(error_payload.get("message", f"remote execution failed with {response.status_code}"))

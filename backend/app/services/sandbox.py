@@ -50,8 +50,8 @@ def validate_code(code: str) -> None:
             raise SandboxValidationError(f"attribute not allowed: {node.attr}")
 
 
-def _run_user_code(code: str, output_queue: mp.Queue) -> None:
-    safe_builtins = {
+def _build_safe_builtins() -> dict[str, Any]:
+    return {
         "abs": abs,
         "all": all,
         "any": any,
@@ -75,8 +75,10 @@ def _run_user_code(code: str, output_queue: mp.Queue) -> None:
         "__import__": _safe_import,
     }
 
-    globals_ns: dict[str, Any] = {"__builtins__": safe_builtins}
 
+def execute_user_code_inline(code: str) -> Any:
+    validate_code(code)
+    globals_ns: dict[str, Any] = {"__builtins__": _build_safe_builtins()}
     try:
         compiled = compile(code, "<user_code>", "exec")
         exec(compiled, globals_ns, globals_ns)
@@ -89,6 +91,16 @@ def _run_user_code(code: str, output_queue: mp.Queue) -> None:
         if result is None:
             raise SandboxExecutionError("RESULT or main() return is required")
 
+        return result
+    except SandboxExecutionError:
+        raise
+    except Exception as exc:
+        raise SandboxExecutionError(str(exc)) from exc
+
+
+def _run_user_code(code: str, output_queue: mp.Queue) -> None:
+    try:
+        result = execute_user_code_inline(code)
         output_queue.put({"ok": True, "result": result})
     except Exception as exc:  # pragma: no cover
         output_queue.put({"ok": False, "error": str(exc)})

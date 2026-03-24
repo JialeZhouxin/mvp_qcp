@@ -83,6 +83,21 @@ def test_remote_executor_maps_remote_error_payload() -> None:
     assert exc_info.value.message == "executor busy"
 
 
+def test_remote_executor_maps_fastapi_detail_error_payload() -> None:
+    session = SessionStub()
+    session.post_response = ResponseStub(
+        422,
+        {"detail": {"error": {"code": "SANDBOX_EXECUTION_ERROR", "message": "boom"}}},
+    )
+    executor = RemoteExecutor(service_url="http://executor.internal", request_timeout_seconds=10, session=session)
+
+    with pytest.raises(ExecutionBackendError) as exc_info:
+        executor.execute("RESULT = {}", timeout_seconds=5)
+
+    assert exc_info.value.code == "SANDBOX_EXECUTION_ERROR"
+    assert exc_info.value.message == "boom"
+
+
 def test_remote_executor_maps_connection_failures() -> None:
     session = SessionStub()
     session.post_response = ConnectionError("connection refused")
