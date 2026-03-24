@@ -1,6 +1,20 @@
-﻿import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 import GatePalette from "../features/circuit/components/GatePalette";
+
+function createDataTransfer(): DataTransfer {
+  return {
+    clearData: vi.fn(),
+    dropEffect: "none",
+    effectAllowed: "all",
+    files: [] as unknown as FileList,
+    items: [] as unknown as DataTransferItemList,
+    types: [],
+    getData: vi.fn(() => ""),
+    setData: vi.fn(),
+    setDragImage: vi.fn(),
+  } as unknown as DataTransfer;
+}
 
 describe("GatePalette", () => {
   it("renders gates in category order without section titles", () => {
@@ -38,24 +52,57 @@ describe("GatePalette", () => {
     });
   });
 
-  it("shows matrix tooltip on hover and focus for cp gate", () => {
+  it("shows compact Chinese tooltip on hover and focus for x gate", () => {
     render(<GatePalette />);
 
-    const cpButton = screen.getByTestId("gate-cp");
-    fireEvent.mouseEnter(cpButton);
-    const hoveredTooltip = screen.getByTestId("gate-matrix-tooltip-cp");
+    const xButton = screen.getByTestId("gate-x");
+    fireEvent.mouseEnter(xButton);
+    const hoveredTooltip = screen.getByTestId("gate-matrix-tooltip-x");
     expect(hoveredTooltip).toBeInTheDocument();
-    expect(within(hoveredTooltip).getByText("CP(lambda)")).toBeInTheDocument();
-    expect(hoveredTooltip).toHaveTextContent("exp(i*lambda)");
+    expect(within(hoveredTooltip).getByText("X 门")).toBeInTheDocument();
+    expect(hoveredTooltip).toHaveTextContent("对量子比特执行比特翻转。");
+    expect(hoveredTooltip).toHaveTextContent("作用于 1 个量子比特。");
 
-    fireEvent.mouseLeave(cpButton);
-    expect(screen.queryByTestId("gate-matrix-tooltip-cp")).not.toBeInTheDocument();
+    fireEvent.mouseLeave(xButton);
+    expect(screen.queryByTestId("gate-matrix-tooltip-x")).not.toBeInTheDocument();
 
-    fireEvent.focus(cpButton);
-    expect(screen.getByTestId("gate-matrix-tooltip-cp")).toBeInTheDocument();
-    fireEvent.blur(cpButton);
-    expect(screen.queryByTestId("gate-matrix-tooltip-cp")).not.toBeInTheDocument();
+    fireEvent.focus(xButton);
+    expect(screen.getByTestId("gate-matrix-tooltip-x")).toBeInTheDocument();
+    fireEvent.blur(xButton);
+    expect(screen.queryByTestId("gate-matrix-tooltip-x")).not.toBeInTheDocument();
+  });
+
+  it("hides tooltip immediately on drag start and keeps it suppressed until the pointer leaves and re-enters", () => {
+    render(<GatePalette />);
+
+    const xButton = screen.getByTestId("gate-x");
+    fireEvent.mouseEnter(xButton);
+    expect(screen.getByTestId("gate-matrix-tooltip-x")).toBeInTheDocument();
+
+    fireEvent.dragStart(xButton, { dataTransfer: createDataTransfer() });
+    expect(screen.queryByTestId("gate-matrix-tooltip-x")).not.toBeInTheDocument();
+
+    fireEvent.dragEnd(xButton);
+    expect(screen.queryByTestId("gate-matrix-tooltip-x")).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(xButton);
+    expect(screen.queryByTestId("gate-matrix-tooltip-x")).not.toBeInTheDocument();
+
+    fireEvent.mouseLeave(xButton);
+    fireEvent.mouseEnter(xButton);
+    expect(screen.getByTestId("gate-matrix-tooltip-x")).toBeInTheDocument();
+  });
+
+  it("does not show any tooltip while dragging another gate", () => {
+    render(<GatePalette />);
+
+    const xButton = screen.getByTestId("gate-x");
+    const hButton = screen.getByTestId("gate-h");
+
+    fireEvent.dragStart(xButton, { dataTransfer: createDataTransfer() });
+    fireEvent.mouseEnter(hButton);
+
+    expect(screen.queryByTestId("gate-matrix-tooltip-x")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("gate-matrix-tooltip-h")).not.toBeInTheDocument();
   });
 });
-
-

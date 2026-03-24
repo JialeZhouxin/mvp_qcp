@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, type DragEvent } from "react";
+import { useEffect, useMemo, useState, type DragEvent } from "react";
 
 import {
   getGateCatalog,
@@ -42,11 +42,6 @@ interface GatePaletteProps {
   readonly showMatrixTooltip?: boolean;
 }
 
-function onDragStart(event: DragEvent<HTMLButtonElement>, gate: GateName) {
-  event.dataTransfer.setData("application/x-qcp-gate", gate);
-  event.dataTransfer.effectAllowed = "copy";
-}
-
 function GatePalette({ gates, showMatrixTooltip = true }: GatePaletteProps) {
   const gateItems = useMemo(() => buildGateItems(gates), [gates]);
   const grouped = useMemo(() => groupByCategory(gateItems), [gateItems]);
@@ -54,7 +49,67 @@ function GatePalette({ gates, showMatrixTooltip = true }: GatePaletteProps) {
     () => CATEGORY_ORDER.flatMap((category) => grouped[category]),
     [grouped],
   );
-  const [activeGate, setActiveGate] = useState<GateName | null>(null);
+  const [hoveredGate, setHoveredGate] = useState<GateName | null>(null);
+  const [focusedGate, setFocusedGate] = useState<GateName | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [suppressedGate, setSuppressedGate] = useState<GateName | null>(null);
+
+  useEffect(() => {
+    const handleDragFinished = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener("dragend", handleDragFinished);
+    window.addEventListener("drop", handleDragFinished);
+    return () => {
+      window.removeEventListener("dragend", handleDragFinished);
+      window.removeEventListener("drop", handleDragFinished);
+    };
+  }, []);
+
+  const onDragStart = (event: DragEvent<HTMLButtonElement>, gate: GateName) => {
+    event.dataTransfer.setData("application/x-qcp-gate", gate);
+    event.dataTransfer.effectAllowed = "copy";
+    setIsDragging(true);
+    setSuppressedGate(gate);
+    setHoveredGate((current) => (current === gate ? null : current));
+  };
+
+  const onDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  const onMouseEnter = (gate: GateName) => {
+    if (isDragging || suppressedGate === gate) {
+      return;
+    }
+    setHoveredGate(gate);
+  };
+
+  const onMouseLeave = (gate: GateName) => {
+    setHoveredGate((current) => (current === gate ? null : current));
+    setSuppressedGate((current) => (current === gate ? null : current));
+  };
+
+  const onFocus = (gate: GateName) => {
+    if (isDragging || suppressedGate === gate) {
+      return;
+    }
+    setFocusedGate(gate);
+  };
+
+  const onBlur = (gate: GateName) => {
+    setFocusedGate((current) => (current === gate ? null : current));
+    setSuppressedGate((current) => (current === gate ? null : current));
+  };
+
+  const activeGate = isDragging
+    ? null
+    : hoveredGate && suppressedGate !== hoveredGate
+      ? hoveredGate
+      : focusedGate && suppressedGate !== focusedGate
+        ? focusedGate
+        : null;
 
   return (
     <section
@@ -69,18 +124,11 @@ function GatePalette({ gates, showMatrixTooltip = true }: GatePaletteProps) {
               type="button"
               draggable
               onDragStart={(event) => onDragStart(event, item.name)}
-              onMouseEnter={() => setActiveGate(item.name)}
-              onMouseLeave={() =>
-                setActiveGate((current) =>
-                  current === item.name ? null : current,
-                )
-              }
-              onFocus={() => setActiveGate(item.name)}
-              onBlur={() =>
-                setActiveGate((current) =>
-                  current === item.name ? null : current,
-                )
-              }
+              onDragEnd={onDragEnd}
+              onMouseEnter={() => onMouseEnter(item.name)}
+              onMouseLeave={() => onMouseLeave(item.name)}
+              onFocus={() => onFocus(item.name)}
+              onBlur={() => onBlur(item.name)}
               data-testid={`gate-${item.name}`}
               style={{
                 minWidth: 56,
@@ -108,5 +156,3 @@ function GatePalette({ gates, showMatrixTooltip = true }: GatePaletteProps) {
 }
 
 export default GatePalette;
-
-
