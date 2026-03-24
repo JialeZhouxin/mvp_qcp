@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 class TaskSubmitService:
+    """Orchestrate validation, idempotency, persistence and queue dispatch for submissions."""
+
     def __init__(
         self,
         validator: TaskSubmitValidator,
@@ -30,6 +32,7 @@ class TaskSubmitService:
         self._now_provider = now_provider
 
     def submit(self, command: TaskSubmitCommand) -> TaskSubmitOutcome:
+        """Submit task command and return queued or deduplicated outcome."""
         normalized_key = self._validator.normalize_idempotency_key(command.raw_idempotency_key)
         now = self._now_provider()
         self._idempotency.cleanup_expired_records(now)
@@ -74,6 +77,7 @@ class TaskSubmitService:
         )
 
     def _require_task_id(self, task: Task) -> int:
+        """Return persisted task id or raise when persistence contract is broken."""
         if task.id is None:
             raise RuntimeError("task id missing after persistence")
         return task.id

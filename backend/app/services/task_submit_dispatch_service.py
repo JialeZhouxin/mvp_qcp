@@ -1,5 +1,7 @@
 import logging
-
+from redis.exceptions import RedisError
+from rq.exceptions import NoSuchJobError
+from rq.timeouts import JobTimeoutException
 from sqlmodel import Session
 
 from app.models.task import Task
@@ -41,7 +43,7 @@ class TaskDispatchService:
         try:
             queue = self._queue_getter()
             queue.enqueue(self._worker_task, task_id, job_timeout=self._config.rq_job_timeout_seconds)
-        except Exception as exc:
+        except (RedisError, JobTimeoutException, NoSuchJobError, TypeError, ValueError, RuntimeError, AttributeError) as exc:
             lifecycle = TaskLifecycleService(self._session)
             failed_at = self._now_provider()
             lifecycle.mark_failure(task, QUEUE_PUBLISH_ERROR_CODE, str(exc), failed_at)

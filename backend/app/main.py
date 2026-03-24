@@ -24,6 +24,9 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup() -> None:
+    """Validate runtime constraints and initialize database tables on startup."""
+    # 启动时先执行运行时配置约束校验，避免非法配置进入运行态。
+    settings.validate_runtime_constraints()
     # 启动时初始化数据库，确保本地开发和测试环境具备基础表结构。
     init_db()
 

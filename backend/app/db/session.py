@@ -15,12 +15,13 @@ def _normalize_database_url(database_url: str) -> str:
     if db_path_text == ":memory:":
         return database_url
 
-    backend_root = Path(__file__).resolve().parents[2]
     db_path = Path(db_path_text)
     if not db_path.is_absolute():
+        backend_root = Path(__file__).resolve().parents[2]
         db_path = (backend_root / db_path).resolve()
 
-    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if settings.is_local_env:
+        db_path.parent.mkdir(parents=True, exist_ok=True)
     return f"sqlite:///{db_path.as_posix()}"
 
 

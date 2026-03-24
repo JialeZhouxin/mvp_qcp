@@ -1,8 +1,11 @@
+from redis.exceptions import RedisError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import select
 
 from app.core.config import settings
 from app.db.session import SessionFactory, create_session
 from app.queue.redis_conn import get_redis_connection
+from app.services.execution.base import ExecutionBackendError
 from app.services.execution.factory import get_execution_backend
 
 
@@ -11,9 +14,11 @@ class ReadinessService:
         self._session_factory = session_factory
 
     def check_live(self) -> dict[str, str]:
+        """Return liveness payload for process-level health checks."""
         return {"status": "ok", "app": settings.app_name, "env": settings.env}
 
     def check_ready(self) -> tuple[bool, dict[str, object]]:
+        """Return readiness flag and sanitized dependency payload."""
         raw_checks = {
             "database": self._check_database(),
             "redis": self._check_redis(),
@@ -40,7 +45,7 @@ class ReadinessService:
             with self._session_factory() as session:
                 session.exec(select(1)).one()
             return {"ok": True}
-        except Exception as exc:
+        except (SQLAlchemyError, RuntimeError, ValueError, TypeError) as exc:
             return {"ok": False, "error": str(exc)}
 
     def _check_redis(self) -> dict[str, object]:
@@ -48,7 +53,7 @@ class ReadinessService:
             redis = get_redis_connection()
             redis.ping()
             return {"ok": True}
-        except Exception as exc:
+        except (RedisError, OSError, RuntimeError, ValueError, TypeError) as exc:
             return {"ok": False, "error": str(exc)}
 
     def _check_execution_backend(self) -> dict[str, object]:
@@ -59,5 +64,5 @@ class ReadinessService:
             if callable(ping):
                 ping()
             return {"ok": True, "backend": backend.name}
-        except Exception as exc:
+        except (ExecutionBackendError, ValueError, RuntimeError, TypeError, AttributeError) as exc:
             return {"ok": False, "error": str(exc)}

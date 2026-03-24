@@ -1,12 +1,12 @@
 ﻿import ast
 import builtins
 import multiprocessing as mp
-from collections.abc import Callable
 from typing import Any
 
 ALLOWED_IMPORTS = {"qibo", "math", "numpy"}
 DISALLOWED_CALLS = {"eval", "exec", "compile", "open", "input"}
 DISALLOWED_ATTRIBUTES = {"system", "popen", "remove", "unlink", "rmdir", "mkdir", "makedirs"}
+FATAL_BASE_EXCEPTIONS = (KeyboardInterrupt, SystemExit, GeneratorExit)
 
 
 class SandboxValidationError(ValueError):
@@ -17,7 +17,13 @@ class SandboxExecutionError(RuntimeError):
     pass
 
 
-def _safe_import(name: str, globals_: dict | None = None, locals_: dict | None = None, fromlist=(), level: int = 0):
+def _safe_import(
+    name: str,
+    globals_: dict[str, Any] | None = None,
+    locals_: dict[str, Any] | None = None,
+    fromlist: tuple[str, ...] = (),
+    level: int = 0,
+) -> Any:
     root = name.split(".", 1)[0]
     if root not in ALLOWED_IMPORTS:
         raise SandboxValidationError(f"import not allowed: {name}")
@@ -25,6 +31,7 @@ def _safe_import(name: str, globals_: dict | None = None, locals_: dict | None =
 
 
 def validate_code(code: str) -> None:
+    """Validate user code AST against import/call/attribute restrictions."""
     try:
         tree = ast.parse(code)
     except SyntaxError as exc:
@@ -51,6 +58,7 @@ def validate_code(code: str) -> None:
 
 
 def _run_user_code(code: str, output_queue: mp.Queue) -> None:
+    """Execute user code in isolated process and return result/error via queue."""
     safe_builtins = {
         "abs": abs,
         "all": all,
@@ -90,11 +98,14 @@ def _run_user_code(code: str, output_queue: mp.Queue) -> None:
             raise SandboxExecutionError("RESULT or main() return is required")
 
         output_queue.put({"ok": True, "result": result})
-    except Exception as exc:  # pragma: no cover
+    except BaseException as exc:  # pragma: no cover
+        if isinstance(exc, FATAL_BASE_EXCEPTIONS):
+            raise
         output_queue.put({"ok": False, "error": str(exc)})
 
 
 def run_with_limits(code: str, timeout_seconds: int) -> Any:
+    """Run validated user code in a subprocess with a hard timeout."""
     validate_code(code)
 
     queue: mp.Queue = mp.Queue(maxsize=1)

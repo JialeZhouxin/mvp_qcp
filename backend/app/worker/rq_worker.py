@@ -14,7 +14,12 @@ def _validate_timeout_invariant() -> None:
         raise ValueError("RQ_JOB_TIMEOUT_SECONDS must be greater than QIBO_EXEC_TIMEOUT_SECONDS")
 
 
+def _validate_runtime_constraints() -> None:
+    settings.validate_runtime_constraints()
+
+
 def main() -> None:
+    _validate_runtime_constraints()
     _validate_timeout_invariant()
     redis_connection = get_redis_connection()
     with Connection(redis_connection):

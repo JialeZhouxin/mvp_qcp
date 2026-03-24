@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import Session
 
@@ -22,7 +24,13 @@ def _to_entry_type(entry_type: str) -> ProjectEntryType:
     return entry_type
 
 
-def _to_project_item(project_id: int, name: str, entry_type: str, last_task_id: int | None, updated_at):
+def _to_project_item(
+    project_id: int,
+    name: str,
+    entry_type: str,
+    last_task_id: int | None,
+    updated_at: datetime,
+) -> ProjectItemResponse:
     return ProjectItemResponse(
         id=project_id,
         name=name,

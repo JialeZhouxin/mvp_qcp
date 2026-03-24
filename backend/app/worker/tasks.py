@@ -11,9 +11,20 @@ from app.services.execution.base import ExecutionBackendError
 from app.services.idempotency_service import IdempotencyService
 from app.services.qibo_executor import QiboExecutionError, execute_qibo_script
 from app.services.retry_policy import RetryPolicy
+from app.services.sandbox import SandboxExecutionError
 from app.services.task_lifecycle import TaskLifecycleService
 
 logger = logging.getLogger(__name__)
+
+HANDLED_TASK_ERRORS = (
+    ExecutionBackendError,
+    QiboExecutionError,
+    SandboxExecutionError,
+    TimeoutError,
+    ValueError,
+    TypeError,
+    RuntimeError,
+)
 
 
 def _resolve_error_code(exc: Exception) -> str:
@@ -21,11 +32,17 @@ def _resolve_error_code(exc: Exception) -> str:
         return exc.code
     if isinstance(exc, QiboExecutionError):
         return exc.code
+    if _is_timeout_error(exc):
+        return "EXECUTION_TIMEOUT"
     return "WORKER_EXEC_ERROR"
 
 
 def _is_timeout_error(exc: Exception) -> bool:
-    return isinstance(exc, ExecutionBackendError) and exc.code == "EXECUTION_TIMEOUT"
+    if isinstance(exc, ExecutionBackendError):
+        return exc.code == "EXECUTION_TIMEOUT"
+    if isinstance(exc, SandboxExecutionError):
+        return str(exc).startswith("execution timeout:")
+    return isinstance(exc, TimeoutError)
 
 
 def _build_retry_policy() -> RetryPolicy:
@@ -66,7 +83,7 @@ def run_quantum_task(task_id: int) -> dict:
                     task.duration_ms,
                 )
                 return result
-            except Exception as exc:
+            except HANDLED_TASK_ERRORS as exc:
                 if _is_timeout_error(exc):
                     lifecycle.mark_timeout(task, str(exc), datetime.utcnow())
                     idempotency_service.refresh_terminal_ttl(task.id, datetime.utcnow())

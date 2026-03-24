@@ -1,4 +1,5 @@
 import base64
+import binascii
 import json
 import os
 
@@ -14,7 +15,7 @@ def _read_code() -> str:
         raise ValueError(f"{CODE_B64_ENV} is required")
     try:
         return base64.b64decode(raw_code.encode("ascii")).decode("utf-8")
-    except Exception as exc:
+    except (UnicodeEncodeError, binascii.Error, UnicodeDecodeError) as exc:
         raise ValueError("failed to decode EXEC_CODE_B64") from exc
 
 
@@ -43,7 +44,7 @@ def main() -> int:
     except SandboxExecutionError as exc:
         _emit({"ok": False, "error": {"code": "SANDBOX_EXECUTION_ERROR", "message": str(exc)}})
         return 3
-    except Exception as exc:
+    except (ValueError, TypeError) as exc:
         _emit({"ok": False, "error": {"code": "RUNNER_ERROR", "message": str(exc)}})
         return 4
 

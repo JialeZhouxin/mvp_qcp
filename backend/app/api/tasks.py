@@ -30,6 +30,7 @@ def submit_task(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> TaskSubmitResponse:
+    """Submit a quantum task and enqueue it for async execution."""
     use_case = build_submit_task_use_case(session)
 
     try:
@@ -59,6 +60,7 @@ def get_task_status(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> TaskStatusResponse:
+    """Return current task status for the authenticated owner."""
     try:
         task = GetTaskStatusUseCase(UserTaskQueryService(session)).execute(current_user.id, task_id)
     except (TaskNotFoundError, TaskAccessDeniedError) as exc:
@@ -72,6 +74,7 @@ def get_task_result(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> TaskResultResponse:
+    """Return task result payload for the authenticated owner."""
     try:
         task = GetTaskResultUseCase(UserTaskQueryService(session)).execute(current_user.id, task_id)
     except (TaskNotFoundError, TaskAccessDeniedError) as exc:
