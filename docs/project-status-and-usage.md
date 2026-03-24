@@ -84,7 +84,7 @@ docker compose down -v
 powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1"
 ```
 
-本机启动脚本默认以 `EXECUTION_BACKEND=local` 运行 API/worker，避免宿主机进程直接依赖 Docker API 权限。
+本机启动脚本默认以 `EXECUTION_BACKEND=local` 运行 API/worker，避免宿主机进程直接依赖 Docker API 权限；容器链路改为经 `execution-service` 走 `EXECUTION_BACKEND=remote`。
 
 鏈満鍋ュ悍妫€鏌ワ細
 

@@ -40,7 +40,7 @@ Copy-Item ".env.example" ".env"
 2. 榛樿鍊煎彲鐩存帴杩愯锛涘父鐢ㄥ叧閿」濡備笅锛?
 - `TASK_JOB_TIMEOUT_SECONDS=90`
 - `QIBO_EXEC_TIMEOUT_SECONDS=60`
-- `EXECUTION_BACKEND=docker`
+- `EXECUTION_BACKEND=remote`（容器模式）
 - `REDIS_URL=redis://127.0.0.1:6379/0`锛堟湰鍦版ā寮忥級
 
 ## 5. 鍚姩鏂瑰紡
@@ -81,7 +81,7 @@ docker compose down -v
 powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1"
 ```
 
-说明：该脚本会在宿主机模式下注入 `EXECUTION_BACKEND=local`。容器模式仍由 `docker-compose.yml` 维持 `EXECUTION_BACKEND=docker`。
+说明：该脚本会在宿主机模式下注入 `EXECUTION_BACKEND=local`。容器模式由 `docker-compose.yml` 通过独立 `execution-service` 维持 `EXECUTION_BACKEND=remote`。
 
 2. 鍚姩鍚庢鏌ワ細
 

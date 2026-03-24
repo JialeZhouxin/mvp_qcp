@@ -135,7 +135,7 @@ npm run dev
 powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1"
 ```
 
-`start-dev.ps1` 在宿主机模式下会显式设置 `EXECUTION_BACKEND=local`，避免本机 worker 依赖 Docker API 权限；`docker compose` 模式仍保持 `EXECUTION_BACKEND=docker`。
+`start-dev.ps1` 在宿主机模式下会显式设置 `EXECUTION_BACKEND=local`，避免本机 worker 依赖 Docker API 权限；`docker compose` 模式现在通过独立的 `execution-service` 使用 `EXECUTION_BACKEND=remote`。
 
 ### 5.6 联调健康检查
 
@@ -409,12 +409,12 @@ powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker 
 
 ### 11.5 容器隔离执行（方案 B）
 
-- 任务执行默认使用 `EXECUTION_BACKEND=docker`，由 `worker` 创建短生命周期执行容器。
+- 容器模式下任务执行默认使用 `EXECUTION_BACKEND=remote`，由独立 `execution-service` 提供执行 HTTP 接口。
 - `worker` 通过挂载 `/var/run/docker.sock` 访问 Docker Daemon。
 - 执行镜像默认 `EXECUTION_IMAGE=qcp-backend-dev:latest`，入口 `EXECUTION_RUNNER_MODULE=app.services.execution.runner`。
 - 默认执行限制：禁网、只读根文件系统、内存/CPU/PIDs 限制、超时强制回收。
 - 若出现 `DOCKER_UNAVAILABLE` 或 `EXEC_IMAGE_NOT_FOUND`，先确认 Docker Desktop 正常、镜像已构建、socket 挂载生效。
-- `EXECUTION_BACKEND=local` 仅用于测试场景显式启用，不建议作为开发/演示默认配置。
+- `EXECUTION_BACKEND=local` 用于宿主机开发模式和 `execution-service` 内部执行 stub。
 
 
 ## Reliability and Observability Update (2026-03-10)

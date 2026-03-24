@@ -25,6 +25,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       TASK_QUEUE_NAME: qcp-default
       TASK_JOB_TIMEOUT_SECONDS: "90"
+      EXECUTION_BACKEND: remote
+      EXECUTION_SERVICE_URL: http://execution-service:8010
+      EXECUTION_SERVICE_TIMEOUT_SECONDS: "10"
       WATCHFILES_FORCE_POLLING: "true"
     volumes:
       - ./backend:/app/backend
@@ -34,6 +37,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      execution-service:
+        condition: service_started
     restart: unless-stopped
 
   worker:
@@ -49,22 +54,35 @@ services:
       REDIS_URL: redis://redis:6379/0
       TASK_QUEUE_NAME: qcp-default
       TASK_JOB_TIMEOUT_SECONDS: "90"
-      EXECUTION_BACKEND: docker
-      EXECUTION_IMAGE: qcp-backend-dev:latest
-      EXECUTION_RUNNER_MODULE: app.services.execution.runner
-      EXECUTION_READ_ONLY_ROOTFS: "true"
-      EXECUTION_NETWORK_DISABLED: "true"
-      EXECUTION_MEM_LIMIT_MB: "256"
-      EXECUTION_CPU_LIMIT: "0.5"
-      EXECUTION_PIDS_LIMIT: "64"
-      EXECUTION_TMPFS_SIZE_MB: "64"
+      EXECUTION_BACKEND: remote
+      EXECUTION_SERVICE_URL: http://execution-service:8010
+      EXECUTION_SERVICE_TIMEOUT_SECONDS: "10"
     volumes:
       - ./backend:/app/backend
       - sqlite-data:/app/backend/data
-      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       redis:
         condition: service_healthy
+      execution-service:
+        condition: service_started
+    restart: unless-stopped
+
+  execution-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: qcp-backend-dev:latest
+    command: uvicorn app.execution_service_app:execution_service_app --reload --host 0.0.0.0 --port 8010
+    working_dir: /app/backend
+    environment:
+      ENV: dev
+      EXECUTION_BACKEND: local
+      EXECUTION_RUNNER_MODULE: app.services.execution.runner
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      - ./backend:/app/backend
+    expose:
+      - "8010"
     restart: unless-stopped
 
   frontend:
