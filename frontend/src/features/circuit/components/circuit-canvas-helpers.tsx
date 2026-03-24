@@ -10,6 +10,23 @@ const SYMBOLIC_RECT_GATE_BODY_WIDTH_PX = 34;
 const MULTI_GATE_BODY_WIDTH_PX = 48;
 const PARAMETERIZED_GATE_BODY_WIDTH_PX = 52;
 
+export type CanvasConnectorSegment = "start" | "middle" | "end";
+
+interface BuildCanvasCellClassNameOptions {
+  readonly hasOperation: boolean;
+  readonly isSelected: boolean;
+  readonly isConnectorSelected: boolean;
+  readonly isGateDragging: boolean;
+  readonly isHovered: boolean;
+  readonly hasPendingPlacementAtLayer: boolean;
+  readonly connectorSegment: CanvasConnectorSegment | null;
+}
+
+interface BuildViewportClassNameOptions {
+  readonly isPanning: boolean;
+  readonly isPanReady: boolean;
+}
+
 function formatInlineParam(value: number): string {
   return value.toFixed(INLINE_PARAM_PRECISION);
 }
@@ -33,6 +50,74 @@ function getGateLabelLines(operation: Operation): readonly string[] {
     return [gate];
   }
   return [gate, `(${formatGateParams(operation)})`];
+}
+
+export function buildCanvasCellKey(qubit: number, layer: number): string {
+  return `${qubit}-${layer}`;
+}
+
+export function hasDragMime(
+  types: Iterable<string> | null | undefined,
+  mimeType: string,
+): boolean {
+  if (!types) {
+    return false;
+  }
+  return Array.from(types).includes(mimeType);
+}
+
+export function buildViewportClassName({
+  isPanning,
+  isPanReady,
+}: BuildViewportClassNameOptions): string {
+  return [
+    "canvas-viewport",
+    isPanning ? "canvas-viewport--panning" : "",
+    !isPanning && isPanReady ? "canvas-viewport--pan-ready" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+export function buildCanvasCellClassName({
+  hasOperation,
+  isSelected,
+  isConnectorSelected,
+  isGateDragging,
+  isHovered,
+  hasPendingPlacementAtLayer,
+  connectorSegment,
+}: BuildCanvasCellClassNameOptions): string {
+  const classNames = ["canvas-cell"];
+
+  if (hasOperation) {
+    classNames.push("canvas-cell--occupied");
+    if (isSelected) {
+      classNames.push("canvas-cell--selected");
+    } else if (isGateDragging) {
+      classNames.push("canvas-cell--blocked");
+    }
+  } else {
+    classNames.push("canvas-cell--empty");
+    if (hasPendingPlacementAtLayer) {
+      classNames.push("canvas-cell--pending-layer");
+    }
+    if (isGateDragging) {
+      classNames.push("canvas-cell--drop-target");
+      if (isHovered) {
+        classNames.push("canvas-cell--drop-hover");
+      }
+    }
+  }
+
+  if (connectorSegment) {
+    classNames.push("canvas-cell--connector", `canvas-cell--connector-${connectorSegment}`);
+    if (isConnectorSelected) {
+      classNames.push("canvas-cell--connector-selected");
+    }
+  }
+
+  return classNames.join(" ");
 }
 
 export function includesQubit(operation: Operation, qubit: number): boolean {
@@ -147,7 +232,7 @@ export function estimateGateBodyWidthPx(operation: Operation): number {
 export function getConnectorSegment(
   operation: Operation,
   qubit: number,
-): "start" | "middle" | "end" | null {
+): CanvasConnectorSegment | null {
   const touched = getTouchedQubits(operation);
   if (touched.length < 2) {
     return null;

@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     rq_queue_name: str = "qcp-default"
     rq_job_timeout_seconds: int = 90
     token_expire_hours: int = 24
+    password_pbkdf2_iterations: int = 260000
+    password_salt_bytes: int = 16
     qibo_exec_timeout_seconds: int = 60
     execution_backend: str = "docker"
     execution_image: str = "qcp-backend-dev:latest"

@@ -1,3 +1,6 @@
+import { useMemo } from "react";
+import katex from "katex";
+
 import { getGateMatrixPreview } from "../gates/gate-matrix-preview";
 import type { GateName } from "../model/types";
 
@@ -6,32 +9,40 @@ interface GateMatrixTooltipProps {
   readonly accentColor: string;
 }
 
-const GATE_DESCRIPTIONS: Readonly<Record<GateName, string>> = Object.freeze({
-  i: "Identity gate.",
-  x: "Pauli-X gate (bit flip).",
-  y: "Pauli-Y gate.",
-  z: "Pauli-Z gate (phase flip).",
-  h: "Hadamard gate, creates superposition.",
-  s: "S phase gate.",
-  sdg: "Inverse S phase gate.",
-  t: "T phase gate.",
-  tdg: "Inverse T phase gate.",
-  rx: "Rotation around X-axis.",
-  ry: "Rotation around Y-axis.",
-  rz: "Rotation around Z-axis.",
-  u: "General single-qubit U gate.",
-  p: "Phase gate.",
-  cx: "Controlled-X (CNOT) gate.",
-  cp: "Controlled phase gate.",
-  cz: "Controlled-Z gate.",
-  ccx: "Toffoli (CCX) gate.",
-  swap: "Swap gate.",
-  m: "Measurement gate.",
+const GATE_NAMES_ZH: Readonly<Record<GateName, string>> = Object.freeze({
+  i: "恒等门 I",
+  x: "泡利 X 门",
+  y: "泡利 Y 门",
+  z: "泡利 Z 门",
+  h: "Hadamard 门",
+  s: "S 相位门",
+  sdg: "S 逆门",
+  t: "T 相位门",
+  tdg: "T 逆门",
+  rx: "RX 旋转门",
+  ry: "RY 旋转门",
+  rz: "RZ 旋转门",
+  u: "U 通用门",
+  p: "P 相位门",
+  cx: "CX 受控非门",
+  cp: "CP 受控相位门",
+  cz: "CZ 受控 Z 门",
+  ccx: "CCX Toffoli 门",
+  swap: "SWAP 交换门",
+  m: "测量门 M",
 });
 
 function GateMatrixTooltip({ gate, accentColor }: GateMatrixTooltipProps) {
   const preview = getGateMatrixPreview(gate);
-  const description = GATE_DESCRIPTIONS[gate];
+  const matrixHtml = useMemo(
+    () =>
+      katex.renderToString(preview.matrixLatex, {
+        throwOnError: false,
+        displayMode: true,
+        strict: "ignore",
+      }),
+    [preview.matrixLatex],
+  );
 
   return (
     <div
@@ -39,53 +50,60 @@ function GateMatrixTooltip({ gate, accentColor }: GateMatrixTooltipProps) {
       data-testid={`gate-matrix-tooltip-${gate}`}
       style={{
         position: "absolute",
-        top: "calc(100% + 8px)",
+        top: "calc(100% + 6px)",
         left: 0,
         zIndex: 20,
-        width: 300,
-        border: "1px solid #e2e8f0",
-        borderRadius: 12,
+        width: 228,
+        border: "1px solid #dbe3ee",
+        borderRadius: 8,
         background: "#fff",
-        boxShadow: "0 12px 28px rgba(15, 23, 42, 0.16)",
-        padding: 12,
+        boxShadow: "0 6px 16px rgba(15, 23, 42, 0.12)",
+        padding: 8,
       }}
     >
       <strong
         style={{
           display: "block",
-          marginBottom: 10,
+          marginBottom: 4,
           color: accentColor,
-          fontSize: 14,
+          fontSize: 12,
+          lineHeight: 1.3,
         }}
       >
-        {preview.title}
+        {GATE_NAMES_ZH[gate]}
       </strong>
 
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ marginBottom: 4, fontSize: 12, fontWeight: 600, color: "#334155" }}>
-          Matrix:
-        </div>
-        <pre
-          style={{
-            margin: 0,
-            whiteSpace: "pre-wrap",
-            fontSize: 12,
-            lineHeight: 1.4,
-            color: "#0f172a",
-          }}
-        >
-          {preview.body}
-        </pre>
-      </div>
+      <p
+        style={{
+          margin: "0 0 4px",
+          fontSize: 11,
+          lineHeight: 1.35,
+          color: "#1f2937",
+        }}
+      >
+        {preview.descriptionZh}
+      </p>
 
-      <div>
-        <div style={{ marginBottom: 4, fontSize: 12, fontWeight: 600, color: "#334155" }}>
-          Description:
-        </div>
-        <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: "#334155" }}>
-          {description}
-        </p>
-      </div>
+      <p
+        style={{
+          margin: "0 0 6px",
+          fontSize: 11,
+          lineHeight: 1.3,
+          color: "#475569",
+        }}
+      >
+        作用于 {preview.qubitCount} 个量子比特
+      </p>
+
+      <div
+        style={{
+          overflowX: "auto",
+          fontSize: 11,
+          lineHeight: 1.2,
+          color: "#0f172a",
+        }}
+        dangerouslySetInnerHTML={{ __html: matrixHtml }}
+      />
     </div>
   );
 }

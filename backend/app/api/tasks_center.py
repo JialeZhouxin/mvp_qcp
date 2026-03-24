@@ -30,6 +30,7 @@ def get_task_list(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> TaskCenterListResponse:
+    """Return paginated task list for current user with optional status filter."""
     use_case = TaskCenterQueryUseCase(TaskQueryService(session))
     try:
         return to_task_center_list_response(
@@ -52,6 +53,7 @@ def get_task_detail(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> TaskCenterDetailResponse:
+    """Return detail payload for a user-owned task."""
     use_case = TaskCenterQueryUseCase(TaskQueryService(session))
     detail = use_case.get_task_detail(current_user.id, task_id)
     if detail is None:
@@ -73,6 +75,7 @@ async def stream_task_status(
     task_ids: str | None = Query(default=None),
     current_user: User = Depends(get_current_user),
 ) -> StreamingResponse:
+    """Stream task status and heartbeat events via SSE for current user."""
     try:
         watched_task_ids = parse_watched_task_ids(task_ids)
     except ValueError as exc:

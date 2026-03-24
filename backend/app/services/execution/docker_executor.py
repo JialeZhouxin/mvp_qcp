@@ -70,7 +70,7 @@ class DockerExecutor(ExecutionBackend):
             if container is not None:
                 self._cleanup_container(container)
 
-    def _create_container(self, code: str, timeout_seconds: int):
+    def _create_container(self, code: str, timeout_seconds: int) -> Any:
         env_vars = {
             "EXEC_CODE_B64": base64.b64encode(code.encode("utf-8")).decode("ascii"),
             "EXEC_TIMEOUT_SECONDS": str(timeout_seconds),

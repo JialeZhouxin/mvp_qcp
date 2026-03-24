@@ -10,8 +10,6 @@ from app.core.config import settings
 from app.models.user import User
 
 PBKDF2_ALGORITHM = "pbkdf2_sha256"
-PBKDF2_ITERATIONS = 260000
-PASSWORD_SALT_BYTES = 16
 PBKDF2_SEPARATOR = "$"
 
 
@@ -20,14 +18,18 @@ def _hash_legacy_password(password: str, salt: str) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def _encode_pbkdf2_password(password: str, salt: str, iterations: int = PBKDF2_ITERATIONS) -> str:
+def _encode_pbkdf2_password(password: str, salt: str, iterations: int | None = None) -> str:
+    resolved_iterations = iterations or settings.password_pbkdf2_iterations
     digest = hashlib.pbkdf2_hmac(
         "sha256",
         password.encode("utf-8"),
         salt.encode("utf-8"),
-        iterations,
+        resolved_iterations,
     ).hex()
-    return f"{PBKDF2_ALGORITHM}{PBKDF2_SEPARATOR}{iterations}{PBKDF2_SEPARATOR}{salt}{PBKDF2_SEPARATOR}{digest}"
+    return (
+        f"{PBKDF2_ALGORITHM}{PBKDF2_SEPARATOR}{resolved_iterations}"
+        f"{PBKDF2_SEPARATOR}{salt}{PBKDF2_SEPARATOR}{digest}"
+    )
 
 
 def _is_pbkdf2_password(encoded: str) -> bool:
@@ -67,7 +69,7 @@ def register_user(session: Session, username: str, password: str) -> User:
     if existing_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="username already exists")
 
-    salt = secrets.token_hex(PASSWORD_SALT_BYTES)
+    salt = secrets.token_hex(settings.password_salt_bytes)
     user = User(
         username=username,
         password_salt=salt,
@@ -85,7 +87,7 @@ def login_user(session: Session, username: str, password: str) -> str:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid username or password")
 
     if not _is_pbkdf2_password(user.password_hash):
-        upgraded_salt = user.password_salt or secrets.token_hex(PASSWORD_SALT_BYTES)
+        upgraded_salt = user.password_salt or secrets.token_hex(settings.password_salt_bytes)
         user.password_salt = upgraded_salt
         user.password_hash = _encode_pbkdf2_password(password, upgraded_salt)
 

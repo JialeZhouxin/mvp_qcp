@@ -38,15 +38,19 @@ describe("GatePalette", () => {
     });
   });
 
-  it("shows matrix tooltip on hover and focus for cp gate", () => {
+  it("shows compact chinese tooltip with katex rendering on hover and focus", () => {
     render(<GatePalette />);
 
     const cpButton = screen.getByTestId("gate-cp");
     fireEvent.mouseEnter(cpButton);
     const hoveredTooltip = screen.getByTestId("gate-matrix-tooltip-cp");
     expect(hoveredTooltip).toBeInTheDocument();
-    expect(within(hoveredTooltip).getByText("CP(lambda)")).toBeInTheDocument();
-    expect(hoveredTooltip).toHaveTextContent("exp(i*lambda)");
+    expect(within(hoveredTooltip).getByText("CP 受控相位门")).toBeInTheDocument();
+    expect(hoveredTooltip).toHaveTextContent("受控相位门，按条件施加相位旋转。");
+    expect(hoveredTooltip).toHaveTextContent("作用于 2 个量子比特");
+    expect(hoveredTooltip.querySelector(".katex")).not.toBeNull();
+    expect(hoveredTooltip).not.toHaveTextContent("CP(lambda)");
+    expect(hoveredTooltip).not.toHaveTextContent("exp(i*lambda)");
 
     fireEvent.mouseLeave(cpButton);
     expect(screen.queryByTestId("gate-matrix-tooltip-cp")).not.toBeInTheDocument();
@@ -55,6 +59,37 @@ describe("GatePalette", () => {
     expect(screen.getByTestId("gate-matrix-tooltip-cp")).toBeInTheDocument();
     fireEvent.blur(cpButton);
     expect(screen.queryByTestId("gate-matrix-tooltip-cp")).not.toBeInTheDocument();
+  });
+
+  it("suppresses tooltip strictly during drag and allows re-hover after drag end", () => {
+    render(<GatePalette />);
+
+    const panel = screen.getByTestId("gate-palette-panel");
+    const cpButton = screen.getByTestId("gate-cp");
+    const hButton = screen.getByTestId("gate-h");
+
+    fireEvent.mouseEnter(cpButton);
+    expect(screen.getByTestId("gate-matrix-tooltip-cp")).toBeInTheDocument();
+
+    fireEvent.dragStart(cpButton);
+    expect(screen.queryByTestId("gate-matrix-tooltip-cp")).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(hButton);
+    expect(screen.queryByTestId("gate-matrix-tooltip-h")).not.toBeInTheDocument();
+
+    fireEvent.dragEnd(cpButton);
+    expect(screen.queryByTestId("gate-matrix-tooltip-cp")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("gate-matrix-tooltip-h")).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(hButton);
+    expect(screen.getByTestId("gate-matrix-tooltip-h")).toBeInTheDocument();
+
+    fireEvent.dragStart(hButton);
+    fireEvent.drop(panel);
+    expect(screen.queryByTestId("gate-matrix-tooltip-h")).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(cpButton);
+    expect(screen.getByTestId("gate-matrix-tooltip-cp")).toBeInTheDocument();
   });
 });
 

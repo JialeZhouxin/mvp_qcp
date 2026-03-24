@@ -43,6 +43,9 @@ interface GatePaletteProps {
 }
 
 function onDragStart(event: DragEvent<HTMLButtonElement>, gate: GateName) {
+  if (!event.dataTransfer) {
+    return;
+  }
   event.dataTransfer.setData("application/x-qcp-gate", gate);
   event.dataTransfer.effectAllowed = "copy";
 }
@@ -55,11 +58,13 @@ function GatePalette({ gates, showMatrixTooltip = true }: GatePaletteProps) {
     [grouped],
   );
   const [activeGate, setActiveGate] = useState<GateName | null>(null);
+  const [isDraggingGate, setIsDraggingGate] = useState(false);
 
   return (
     <section
       data-testid="gate-palette-panel"
       style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}
+      onDropCapture={() => setIsDraggingGate(false)}
     >
       <h3 style={{ marginTop: 0 }}>门库</h3>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -68,14 +73,27 @@ function GatePalette({ gates, showMatrixTooltip = true }: GatePaletteProps) {
             <button
               type="button"
               draggable
-              onDragStart={(event) => onDragStart(event, item.name)}
-              onMouseEnter={() => setActiveGate(item.name)}
+              onDragStart={(event) => {
+                setActiveGate(null);
+                setIsDraggingGate(true);
+                onDragStart(event, item.name);
+              }}
+              onDragEnd={() => setIsDraggingGate(false)}
+              onMouseEnter={() => {
+                if (!isDraggingGate) {
+                  setActiveGate(item.name);
+                }
+              }}
               onMouseLeave={() =>
                 setActiveGate((current) =>
                   current === item.name ? null : current,
                 )
               }
-              onFocus={() => setActiveGate(item.name)}
+              onFocus={() => {
+                if (!isDraggingGate) {
+                  setActiveGate(item.name);
+                }
+              }}
               onBlur={() =>
                 setActiveGate((current) =>
                   current === item.name ? null : current,
@@ -94,7 +112,7 @@ function GatePalette({ gates, showMatrixTooltip = true }: GatePaletteProps) {
             >
               {item.label}
             </button>
-            {showMatrixTooltip && activeGate === item.name ? (
+            {showMatrixTooltip && !isDraggingGate && activeGate === item.name ? (
               <GateMatrixTooltip
                 gate={item.name}
                 accentColor={item.colorToken}

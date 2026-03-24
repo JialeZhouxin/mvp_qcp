@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from app.schemas.task_stream import TaskHeartbeatEvent, TaskStatusStreamEvent
 from app.services.task_event_stream_service import TaskEventStreamService
 from app.services.task_query_models import TaskDetailView, TaskListView
 from app.services.task_query_service import TaskQueryService
@@ -63,8 +64,8 @@ class TaskStatusStreamUseCase:
         user_id: int,
         watched_task_ids: set[int] | None,
         versions: dict[int, str],
-    ):
+    ) -> tuple[list[TaskStatusStreamEvent], dict[int, str]]:
         return self._service.list_changed_tasks(user_id, watched_task_ids, versions)
 
-    def build_heartbeat(self):
+    def build_heartbeat(self) -> TaskHeartbeatEvent:
         return self._service.build_heartbeat()

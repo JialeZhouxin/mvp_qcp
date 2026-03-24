@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
-const root = path.resolve("E:/02_Projects/quantuncloudplatform/mvp_qcp/frontend");
+const root = fs.existsSync(path.join(process.cwd(), "src"))
+  ? path.resolve(process.cwd())
+  : path.resolve(process.cwd(), "frontend");
 
 function read(file) {
   return fs.readFileSync(path.join(root, file), "utf8");
@@ -27,6 +29,7 @@ run("route pages are thin wrappers around feature screens", () => {
   const taskCenterScreen = read("src/features/task-center/TaskCenterScreen.tsx");
   const taskCenterListHook = read("src/features/task-center/use-task-center-list.ts");
   const taskCenterRealtimeHook = read("src/features/task-center/use-task-center-realtime.ts");
+  const taskCenterStreamHook = read("src/features/task-center/use-task-center-stream.ts");
 
   assert.match(codeTasksPage, /CodeTasksScreen/);
   assert.doesNotMatch(codeTasksPage, /submitTask|getProjectList|getTaskStatus/);
@@ -38,7 +41,7 @@ run("route pages are thin wrappers around feature screens", () => {
   assert.doesNotMatch(taskCenterScreen, /getTaskCenterList|getTaskCenterDetail|connectTaskStatusStream/);
   assert.doesNotMatch(taskCenterListHook, /realtime\/task-stream-client/);
   assert.doesNotMatch(taskCenterRealtimeHook, /realtime\/task-stream-client/);
-  assert.match(taskCenterRealtimeHook, /api\/task-stream/);
+  assert.match(taskCenterStreamHook, /api\/task-stream/);
 
   assert.match(circuitWorkbenchPage, /CircuitWorkbenchScreen/);
   assert.doesNotMatch(circuitWorkbenchPage, /useWorkbenchTaskSubmit|createSimulationScheduler/);
