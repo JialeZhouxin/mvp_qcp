@@ -28,14 +28,15 @@ describe("CircuitWorkbenchPage layout", () => {
     const primaryLayout = await screen.findByTestId("workbench-primary-layout");
     const canvasPanel = await screen.findByTestId("circuit-canvas-panel");
     const canvasToolbar = await screen.findByTestId("canvas-workbench-toolbar");
+    const viewportShell = await screen.findByTestId("canvas-viewport-shell");
 
     expect(submitRail).toContainElement(submitPanel);
     expect(isBefore(submitRail, primaryLayout)).toBe(true);
     expect(submitRail).toHaveStyle({ position: "sticky" });
     expect(submitRail).toHaveStyle({ top: "12px" });
     expect(canvasPanel).toContainElement(canvasToolbar);
+    expect(canvasPanel).toContainElement(viewportShell);
     expect(screen.getByRole("button", { name: WORKBENCH_COPY.toolbar.clearCircuit })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: WORKBENCH_COPY.toolbar.bellTemplate })).toBeInTheDocument();
   });
 });
-

@@ -1,18 +1,14 @@
 from typing import Protocol
 
 from app.services.task_submit_service import TaskSubmitService
+from app.services.task_query_models import UserTaskResultView, UserTaskStatusView
+from app.services.task_query_service import TaskAccessDeniedError, TaskNotFoundError
 from app.services.task_submit_shared import (
     TaskSubmitCommand,
     TaskSubmitOutcome,
     TaskSubmitOverloadedError,
     TaskSubmitQueuePublishError,
     TaskSubmitValidationError,
-)
-from app.services.user_task_query_service import (
-    TaskAccessDeniedError,
-    TaskNotFoundError,
-    UserTaskResultView,
-    UserTaskStatusView,
 )
 
 

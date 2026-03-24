@@ -11,7 +11,7 @@ from app.services.task_submit_shared import (
     TaskSubmitQueuePublishError,
     TaskSubmitValidationError,
 )
-from app.services.user_task_query_service import UserTaskQueryService
+from app.services.task_query_service import TaskQueryService
 from app.use_cases.task_use_cases import (
     GetTaskResultUseCase,
     GetTaskStatusUseCase,
@@ -59,7 +59,7 @@ def get_task_status(
     session: Session = Depends(get_session),
 ) -> TaskStatusResponse:
     try:
-        task = GetTaskStatusUseCase(UserTaskQueryService(session)).execute(current_user.id, task_id)
+        task = GetTaskStatusUseCase(TaskQueryService(session)).execute(current_user.id, task_id)
     except (TaskNotFoundError, TaskAccessDeniedError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found") from exc
     return TaskStatusResponse(
@@ -76,7 +76,7 @@ def get_task_result(
     session: Session = Depends(get_session),
 ) -> TaskResultResponse:
     try:
-        task = GetTaskResultUseCase(UserTaskQueryService(session)).execute(current_user.id, task_id)
+        task = GetTaskResultUseCase(TaskQueryService(session)).execute(current_user.id, task_id)
     except (TaskNotFoundError, TaskAccessDeniedError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found") from exc
 

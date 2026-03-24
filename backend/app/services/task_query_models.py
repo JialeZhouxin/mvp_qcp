@@ -13,6 +13,21 @@ class TaskDiagnosticView:
 
 
 @dataclass(frozen=True)
+class UserTaskStatusView:
+    task_id: int
+    status: str
+    error_message: Any | None
+
+
+@dataclass(frozen=True)
+class UserTaskResultView:
+    task_id: int
+    status: str
+    result: Any | None
+    message: str | None
+
+
+@dataclass(frozen=True)
 class TaskListItemView:
     task_id: int
     status: str

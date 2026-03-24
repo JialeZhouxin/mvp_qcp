@@ -1,14 +1,9 @@
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
-import { toErrorMessage } from "../../../api/errors";
 import {
-  getTaskStatus as getTaskStatusApi,
-  submitTask as submitTaskApi,
-  type TaskStatusResponse,
-  type TaskSubmitResponse,
-} from "../../../api/tasks";
-import type { TaskStreamCallbacks, TaskStreamConnection } from "../../../api/task-stream";
-import { subscribeTaskStream as connectTaskStatusStreamApi } from "../../../api/task-stream";
+  useTaskRuntime,
+  type UseTaskRuntimeDeps,
+} from "../../task-runtime/use-task-runtime";
 import { validateCircuitModel } from "../model/circuit-validation";
 import type { CircuitModel } from "../model/types";
 import type { QasmParseError } from "../qasm/qasm-errors";
@@ -17,50 +12,19 @@ import {
   buildQiboTaskCode,
   buildSubmitFingerprint,
 } from "./circuit-task-submit";
-import {
-  isActiveTaskStatus,
-  toTaskStatusLabel,
-  type TaskTrackingMode,
-  type TaskStatusTrackingDeps,
-  useTaskStatusTracking,
-} from "./use-task-status-tracking";
 
-const SUBMIT_PARSE_ERROR_HINT = "QASM 解析失败，请先修复后再提交。";
-const STATUS_REFRESH_ERROR_HINT = "任务状态刷新失败";
-const TASK_SUBMIT_ERROR_HINT = "任务提交失败";
+const SUBMIT_PARSE_ERROR_HINT = "QASM \u89e3\u6790\u5931\u8d25\uff0c\u8bf7\u5148\u4fee\u590d\u540e\u518d\u63d0\u4ea4\u3002";
+const STATUS_REFRESH_ERROR_HINT = "\u5237\u65b0\u4efb\u52a1\u72b6\u6001\u5931\u8d25";
+const TASK_SUBMIT_ERROR_HINT = "\u4efb\u52a1\u63d0\u4ea4\u5931\u8d25";
+const VALIDATION_ERROR_PREFIX = "\u7535\u8def\u6821\u9a8c\u5931\u8d25\uff1a";
 
-interface TimerDeps {
-  readonly setIntervalFn: (handler: TimerHandler, timeout?: number) => number;
-  readonly clearIntervalFn: (handle: number) => void;
-}
-
-interface TaskApiDeps {
-  readonly submitTask: (code: string, options?: { readonly idempotencyKey?: string }) => Promise<TaskSubmitResponse>;
-  readonly getTaskStatus: (taskId: number) => Promise<TaskStatusResponse>;
-}
-
-interface TaskStreamDeps {
-  readonly connectTaskStatusStream: (
-    taskIds: number[] | null,
-    callbacks: TaskStreamCallbacks,
-  ) => TaskStreamConnection;
-}
-
-export interface UseWorkbenchTaskSubmitDeps extends TaskApiDeps, TaskStreamDeps, TimerDeps {}
+export interface UseWorkbenchTaskSubmitDeps extends UseTaskRuntimeDeps {}
 
 interface UseWorkbenchTaskSubmitParams {
   readonly circuit: CircuitModel;
   readonly parseError: QasmParseError | null;
   readonly deps?: Partial<UseWorkbenchTaskSubmitDeps>;
 }
-
-const DEFAULT_DEPS: UseWorkbenchTaskSubmitDeps = {
-  submitTask: submitTaskApi,
-  getTaskStatus: getTaskStatusApi,
-  connectTaskStatusStream: connectTaskStatusStreamApi,
-  setIntervalFn: (handler, timeout) => window.setInterval(handler, timeout),
-  clearIntervalFn: (handle) => window.clearInterval(handle),
-};
 
 function resolveSubmitBlockReason(
   circuit: CircuitModel,
@@ -71,98 +35,69 @@ function resolveSubmitBlockReason(
   }
   const validation = validateCircuitModel(circuit);
   if (!validation.ok) {
-    return `电路校验失败：${validation.error.message}`;
+    return `${VALIDATION_ERROR_PREFIX}${validation.error.message}`;
   }
   return null;
 }
 
 export function useWorkbenchTaskSubmit({ circuit, parseError, deps }: UseWorkbenchTaskSubmitParams) {
-  const resolvedDeps = useMemo<UseWorkbenchTaskSubmitDeps>(
-    () => ({ ...DEFAULT_DEPS, ...deps }),
-    [deps],
-  );
-  const trackingDeps = resolvedDeps as TaskStatusTrackingDeps;
-
-  const [submittingTask, setSubmittingTask] = useState(false);
-  const [submittedTaskId, setSubmittedTaskId] = useState<number | null>(null);
-  const [submittedTaskStatus, setSubmittedTaskStatus] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [deduplicatedSubmit, setDeduplicatedSubmit] = useState(false);
-
+  const [blockedSubmitError, setBlockedSubmitError] = useState<string | null>(null);
   const {
+    taskId,
+    taskStatus,
+    taskStatusLabel,
+    submittingTask,
+    taskError,
+    deduplicatedSubmit,
     trackingMode,
+    isTracking,
     elapsedSeconds,
-    applyTaskStatus,
-    startTracking,
-    stopTracking,
-    resetTracking,
-    pollTaskStatus,
-  } = useTaskStatusTracking({
-    deps: trackingDeps,
-    onStatusUpdated: setSubmittedTaskStatus,
-    onStatusRefreshError: (error) => {
-      setSubmitError(toErrorMessage(error, STATUS_REFRESH_ERROR_HINT));
-    },
+    submitTaskCode,
+    refreshTaskStatus,
+  } = useTaskRuntime({
+    deps,
+    trackingStrategy: "stream-first",
+    submitErrorHint: TASK_SUBMIT_ERROR_HINT,
+    statusRefreshErrorHint: STATUS_REFRESH_ERROR_HINT,
   });
 
   useEffect(() => {
     if (parseError) {
-      setSubmitError(SUBMIT_PARSE_ERROR_HINT);
+      setBlockedSubmitError(SUBMIT_PARSE_ERROR_HINT);
       return;
     }
-    setSubmitError((previous) => (previous === SUBMIT_PARSE_ERROR_HINT ? null : previous));
+    setBlockedSubmitError((previous) => (previous === SUBMIT_PARSE_ERROR_HINT ? null : previous));
   }, [parseError]);
 
   async function onSubmitTask() {
     const blockedReason = resolveSubmitBlockReason(circuit, parseError);
     if (blockedReason) {
-      setSubmitError(blockedReason);
+      setBlockedSubmitError(blockedReason);
       return;
     }
 
-    setSubmittingTask(true);
-    setSubmitError(null);
-    setDeduplicatedSubmit(false);
-    resetTracking();
-    try {
-      const generatedCode = buildQiboTaskCode(circuit);
-      const fingerprint = buildSubmitFingerprint(circuit);
-      const idempotencyKey = buildIdempotencyKey(fingerprint);
-      const response = await resolvedDeps.submitTask(generatedCode, { idempotencyKey });
-      setSubmittedTaskId(response.task_id);
-      setSubmittedTaskStatus(response.status);
-      setDeduplicatedSubmit(response.deduplicated === true);
-      startTracking(response.task_id, response.status);
-    } catch (error) {
-      setSubmitError(toErrorMessage(error, TASK_SUBMIT_ERROR_HINT));
-      stopTracking();
-    } finally {
-      setSubmittingTask(false);
-    }
+    setBlockedSubmitError(null);
+    const generatedCode = buildQiboTaskCode(circuit);
+    const fingerprint = buildSubmitFingerprint(circuit);
+    const idempotencyKey = buildIdempotencyKey(fingerprint);
+    await submitTaskCode(generatedCode, { idempotencyKey });
   }
 
   async function onRefreshTaskStatus() {
-    if (!submittedTaskId) {
-      return;
-    }
-    setSubmitError(null);
-    try {
-      await pollTaskStatus(submittedTaskId);
-    } catch {
-      // errors are handled in useTaskStatusTracking via onStatusRefreshError callback
-    }
+    setBlockedSubmitError(null);
+    await refreshTaskStatus();
   }
 
   return {
     submittingTask,
-    submittedTaskId,
-    submittedTaskStatus,
-    taskStatusLabel: toTaskStatusLabel(submittedTaskStatus),
-    submitError,
+    submittedTaskId: taskId,
+    submittedTaskStatus: taskStatus,
+    taskStatusLabel,
+    submitError: blockedSubmitError ?? taskError,
     deduplicatedSubmit,
     canSubmit: parseError === null,
-    trackingMode: trackingMode as TaskTrackingMode,
-    isTracking: isActiveTaskStatus(submittedTaskStatus) && trackingMode !== "idle",
+    trackingMode,
+    isTracking,
     elapsedSeconds,
     onSubmitTask,
     onRefreshTaskStatus,

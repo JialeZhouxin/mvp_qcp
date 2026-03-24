@@ -1,5 +1,5 @@
-import type { TaskCenterListItem } from "../../api/task-center";
-import { TASK_STATUS_FILTER_OPTIONS } from "../../features/task-status/task-status";
+﻿import type { TaskCenterListItem } from "../../../api/task-center";
+import { TASK_STATUS_FILTER_OPTIONS } from "../../../lib/task-status";
 
 interface TaskListPanelProps {
   tasks: TaskCenterListItem[];
@@ -25,7 +25,7 @@ function TaskListPanel({
   return (
     <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-        <h3 style={{ margin: 0 }}>\u4efb\u52a1\u5217\u8868</h3>
+        <h3 style={{ margin: 0 }}>任务列表</h3>
         <select
           value={statusFilter}
           onChange={(event) => onStatusFilterChange(event.target.value)}
@@ -33,15 +33,15 @@ function TaskListPanel({
         >
           {TASK_STATUS_FILTER_OPTIONS.map((value) => (
             <option value={value} key={value}>
-              {value === "ALL" ? "\u5168\u90e8\u72b6\u6001" : value}
+              {value === "ALL" ? "全部状态" : value}
             </option>
           ))}
         </select>
         <button type="button" onClick={onRefresh}>
-          \u5237\u65b0
+          刷新
         </button>
       </div>
-      {loading ? <p>\u52a0\u8f7d\u4e2d...</p> : null}
+      {loading ? <p>加载中...</p> : null}
       {error ? <p style={{ color: "#cf1322" }}>{error}</p> : null}
       <div style={{ maxHeight: 360, overflow: "auto", display: "grid", gap: 6 }}>
         {tasks.map((task) => (
@@ -59,7 +59,7 @@ function TaskListPanel({
           >
             <div>#{task.task_id} {task.status}</div>
             <div style={{ fontSize: 12, color: "#666" }}>
-              \u91cd\u8bd5 {task.attempt_count} \u6b21 | \u8017\u65f6 {task.duration_ms ?? "-"} ms
+              重试 {task.attempt_count} 次 | 耗时 {task.duration_ms ?? "-"} ms
             </div>
           </button>
         ))}

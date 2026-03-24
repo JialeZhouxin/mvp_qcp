@@ -29,12 +29,12 @@ const FAILURE_TASK_STATUS_SET = new Set<TaskStatus>([
 ]);
 
 const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
-  PENDING: "\u6392\u961f\u4e2d",
-  RUNNING: "\u6267\u884c\u4e2d",
-  SUCCESS: "\u6267\u884c\u6210\u529f",
-  FAILURE: "\u6267\u884c\u5931\u8d25",
-  TIMEOUT: "\u6267\u884c\u8d85\u65f6",
-  RETRY_EXHAUSTED: "\u91cd\u8bd5\u8017\u5c3d",
+  PENDING: "排队中",
+  RUNNING: "执行中",
+  SUCCESS: "执行成功",
+  FAILURE: "执行失败",
+  TIMEOUT: "执行超时",
+  RETRY_EXHAUSTED: "重试耗尽",
 };
 
 export function isTaskStatus(status: string | null): status is TaskStatus {

@@ -28,6 +28,10 @@ function run(name, fn) {
   }
 }
 
+function assertReadableSource(source, label) {
+  assert.doesNotMatch(source, /\uFFFD/, `${label} contains replacement characters`);
+}
+
 run("token storage source contract", () => {
   const src = read("src/auth/token.ts");
   assert.match(src, /TOKEN_KEY\s*=\s*"qcp_access_token"/);
@@ -58,11 +62,12 @@ run("frontend key files exist", () => {
   assert.equal(exists("src/components/ResultChart.tsx"), true);
   assert.equal(exists("src/api/generated/contracts.ts"), true);
   assert.equal(exists("src/api/task-stream.ts"), true);
-  assert.equal(exists("src/components/projects/ProjectPanel.tsx"), true);
   assert.equal(exists("src/features/code-tasks/CodeTasksHeader.tsx"), true);
   assert.equal(exists("src/features/code-tasks/CodeTasksActions.tsx"), true);
   assert.equal(exists("src/features/code-tasks/CodeTasksStatusPanel.tsx"), true);
   assert.equal(exists("src/features/code-tasks/CodeTasksResultPanel.tsx"), true);
+  assert.equal(exists("src/features/code-tasks/components/CodeProjectPanel.tsx"), true);
+  assert.equal(exists("src/features/circuit/components/WorkbenchProjectPanel.tsx"), true);
   assert.equal(exists("src/features/circuit/ui/use-workbench-editor-state.ts"), true);
   assert.equal(exists("src/features/circuit/simulation/use-workbench-simulation.ts"), true);
   assert.equal(exists("src/features/circuit/ui/use-workbench-draft-sync.ts"), true);
@@ -70,6 +75,8 @@ run("frontend key files exist", () => {
   assert.equal(exists("src/features/task-center/use-task-center-list.ts"), true);
   assert.equal(exists("src/features/task-center/use-task-center-detail.ts"), true);
   assert.equal(exists("src/features/task-center/use-task-center-realtime.ts"), true);
+  assert.equal(exists("src/features/task-center/components/TaskListPanel.tsx"), true);
+  assert.equal(exists("src/features/task-center/components/TaskDetailPanel.tsx"), true);
   assert.equal(existsFromRepo("backend/app/dependencies/task_submit.py"), true);
 });
 
@@ -93,41 +100,40 @@ run("task stream client uses generated contracts instead of local event interfac
   assert.match(src, /generated\/contracts/);
 });
 
-run("task center copy is readable UTF-8 text", () => {
+run("task center source stays inside feature boundary", () => {
   const screenSource = read("src/features/task-center/TaskCenterScreen.tsx");
+  const listPanelSource = read("src/features/task-center/components/TaskListPanel.tsx");
+  const detailPanelSource = read("src/features/task-center/components/TaskDetailPanel.tsx");
   const listHookSource = read("src/features/task-center/use-task-center-list.ts");
   const detailHookSource = read("src/features/task-center/use-task-center-detail.ts");
 
-  assert.match(screenSource, /任务中心（状态跟踪与结果诊断）/);
-  assert.match(screenSource, /实时状态流连接已断开/);
-  assert.match(screenSource, /立即重连/);
-  assert.match(listHookSource, /加载任务列表失败/);
-  assert.match(detailHookSource, /加载任务详情失败/);
-  assert.doesNotMatch(screenSource, /Ã/);
-  assert.doesNotMatch(listHookSource, /Ã|æ°“/);
-  assert.doesNotMatch(detailHookSource, /Ã|æ°“/);
+  assert.match(screenSource, /\.\/components\/TaskListPanel/);
+  assert.match(screenSource, /\.\/components\/TaskDetailPanel/);
+  assert.match(listPanelSource, /TASK_STATUS_FILTER_OPTIONS/);
+  assert.match(detailPanelSource, /detail\.diagnostic/);
+  assert.match(listHookSource, /getTaskCenterList/);
+  assert.match(detailHookSource, /getTaskCenterDetail/);
+  assert.doesNotMatch(screenSource, /components\/task-center/);
+  assertReadableSource(screenSource, "TaskCenterScreen");
+  assertReadableSource(listPanelSource, "TaskListPanel");
+  assertReadableSource(detailPanelSource, "TaskDetailPanel");
 });
 
-run("code task copy is readable UTF-8 text", () => {
-  const headerSource = read("src/features/code-tasks/CodeTasksHeader.tsx");
-  const actionsSource = read("src/features/code-tasks/CodeTasksActions.tsx");
-  const resultPanelSource = read("src/features/code-tasks/CodeTasksResultPanel.tsx");
+run("code task runtime uses feature local project panel", () => {
+  const screenSource = read("src/features/code-tasks/CodeTasksScreen.tsx");
   const runHookSource = read("src/features/code-tasks/useCodeTaskRun.ts");
   const projectsHookSource = read("src/features/code-tasks/useCodeProjects.ts");
-  const projectPanelSource = read("src/components/projects/ProjectPanel.tsx");
+  const projectPanelSource = read("src/features/code-tasks/components/CodeProjectPanel.tsx");
+  const workbenchProjectPanelSource = read("src/features/circuit/components/WorkbenchProjectPanel.tsx");
 
-  assert.match(headerSource, /Python \/ Qibo 代码任务/);
-  assert.match(actionsSource, /刷新任务状态/);
-  assert.match(resultPanelSource, /提交成功后将在这里展示概率分布图和可视化结果/);
-  assert.match(runHookSource, /任务提交失败/);
-  assert.match(projectsHookSource, /项目保存成功/);
-  assert.match(projectPanelSource, /项目面板/);
-  assert.doesNotMatch(headerSource, /Ã|æµ|éŽ»/);
-  assert.doesNotMatch(actionsSource, /Ã|æµ|éŽ»/);
-  assert.doesNotMatch(resultPanelSource, /Ã|æµ|éŽ»/);
-  assert.doesNotMatch(runHookSource, /Ã|é|ç¼|éŽ»/);
-  assert.doesNotMatch(projectsHookSource, /Ã|é”|æ¤¤/);
-  assert.doesNotMatch(projectPanelSource, /妞ゅ|鏉堟|娣囨/);
+  assert.match(screenSource, /\.\/components\/CodeProjectPanel/);
+  assert.match(runHookSource, /useTaskRuntime/);
+  assert.match(projectsHookSource, /loadProjects/);
+  assert.match(projectPanelSource, /entry_type === "code"/);
+  assert.match(workbenchProjectPanelSource, /entry_type === "circuit"/);
+  assert.doesNotMatch(screenSource, /components\/projects\/ProjectPanel/);
+  assertReadableSource(projectPanelSource, "CodeProjectPanel");
+  assertReadableSource(workbenchProjectPanelSource, "WorkbenchProjectPanel");
 });
 
 if (process.exitCode && process.exitCode !== 0) {

@@ -1,8 +1,8 @@
 ﻿import { useCallback } from "react";
 import { Link } from "react-router-dom";
 
-import TaskDetailPanel from "../../components/task-center/TaskDetailPanel";
-import TaskListPanel from "../../components/task-center/TaskListPanel";
+import TaskDetailPanel from "./components/TaskDetailPanel";
+import TaskListPanel from "./components/TaskListPanel";
 import { useTaskCenterDetail } from "./use-task-center-detail";
 import { useTaskCenterList } from "./use-task-center-list";
 import { useTaskCenterRealtime } from "./use-task-center-realtime";

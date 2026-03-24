@@ -1,4 +1,4 @@
-import type { TaskCenterDetailResponse } from "../../api/task-center";
+﻿import type { TaskCenterDetailResponse } from "../../../api/task-center";
 
 interface TaskDetailPanelProps {
   detail: TaskCenterDetailResponse | null;
@@ -27,7 +27,7 @@ function TaskDetailPanel({ detail, loading, error }: TaskDetailPanelProps) {
     return (
       <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
         <h3 style={{ marginTop: 0 }}>任务详情</h3>
-        <p style={{ color: "#666" }}>请先在左侧选择一个任务。</p>
+        <p style={{ color: "#666" }}>请选择一个任务查看执行结果与诊断信息。</p>
       </section>
     );
   }
@@ -35,7 +35,7 @@ function TaskDetailPanel({ detail, loading, error }: TaskDetailPanelProps) {
     <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
       <h3 style={{ marginTop: 0 }}>任务详情 #{detail.task_id}</h3>
       <p style={{ margin: "0 0 6px 0" }}>状态：{detail.status}</p>
-      <p style={{ margin: "0 0 6px 0" }}>尝试次数：{detail.attempt_count}</p>
+      <p style={{ margin: "0 0 6px 0" }}>重试次数：{detail.attempt_count}</p>
       <p style={{ margin: "0 0 6px 0" }}>耗时：{detail.duration_ms ?? "-"} ms</p>
 
       {detail.diagnostic ? (
@@ -44,7 +44,7 @@ function TaskDetailPanel({ detail, loading, error }: TaskDetailPanelProps) {
             诊断：[{detail.diagnostic.code}] {detail.diagnostic.summary ?? detail.diagnostic.message}
           </p>
           <p style={{ margin: "0 0 4px 0", color: "#666" }}>阶段：{detail.diagnostic.phase}</p>
-          <p style={{ margin: "0 0 6px 0", color: "#666" }}>原始信息：{detail.diagnostic.message}</p>
+          <p style={{ margin: "0 0 6px 0", color: "#666" }}>消息：{detail.diagnostic.message}</p>
           {detail.diagnostic.suggestions.length > 0 ? (
             <ul style={{ margin: 0, paddingLeft: 18 }}>
               {detail.diagnostic.suggestions.map((item) => (

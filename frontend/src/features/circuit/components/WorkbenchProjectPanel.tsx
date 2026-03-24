@@ -1,9 +1,8 @@
 ﻿import { useState } from "react";
 
-import type { ProjectEntryType, ProjectItem } from "../../api/projects";
+import type { ProjectItem } from "../../../api/projects";
 
-interface ProjectPanelProps {
-  entryType: ProjectEntryType;
+interface WorkbenchProjectPanelProps {
   projects: ProjectItem[];
   loading: boolean;
   saving: boolean;
@@ -14,8 +13,7 @@ interface ProjectPanelProps {
   onLoad: (projectId: number) => void;
 }
 
-function ProjectPanel({
-  entryType,
+function WorkbenchProjectPanel({
   projects,
   loading,
   saving,
@@ -24,16 +22,16 @@ function ProjectPanel({
   onRefresh,
   onSave,
   onLoad,
-}: ProjectPanelProps) {
+}: WorkbenchProjectPanelProps) {
   const [name, setName] = useState("");
-  const filtered = projects.filter((project) => project.entry_type === entryType);
+  const circuitProjects = projects.filter((project) => project.entry_type === "circuit");
 
   return (
     <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
       <h3 style={{ marginTop: 0 }}>项目面板</h3>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <input
-          placeholder={entryType === "code" ? "输入代码项目名称" : "输入电路项目名称"}
+          placeholder="输入电路项目名称"
           value={name}
           onChange={(event) => setName(event.target.value)}
           style={{ flex: 1 }}
@@ -55,7 +53,7 @@ function ProjectPanel({
       {error ? <p style={{ color: "#cf1322", margin: "4px 0" }}>{error}</p> : null}
       {success ? <p style={{ color: "#389e0d", margin: "4px 0" }}>{success}</p> : null}
       <div style={{ display: "grid", gap: 6, maxHeight: 180, overflow: "auto" }}>
-        {filtered.map((project) => (
+        {circuitProjects.map((project) => (
           <button
             type="button"
             key={project.id}
@@ -71,4 +69,4 @@ function ProjectPanel({
   );
 }
 
-export default ProjectPanel;
+export default WorkbenchProjectPanel;

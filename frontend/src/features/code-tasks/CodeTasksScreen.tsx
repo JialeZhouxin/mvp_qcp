@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 
 import { useAuthSession } from "../../auth/session";
 import CodeEditor from "../../components/CodeEditor";
-import ProjectPanel from "../../components/projects/ProjectPanel";
 import CodeTasksActions from "./CodeTasksActions";
 import CodeTasksHeader from "./CodeTasksHeader";
 import CodeTasksResultPanel from "./CodeTasksResultPanel";
 import CodeTasksStatusPanel from "./CodeTasksStatusPanel";
+import CodeProjectPanel from "./components/CodeProjectPanel";
 import { useCodeProjects } from "./useCodeProjects";
 import { useCodeTaskRun } from "./useCodeTaskRun";
 
@@ -89,8 +89,7 @@ function CodeTasksScreen() {
       />
 
       <section style={{ marginTop: 16 }}>
-        <ProjectPanel
-          entryType="code"
+        <CodeProjectPanel
           projects={projects}
           loading={projectLoading}
           saving={projectSaving}

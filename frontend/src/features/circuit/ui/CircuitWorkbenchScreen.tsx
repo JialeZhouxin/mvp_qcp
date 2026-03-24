@@ -1,9 +1,9 @@
 ﻿import CircuitCanvas from "../components/CircuitCanvas";
 import GatePalette from "../components/GatePalette";
-import ProjectPanel from "../../../components/projects/ProjectPanel";
 import QasmEditorPane from "../components/QasmEditorPane";
 import QasmErrorPanel from "../components/QasmErrorPanel";
 import WorkbenchGuide from "../components/WorkbenchGuide";
+import WorkbenchProjectPanel from "../components/WorkbenchProjectPanel";
 import WorkbenchResultPanel from "../components/WorkbenchResultPanel";
 import WorkbenchSubmitPanel from "../components/WorkbenchSubmitPanel";
 import { useWorkbenchTaskSubmit } from "../submission/use-workbench-task-submit";
@@ -153,8 +153,7 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
         onDisplayModeChange={setDisplayMode}
       />
 
-      <ProjectPanel
-        entryType="circuit"
+      <WorkbenchProjectPanel
         projects={projects}
         loading={projectLoading}
         saving={projectSaving}

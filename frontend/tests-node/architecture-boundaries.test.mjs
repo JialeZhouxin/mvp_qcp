@@ -73,9 +73,11 @@ run("shared project panel is not owned by task-center feature", () => {
   const codeTasksScreen = read("src/features/code-tasks/CodeTasksScreen.tsx");
   const workbenchScreen = read("src/features/circuit/ui/CircuitWorkbenchScreen.tsx");
 
-  assert.doesNotMatch(codeTasksScreen, /components\/task-center\/ProjectPanel/);
-  assert.doesNotMatch(workbenchScreen, /components\/task-center\/ProjectPanel/);
-  assert.equal(fs.existsSync(path.join(root, "src/components/projects/ProjectPanel.tsx")), true);
+  assert.doesNotMatch(codeTasksScreen, /components\/projects\/ProjectPanel/);
+  assert.doesNotMatch(workbenchScreen, /components\/projects\/ProjectPanel/);
+  assert.equal(fs.existsSync(path.join(root, "src/components/projects/ProjectPanel.tsx")), false);
+  assert.equal(fs.existsSync(path.join(root, "src/features/code-tasks/components/CodeProjectPanel.tsx")), true);
+  assert.equal(fs.existsSync(path.join(root, "src/features/circuit/components/WorkbenchProjectPanel.tsx")), true);
   assert.equal(fs.existsSync(path.join(root, "src/components/task-center/ProjectPanel.tsx")), false);
 });
 
@@ -105,6 +107,27 @@ run("shared components do not depend on feature modules", () => {
   for (const source of sources) {
     assert.doesNotMatch(source, /from\s+["'][^"']*features\//);
   }
+});
+
+run("shared task runtime does not keep compatibility entrypoints under circuit feature", () => {
+  const sharedRuntimeSource = read("src/features/task-runtime/use-task-runtime.ts");
+
+  assert.doesNotMatch(sharedRuntimeSource, /circuit\/submission\/use-task-status-tracking/);
+  assert.equal(
+    fs.existsSync(path.join(root, "src/features/circuit/submission/use-task-status-tracking.ts")),
+    false,
+  );
+});
+
+run("task-center panels live under task-center feature instead of shared components", () => {
+  const taskCenterScreen = read("src/features/task-center/TaskCenterScreen.tsx");
+
+  assert.doesNotMatch(taskCenterScreen, /components\/task-center\/TaskListPanel/);
+  assert.doesNotMatch(taskCenterScreen, /components\/task-center\/TaskDetailPanel/);
+  assert.equal(fs.existsSync(path.join(root, "src/components/task-center/TaskListPanel.tsx")), false);
+  assert.equal(fs.existsSync(path.join(root, "src/components/task-center/TaskDetailPanel.tsx")), false);
+  assert.equal(fs.existsSync(path.join(root, "src/features/task-center/components/TaskListPanel.tsx")), true);
+  assert.equal(fs.existsSync(path.join(root, "src/features/task-center/components/TaskDetailPanel.tsx")), true);
 });
 
 if (process.exitCode && process.exitCode !== 0) {

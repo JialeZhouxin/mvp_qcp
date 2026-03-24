@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 
-import { EDITOR_MAX_QUBITS, EDITOR_MIN_QUBITS } from "../model/constants";
-import { decreaseQubits, increaseQubits } from "../model/circuit-model";
+import { EDITOR_MAX_QUBITS } from "../model/constants";
 import {
   canRedoHistory,
   canUndoHistory,
@@ -10,12 +9,11 @@ import {
   undoHistoryState,
   type EditorHistoryState,
 } from "../model/history";
-import { loadCircuitTemplate } from "../model/templates";
 import type { CircuitModel } from "../model/types";
 import { toQasm3 } from "../qasm/qasm-bridge";
 import type { QasmParseError } from "../qasm/qasm-errors";
 import type { ProbabilityDisplayMode } from "../simulation/probability-filter";
-import { WORKBENCH_COPY } from "./copy-catalog";
+import { useWorkbenchCanvasControls } from "./use-workbench-canvas-controls";
 import {
   areCircuitsEquivalent,
   buildInitialState,
@@ -39,7 +37,6 @@ export function useWorkbenchEditorState() {
   const [qasm, setQasm] = useState(initialState.qasm);
   const [displayMode, setDisplayMode] = useState<ProbabilityDisplayMode>(initialState.displayMode);
   const [parseError, setParseError] = useState<QasmParseError | null>(null);
-  const [qubitMessage, setQubitMessage] = useState<string | null>(null);
   const [resetVersion, setResetVersion] = useState(0);
 
   const circuit = history.present;
@@ -54,65 +51,6 @@ export function useWorkbenchEditorState() {
     setHistory((previous) => createNextHistoryState(previous, next));
   };
 
-  const replaceFromProject = (payload: WorkbenchProjectPayload) => {
-    setHistory(createHistoryState(payload.circuit));
-    setQasm(payload.qasm);
-    setDisplayMode(payload.displayMode);
-    setParseError(null);
-    setQubitMessage(null);
-  };
-
-  const onValidQasmChange = (nextModel: CircuitModel) => {
-    if (!areCircuitsEquivalent(nextModel, circuit)) {
-      pushCircuit(nextModel);
-    }
-  };
-
-  const onClearCircuit = () => {
-    setQubitMessage(null);
-    pushCircuit({ numQubits: circuit.numQubits, operations: [] });
-  };
-
-  const onResetWorkbench = () => {
-    const fallback = createDefaultCircuit();
-    setHistory(createHistoryState(fallback));
-    setQasm(toQasm3(fallback));
-    setDisplayMode(DEFAULT_DISPLAY_MODE);
-    setParseError(null);
-    setQubitMessage(null);
-    setResetVersion((previous) => previous + 1);
-  };
-
-  const onIncreaseQubits = () => {
-    const result = increaseQubits(circuit, {
-      minQubits: EDITOR_MIN_QUBITS,
-      maxQubits: EDITOR_MAX_QUBITS,
-    });
-    if (!result.ok) {
-      setQubitMessage(WORKBENCH_COPY.editor.maxQubitReached);
-      return;
-    }
-    setQubitMessage(null);
-    pushCircuit(result.model);
-  };
-
-  const onDecreaseQubits = () => {
-    const result = decreaseQubits(circuit, {
-      minQubits: EDITOR_MIN_QUBITS,
-      maxQubits: EDITOR_MAX_QUBITS,
-    });
-    if (!result.ok) {
-      if (result.code === "QUBIT_SHRINK_BLOCKED_BY_OPERATION") {
-        setQubitMessage(WORKBENCH_COPY.editor.shrinkBlockedByOperation);
-      } else {
-        setQubitMessage(WORKBENCH_COPY.editor.minQubitReached);
-      }
-      return;
-    }
-    setQubitMessage(null);
-    pushCircuit(result.model);
-  };
-
   const historyState = {
     canUndo: canUndoHistory(history),
     canRedo: canRedoHistory(history),
@@ -120,22 +58,37 @@ export function useWorkbenchEditorState() {
     onRedo: () => setHistory((previous) => redoHistoryState(previous)),
   };
 
-  const canvasControls = {
+  const resetWorkbenchState = () => {
+    const fallback = createDefaultCircuit();
+    setHistory(createHistoryState(fallback));
+    setQasm(toQasm3(fallback));
+    setDisplayMode(DEFAULT_DISPLAY_MODE);
+    setParseError(null);
+    setResetVersion((previous) => previous + 1);
+  };
+
+  const { clearQubitMessage, canvasControls, actions } = useWorkbenchCanvasControls({
+    circuit,
     canUndo: historyState.canUndo,
     canRedo: historyState.canRedo,
-    currentQubits: circuit.numQubits,
-    canIncreaseQubits: circuit.numQubits < EDITOR_MAX_QUBITS,
-    canDecreaseQubits:
-      decreaseQubits(circuit, {
-        minQubits: EDITOR_MIN_QUBITS,
-        maxQubits: EDITOR_MAX_QUBITS,
-      }).ok,
-    qubitMessage,
-    onIncreaseQubits,
-    onDecreaseQubits,
-    onClearCircuit,
-    onResetWorkbench,
-    onLoadTemplate: (templateId: string) => pushCircuit(loadCircuitTemplate(templateId)),
+    onUndo: historyState.onUndo,
+    onRedo: historyState.onRedo,
+    onPushCircuit: pushCircuit,
+    onResetWorkbench: resetWorkbenchState,
+  });
+
+  const replaceFromProject = (payload: WorkbenchProjectPayload) => {
+    clearQubitMessage();
+    setHistory(createHistoryState(payload.circuit));
+    setQasm(payload.qasm);
+    setDisplayMode(payload.displayMode);
+    setParseError(null);
+  };
+
+  const onValidQasmChange = (nextModel: CircuitModel) => {
+    if (!areCircuitsEquivalent(nextModel, circuit)) {
+      pushCircuit(nextModel);
+    }
   };
 
   return {
@@ -150,14 +103,11 @@ export function useWorkbenchEditorState() {
     onValidQasmChange,
     replaceFromProject,
     historyState,
-    canvasControls,
-    actions: {
-      onClearCircuit,
-      onResetWorkbench,
-      onIncreaseQubits,
-      onDecreaseQubits,
+    canvasControls: {
+      ...canvasControls,
+      canIncreaseQubits: circuit.numQubits < EDITOR_MAX_QUBITS,
     },
+    actions,
     resetVersion,
   };
 }
-

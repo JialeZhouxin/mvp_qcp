@@ -75,3 +75,7 @@ def test_task_submit_provider_is_not_kept_under_use_cases() -> None:
 
     tasks_api_source = _read("app", "api", "tasks.py")
     assert "from app.dependencies.task_submit import build_submit_task_use_case" in tasks_api_source
+
+
+def test_legacy_task_query_compatibility_service_is_removed() -> None:
+    assert not (ROOT / "app" / "services" / "user_task_query_service.py").exists()

@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { TaskStatusResponse } from "../../../api/tasks";
+import type { TaskStatusResponse } from "../../api/tasks";
 import type {
   TaskStreamCallbacks,
   TaskStreamConnection,
-} from "../../../api/task-stream";
+} from "../../api/task-stream";
 import {
   isActiveTaskStatus,
   isTerminalTaskStatus,
   toTaskStatusLabel,
-} from "../../task-status/task-status";
+} from "../../lib/task-status";
 
 const POLLING_INTERVAL_MS = 3000;
 const ELAPSED_TICK_MS = 1000;
