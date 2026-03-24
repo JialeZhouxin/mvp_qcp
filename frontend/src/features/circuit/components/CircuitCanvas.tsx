@@ -5,13 +5,13 @@ import OperationParameterPanel from "./OperationParameterPanel";
 import CircuitCanvasViewport from "./CircuitCanvasViewport";
 import { MessageBlock } from "./circuit-canvas-helpers";
 import CircuitCanvasToolbar from "./CircuitCanvasToolbar";
+import { useCircuitCanvasDragEvents } from "./use-circuit-canvas-drag-events";
 import { useCircuitCanvasHotkeys } from "./use-circuit-canvas-hotkeys";
 import { useCircuitCanvasInteractions } from "./use-circuit-canvas-interactions";
 import { useCircuitCanvasViewport } from "./use-circuit-canvas-viewport";
 import "./CircuitCanvas.css";
 
 const DEFAULT_MIN_LAYERS = 8;
-const GATE_DRAG_MIME = "application/x-qcp-gate";
 const NOOP_HANDLER = () => {};
 const BELL_TEMPLATE_ID = "bell";
 const SUPERPOSITION_TEMPLATE_ID = "superposition";
@@ -92,6 +92,16 @@ function CircuitCanvas({
     onViewportPointerUp,
     onViewportPointerCancel,
   } = useCircuitCanvasViewport();
+  const {
+    onDragEnterCell,
+    onDragOverCell,
+    onDragLeaveCell,
+    onDropCell,
+  } = useCircuitCanvasDragEvents({
+    showGateDragPreview,
+    clearHoveredCell,
+    onDropGate,
+  });
   const hasWorkbenchControls = controls !== undefined;
   const canUndoAction = controls?.canUndo ?? false;
   const canRedoAction = controls?.canRedo ?? false;
@@ -104,55 +114,6 @@ function CircuitCanvas({
   const onClearCircuit = controls?.onClearCircuit ?? NOOP_HANDLER;
   const onResetWorkbench = controls?.onResetWorkbench ?? NOOP_HANDLER;
   const onLoadTemplate = controls?.onLoadTemplate ?? NOOP_TEMPLATE_HANDLER;
-
-  const isGateDragEvent = (event: DragEvent<HTMLDivElement>): boolean => {
-    const types = Array.from(event.dataTransfer?.types ?? []);
-    return types.includes(GATE_DRAG_MIME);
-  };
-
-  const onDragEnterCell = (
-    event: DragEvent<HTMLDivElement>,
-    qubit: number,
-    layer: number,
-  ) => {
-    event.preventDefault();
-    if (!isGateDragEvent(event)) {
-      return;
-    }
-    showGateDragPreview(qubit, layer);
-  };
-
-  const onDragOverCell = (
-    event: DragEvent<HTMLDivElement>,
-    qubit: number,
-    layer: number,
-  ) => {
-    event.preventDefault();
-    if (!isGateDragEvent(event)) {
-      return;
-    }
-    showGateDragPreview(qubit, layer);
-  };
-
-  const onDragLeaveCell = (
-    event: DragEvent<HTMLDivElement>,
-    qubit: number,
-    layer: number,
-  ) => {
-    if (!isGateDragEvent(event)) {
-      return;
-    }
-    const related = event.relatedTarget;
-    if (related instanceof Node && event.currentTarget.contains(related)) {
-      return;
-    }
-    clearHoveredCell(qubit, layer);
-  };
-
-  const onDropCell = (event: DragEvent<HTMLDivElement>, qubit: number, layer: number) => {
-    event.preventDefault();
-    onDropGate(event.dataTransfer.getData(GATE_DRAG_MIME), qubit, layer);
-  };
 
   useCircuitCanvasHotkeys({
     selectedOperationId,
