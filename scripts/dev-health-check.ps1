@@ -74,7 +74,7 @@ function Wait-TaskTerminalStatus {
   param(
     [string]$TaskUrl,
     [hashtable]$Headers,
-    [int]$TimeoutSeconds = 20
+    [int]$TimeoutSeconds = 90
   )
 
   $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -94,7 +94,7 @@ function Wait-TaskTerminalStatus {
 
 if ($Docker) {
   Write-Host "[0/4] Checking Docker Compose services..."
-  Assert-DockerComposeServices -RequiredServices @("redis", "backend", "worker", "frontend")
+  Assert-DockerComposeServices -RequiredServices @("postgres", "redis", "backend", "worker", "execution-service", "frontend")
 }
 
 Write-Host "[1/4] Checking Redis..."

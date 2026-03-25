@@ -25,7 +25,8 @@ class Settings(BaseSettings):
     execution_image: str = "qcp-backend-dev:latest"
     execution_runner_module: str = "app.services.execution.runner"
     execution_service_url: str = ""
-    execution_service_timeout_seconds: int = 10
+    execution_service_timeout_seconds: int = 75
+    docker_socket_path: str = "/var/run/docker.sock"
     execution_read_only_rootfs: bool = True
     execution_network_disabled: bool = True
     execution_mem_limit_mb: int = 256

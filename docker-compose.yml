@@ -42,9 +42,10 @@ services:
       REDIS_URL: redis://redis:6379/0
       TASK_QUEUE_NAME: qcp-default
       TASK_JOB_TIMEOUT_SECONDS: "90"
+      QIBO_EXEC_TIMEOUT_SECONDS: "60"
       EXECUTION_BACKEND: remote
       EXECUTION_SERVICE_URL: http://execution-service:8010
-      EXECUTION_SERVICE_TIMEOUT_SECONDS: "10"
+      EXECUTION_SERVICE_TIMEOUT_SECONDS: "75"
       WATCHFILES_FORCE_POLLING: "true"
     volumes:
       - ./backend:/app/backend
@@ -73,9 +74,10 @@ services:
       REDIS_URL: redis://redis:6379/0
       TASK_QUEUE_NAME: qcp-default
       TASK_JOB_TIMEOUT_SECONDS: "90"
+      QIBO_EXEC_TIMEOUT_SECONDS: "60"
       EXECUTION_BACKEND: remote
       EXECUTION_SERVICE_URL: http://execution-service:8010
-      EXECUTION_SERVICE_TIMEOUT_SECONDS: "10"
+      EXECUTION_SERVICE_TIMEOUT_SECONDS: "75"
     volumes:
       - ./backend:/app/backend
     depends_on:
@@ -96,11 +98,13 @@ services:
     working_dir: /app/backend
     environment:
       ENV: dev
-      EXECUTION_BACKEND: local
+      EXECUTION_BACKEND: docker
       EXECUTION_RUNNER_MODULE: app.services.execution.runner
+      DOCKER_SOCKET_PATH: /var/run/docker.sock
       WATCHFILES_FORCE_POLLING: "true"
     volumes:
       - ./backend:/app/backend
+      - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock
     expose:
       - "8010"
     restart: unless-stopped

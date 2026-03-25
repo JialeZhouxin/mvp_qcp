@@ -122,10 +122,10 @@ def test_remote_executor_maps_timeouts() -> None:
 
 def test_remote_executor_health_check_calls_health_endpoint() -> None:
     session = SessionStub()
-    session.get_response = ResponseStub(200, {"status": "ok"})
+    session.get_response = ResponseStub(200, {"status": "ok", "backend": "docker"})
     executor = RemoteExecutor(service_url="http://executor.internal", request_timeout_seconds=10, session=session)
 
     payload = executor.check_health()
 
-    assert payload == {"ok": True, "backend": "remote"}
+    assert payload == {"ok": True, "backend": "docker"}
     assert session.calls == [("GET", "http://executor.internal/health", None, 10)]

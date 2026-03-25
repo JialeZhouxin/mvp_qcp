@@ -56,6 +56,16 @@ class RemoteExecutor(ExecutionBackend):
                 f"remote execution health returned {response.status_code}",
             )
 
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise ExecutionBackendError("INVALID_EXEC_OUTPUT", "remote execution health is not valid JSON") from exc
+
+        if isinstance(payload, dict):
+            backend_name = payload.get("backend")
+            if isinstance(backend_name, str) and backend_name.strip():
+                return {"ok": True, "backend": backend_name.strip()}
+
         return {"ok": True, "backend": self.name}
 
     def _validated_base_url(self) -> str:
