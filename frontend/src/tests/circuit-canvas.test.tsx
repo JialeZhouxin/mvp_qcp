@@ -267,6 +267,10 @@ describe("CircuitCanvas", () => {
     fireEvent.click(templateButtons[0]);
     fireEvent.click(templateButtons[1]);
 
+    const executionGroup = screen.getByTestId("canvas-workbench-execution-gates");
+    expect(within(executionGroup).getByText("时间步")).toBeInTheDocument();
+    expect(within(executionGroup).getByTestId("canvas-execution-gate-count-value")).toHaveTextContent("0/0");
+
     expect(isBeforeViewport).toBe(true);
     expect(screen.getByTestId("canvas-qubit-count")).toHaveTextContent("3");
     expect(screen.getByTestId("qubit-message")).toHaveTextContent("Qubit test warning");
@@ -280,7 +284,7 @@ describe("CircuitCanvas", () => {
     expect(onLoadTemplate).toHaveBeenNthCalledWith(2, "superposition");
   });
 
-  it("slider commits on pointer release without calling commit during drag", () => {
+  it("slider commits immediately on change", () => {
     const model: CircuitModel = {
       numQubits: 2,
       operations: [
@@ -321,12 +325,53 @@ describe("CircuitCanvas", () => {
     expect(slider.value).toBe("3");
 
     fireEvent.change(slider, { target: { value: "1" } });
-    expect(slider.value).toBe("1");
-    expect(onExecutionGateCountCommit).not.toHaveBeenCalled();
 
-    fireEvent.pointerUp(slider);
+    expect(slider.value).toBe("1");
     expect(onExecutionGateCountCommit).toHaveBeenCalledTimes(1);
     expect(onExecutionGateCountCommit).toHaveBeenCalledWith(1);
+  });
+
+  it("slider does not re-commit when value stays unchanged", () => {
+    const model: CircuitModel = {
+      numQubits: 2,
+      operations: [
+        { id: "op-1", gate: "h", targets: [0], layer: 0 },
+        { id: "op-2", gate: "x", targets: [0], layer: 1 },
+        { id: "op-3", gate: "h", targets: [0], layer: 2 },
+      ],
+    };
+    const onCircuitChange = vi.fn();
+    const onExecutionGateCountCommit = vi.fn();
+
+    render(
+      <CircuitCanvas
+        circuit={model}
+        onCircuitChange={onCircuitChange}
+        minLayers={4}
+        controls={{
+          canUndo: false,
+          canRedo: false,
+          currentQubits: 2,
+          canIncreaseQubits: false,
+          canDecreaseQubits: false,
+          qubitMessage: null,
+          executionGateCount: 2,
+          executionGateCountMax: 3,
+          onExecutionGateCountCommit,
+          onIncreaseQubits: vi.fn(),
+          onDecreaseQubits: vi.fn(),
+          onClearCircuit: vi.fn(),
+          onResetWorkbench: vi.fn(),
+          onLoadTemplate: vi.fn(),
+        }}
+      />,
+    );
+
+    const slider = screen.getByTestId("canvas-execution-gate-count-slider") as HTMLInputElement;
+
+    fireEvent.change(slider, { target: { value: "2" } });
+
+    expect(onExecutionGateCountCommit).not.toHaveBeenCalled();
   });
 
   it("slider is disabled when circuit has zero gates", () => {
@@ -363,7 +408,57 @@ describe("CircuitCanvas", () => {
     expect(screen.queryByTestId("canvas-workbench-execution-gates")).toBeInTheDocument();
   });
 
-  it("ignores canvas shortcuts when focus is in editable element", () => {
+  it("grays out operations outside execution prefix and keeps selected priority", () => {
+    const model: CircuitModel = {
+      numQubits: 1,
+      operations: [
+        { id: "op-1", gate: "h", targets: [0], layer: 0 },
+        { id: "op-2", gate: "x", targets: [0], layer: 1 },
+        { id: "op-3", gate: "h", targets: [0], layer: 2 },
+      ],
+    };
+    const onCircuitChange = vi.fn();
+
+    render(
+      <CircuitCanvas
+        circuit={model}
+        onCircuitChange={onCircuitChange}
+        minLayers={4}
+        controls={{
+          canUndo: false,
+          canRedo: false,
+          currentQubits: 1,
+          canIncreaseQubits: false,
+          canDecreaseQubits: false,
+          qubitMessage: null,
+          executionGateCount: 1,
+          executionGateCountMax: 3,
+          onExecutionGateCountCommit: vi.fn(),
+          onIncreaseQubits: vi.fn(),
+          onDecreaseQubits: vi.fn(),
+          onClearCircuit: vi.fn(),
+          onResetWorkbench: vi.fn(),
+          onLoadTemplate: vi.fn(),
+        }}
+      />,
+    );
+
+    const activeCell = screen.getByTestId("canvas-cell-0-0");
+    const inactiveCell1 = screen.getByTestId("canvas-cell-0-1");
+    const inactiveCell2 = screen.getByTestId("canvas-cell-0-2");
+
+    expect(activeCell).not.toHaveClass("canvas-cell--inactive");
+    expect(inactiveCell1).toHaveClass("canvas-cell--inactive");
+    expect(inactiveCell2).toHaveClass("canvas-cell--inactive");
+
+    fireEvent.click(inactiveCell1);
+
+    expect(inactiveCell1).toHaveClass("canvas-cell--selected");
+    expect(inactiveCell1).not.toHaveClass("canvas-cell--inactive");
+    expect(inactiveCell2).toHaveClass("canvas-cell--inactive");
+  });
+
+  it("ignores undo/redo/delete shortcuts when focus is in editable element", () => {
     const model: CircuitModel = { numQubits: 1, operations: [] };
     const onCircuitChange = vi.fn();
     const onUndo = vi.fn();

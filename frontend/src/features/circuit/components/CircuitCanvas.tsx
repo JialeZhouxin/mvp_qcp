@@ -137,6 +137,13 @@ function CircuitCanvas({
   const executionGateCountMax = controls?.executionGateCountMax ?? circuit.operations.length;
   const onExecutionGateCountCommit =
     controls?.onExecutionGateCountCommit ?? NOOP_EXECUTION_GATE_COUNT_HANDLER;
+  const normalizedExecutionGateCount = Math.min(
+    Math.max(Math.trunc(executionGateCount), 0),
+    circuit.operations.length,
+  );
+  const operationOrderIndexMap = new Map(
+    circuit.operations.map((operation, orderIndex) => [operation.id, orderIndex]),
+  );
   const onIncreaseQubits = controls?.onIncreaseQubits ?? NOOP_HANDLER;
   const onDecreaseQubits = controls?.onDecreaseQubits ?? NOOP_HANDLER;
   const onClearCircuit = controls?.onClearCircuit ?? NOOP_HANDLER;
@@ -411,6 +418,9 @@ function CircuitCanvas({
     const isConnectorSelected =
       selectedOperationId !== null && connectorOperation?.id === selectedOperationId;
     const isHovered = hoveredCellKey === key;
+    const operationOrderIndex = operation ? operationOrderIndexMap.get(operation.id) : undefined;
+    const isInactiveOperation =
+      operationOrderIndex !== undefined && operationOrderIndex >= normalizedExecutionGateCount;
     const classNames = ["canvas-cell"];
 
     if (operation) {
@@ -419,6 +429,8 @@ function CircuitCanvas({
         classNames.push("canvas-cell--selected");
       } else if (isGateDragging) {
         classNames.push("canvas-cell--blocked");
+      } else if (isInactiveOperation) {
+        classNames.push("canvas-cell--inactive");
       }
     } else {
       classNames.push("canvas-cell--empty");

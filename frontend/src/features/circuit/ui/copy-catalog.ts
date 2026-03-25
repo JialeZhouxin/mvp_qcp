@@ -7,7 +7,7 @@ export const WORKBENCH_COPY = {
     templateLabel: "模板",
     bellTemplate: "Bell 态",
     superpositionTemplate: "均匀叠加态",
-    executionGateCountLabel: "门时间步",
+    executionGateCountLabel: "时间步",
     executionGateCountAriaLabel: "执行门时间步滑块",
     executionGateCountValuePrefix: "执行前",
     executionGateCountValueUnit: "个门",
