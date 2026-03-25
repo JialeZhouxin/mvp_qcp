@@ -219,6 +219,16 @@
   opacity: 0.8;
 }
 
+.canvas-cell--preview-future {
+  opacity: 0.42;
+}
+
+.canvas-cell--preview-future .canvas-gate-box,
+.canvas-cell--preview-future .canvas-row-wire,
+.canvas-cell--preview-future::after {
+  filter: saturate(0.55);
+}
+
 .canvas-gate-box {
   display: inline-flex;
   align-items: center;

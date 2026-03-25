@@ -1,4 +1,6 @@
-﻿import CircuitCanvas from "../components/CircuitCanvas";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import CircuitCanvas from "../components/CircuitCanvas";
 import GatePalette from "../components/GatePalette";
 import QasmEditorPane from "../components/QasmEditorPane";
 import QasmErrorPanel from "../components/QasmErrorPanel";
@@ -12,6 +14,11 @@ import { useWorkbenchDraftSync } from "./use-workbench-draft-sync";
 import { useWorkbenchEditorState } from "./use-workbench-editor-state";
 import { useWorkbenchGuideState } from "./use-workbench-guide-state";
 import { useWorkbenchProjects } from "./use-workbench-projects";
+import {
+  clampSimulationStepOnCircuitChange,
+  getFutureOperationIdsAtSimulationStep,
+  sliceCircuitBySimulationStep,
+} from "./workbench-time-step";
 
 const SUBMIT_RAIL_TOP_OFFSET = 12;
 const SUBMIT_RAIL_Z_INDEX = 20;
@@ -46,6 +53,30 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
     onRestore: replaceFromProject,
   });
 
+  const totalSimulationSteps = circuit.operations.length;
+  const previousTotalSimulationStepsRef = useRef(totalSimulationSteps);
+  const [simulationStep, setSimulationStep] = useState(totalSimulationSteps);
+
+  useEffect(() => {
+    setSimulationStep((currentStep) =>
+      clampSimulationStepOnCircuitChange(
+        currentStep,
+        previousTotalSimulationStepsRef.current,
+        totalSimulationSteps,
+      ),
+    );
+    previousTotalSimulationStepsRef.current = totalSimulationSteps;
+  }, [totalSimulationSteps]);
+
+  const previewCircuit = useMemo(
+    () => sliceCircuitBySimulationStep(circuit, simulationStep),
+    [circuit, simulationStep],
+  );
+  const futureOperationIds = useMemo(
+    () => getFutureOperationIdsAtSimulationStep(circuit, simulationStep),
+    [circuit, simulationStep],
+  );
+
   const {
     simulationState,
     simError,
@@ -53,7 +84,7 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
     probabilityDisplayView,
     epsilonText,
   } = useWorkbenchSimulation({
-    circuit,
+    circuit: previewCircuit,
     displayMode,
     scheduler,
   });
@@ -130,6 +161,10 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
             onUndo={historyState.onUndo}
             onRedo={historyState.onRedo}
             controls={canvasControls}
+            simulationStep={simulationStep}
+            totalSimulationSteps={totalSimulationSteps}
+            onSimulationStepChange={setSimulationStep}
+            futureOperationIds={futureOperationIds}
           />
         </div>
         <div data-testid="workbench-qasm-column" style={{ display: "grid", gap: 12, minWidth: 0 }}>
@@ -168,5 +203,3 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
 }
 
 export default CircuitWorkbenchScreen;
-
-

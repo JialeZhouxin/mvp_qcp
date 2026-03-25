@@ -2,6 +2,8 @@ import { WORKBENCH_COPY } from "../ui/copy-catalog";
 
 interface CircuitCanvasToolbarProps {
   readonly hasWorkbenchControls: boolean;
+  readonly simulationStep: number | null;
+  readonly totalSimulationSteps: number | null;
   readonly canUndoAction: boolean;
   readonly canRedoAction: boolean;
   readonly canIncreaseQubits: boolean;
@@ -22,10 +24,13 @@ interface CircuitCanvasToolbarProps {
   readonly onZoomOut: () => void;
   readonly onZoomIn: () => void;
   readonly onZoomReset: () => void;
+  readonly onSimulationStepChange: (step: number) => void;
 }
 
 function CircuitCanvasToolbar({
   hasWorkbenchControls,
+  simulationStep,
+  totalSimulationSteps,
   canUndoAction,
   canRedoAction,
   canIncreaseQubits,
@@ -46,7 +51,11 @@ function CircuitCanvasToolbar({
   onZoomOut,
   onZoomIn,
   onZoomReset,
+  onSimulationStepChange,
 }: CircuitCanvasToolbarProps) {
+  const hasSimulationStepControl =
+    simulationStep !== null && totalSimulationSteps !== null;
+
   return (
     <>
       <div className="canvas-workbench-toolbar" data-testid="canvas-workbench-toolbar">
@@ -101,6 +110,26 @@ function CircuitCanvasToolbar({
             </button>
           </div>
         ) : null}
+        {hasSimulationStepControl ? (
+          <div className="canvas-workbench-group" data-testid="canvas-time-step-group">
+            <label className="canvas-workbench-label" htmlFor="canvas-time-step-slider">
+              时间步
+            </label>
+            <input
+              id="canvas-time-step-slider"
+              data-testid="canvas-time-step-slider"
+              type="range"
+              min={0}
+              max={totalSimulationSteps}
+              value={simulationStep}
+              disabled={totalSimulationSteps === 0}
+              onChange={(event) => onSimulationStepChange(Number(event.target.value))}
+            />
+            <span className="canvas-workbench-value" data-testid="canvas-time-step-value">
+              {simulationStep} / {totalSimulationSteps}
+            </span>
+          </div>
+        ) : null}
         <div
           className="canvas-workbench-group canvas-workbench-group--zoom"
           data-testid="canvas-zoom-toolbar"
@@ -149,4 +178,3 @@ function CircuitCanvasToolbar({
 }
 
 export default CircuitCanvasToolbar;
-

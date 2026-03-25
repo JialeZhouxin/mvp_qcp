@@ -41,6 +41,10 @@ interface CircuitCanvasProps {
   readonly onUndo?: () => void;
   readonly onRedo?: () => void;
   readonly controls?: CircuitCanvasControls;
+  readonly simulationStep?: number | null;
+  readonly totalSimulationSteps?: number | null;
+  readonly onSimulationStepChange?: (step: number) => void;
+  readonly futureOperationIds?: readonly string[];
 }
 
 function CircuitCanvas({
@@ -50,6 +54,10 @@ function CircuitCanvas({
   onUndo = NOOP_HANDLER,
   onRedo = NOOP_HANDLER,
   controls,
+  simulationStep = null,
+  totalSimulationSteps = null,
+  onSimulationStepChange = NOOP_HANDLER,
+  futureOperationIds = [],
 }: CircuitCanvasProps) {
   const {
     pendingPlacement,
@@ -74,6 +82,7 @@ function CircuitCanvas({
     circuit,
     onCircuitChange,
     minLayers,
+    futureOperationIds: new Set(futureOperationIds),
   });
   const {
     zoomPercentText,
@@ -158,6 +167,8 @@ function CircuitCanvas({
       ) : null}
       <CircuitCanvasToolbar
         hasWorkbenchControls={hasWorkbenchControls}
+        simulationStep={simulationStep}
+        totalSimulationSteps={totalSimulationSteps}
         canUndoAction={canUndoAction}
         canRedoAction={canRedoAction}
         canIncreaseQubits={canIncreaseQubits}
@@ -178,6 +189,7 @@ function CircuitCanvas({
         onZoomOut={onZoomOut}
         onZoomIn={onZoomIn}
         onZoomReset={onZoomReset}
+        onSimulationStepChange={onSimulationStepChange}
       />
       <CircuitCanvasViewport
         viewportRef={viewportRef}

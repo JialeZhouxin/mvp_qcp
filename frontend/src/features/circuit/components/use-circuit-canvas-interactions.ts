@@ -54,12 +54,14 @@ export interface UseCircuitCanvasInteractionsOptions {
   readonly circuit: CircuitModel;
   readonly onCircuitChange: (next: CircuitModel) => void;
   readonly minLayers?: number;
+  readonly futureOperationIds?: ReadonlySet<string>;
 }
 
 export function useCircuitCanvasInteractions({
   circuit,
   onCircuitChange,
   minLayers = DEFAULT_MIN_LAYERS,
+  futureOperationIds = new Set<string>(),
 }: UseCircuitCanvasInteractionsOptions) {
   const [pendingPlacement, setPendingPlacement] = useState<PendingPlacement | null>(null);
   const [interactionMessage, setInteractionMessage] =
@@ -291,6 +293,9 @@ export function useCircuitCanvasInteractions({
     const isSelected = selectedOperationId !== null && operation?.id === selectedOperationId;
     const isConnectorSelected =
       selectedOperationId !== null && connectorOperation?.id === selectedOperationId;
+    const previewOperationId = operation?.id ?? connectorOperation?.id ?? null;
+    const isPreviewFuture =
+      previewOperationId !== null && futureOperationIds.has(previewOperationId);
     const isHovered = hoveredCellKey === key;
     const classNames = ["canvas-cell"];
 
@@ -319,6 +324,9 @@ export function useCircuitCanvasInteractions({
       if (isConnectorSelected) {
         classNames.push("canvas-cell--connector-selected");
       }
+    }
+    if (isPreviewFuture) {
+      classNames.push("canvas-cell--preview-future");
     }
 
     return classNames.join(" ");
