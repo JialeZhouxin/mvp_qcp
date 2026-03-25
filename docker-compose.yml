@@ -1,4 +1,21 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: qcp
+      POSTGRES_USER: qcp
+      POSTGRES_PASSWORD: QcpDev_2026_Strong!
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qcp -d qcp"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     ports:
@@ -21,7 +38,7 @@ services:
       ENV: dev
       API_HOST: 0.0.0.0
       API_PORT: "8000"
-      DATABASE_URL: sqlite:///./data/qcp.db
+      DATABASE_URL: postgresql+psycopg://qcp:QcpDev_2026_Strong!@postgres:5432/qcp
       REDIS_URL: redis://redis:6379/0
       TASK_QUEUE_NAME: qcp-default
       TASK_JOB_TIMEOUT_SECONDS: "90"
@@ -31,10 +48,12 @@ services:
       WATCHFILES_FORCE_POLLING: "true"
     volumes:
       - ./backend:/app/backend
-      - sqlite-data:/app/backend/data
+      - ../cc/mvp_qcp/backend/data:/migration-source:ro
     ports:
       - "8000:8000"
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
       execution-service:
@@ -50,7 +69,7 @@ services:
     working_dir: /app/backend
     environment:
       ENV: dev
-      DATABASE_URL: sqlite:///./data/qcp.db
+      DATABASE_URL: postgresql+psycopg://qcp:QcpDev_2026_Strong!@postgres:5432/qcp
       REDIS_URL: redis://redis:6379/0
       TASK_QUEUE_NAME: qcp-default
       TASK_JOB_TIMEOUT_SECONDS: "90"
@@ -59,8 +78,9 @@ services:
       EXECUTION_SERVICE_TIMEOUT_SECONDS: "10"
     volumes:
       - ./backend:/app/backend
-      - sqlite-data:/app/backend/data
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
       execution-service:
@@ -105,5 +125,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  sqlite-data:
+  postgres-data:
   frontend-node-modules:

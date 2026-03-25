@@ -159,3 +159,28 @@ def test_migrate_sqlite_to_database_bootstraps_tenants(tmp_path) -> None:
         assert task.tenant_id == tenant.id
         assert project.tenant_id == tenant.id
         assert record.tenant_id == tenant.id
+
+
+def test_migrate_sqlite_to_database_drops_dangling_project_task_reference(tmp_path) -> None:
+    source_url = f"sqlite:///{tmp_path / 'legacy-dangling.db'}"
+    target_url = f"sqlite:///{tmp_path / 'target-dangling.db'}"
+    _create_legacy_schema(source_url)
+
+    source_engine = create_engine(source_url)
+    legacy_metadata = MetaData()
+    legacy_metadata.reflect(bind=source_engine)
+    with source_engine.begin() as connection:
+        connection.execute(
+            legacy_metadata.tables["project"].update().where(legacy_metadata.tables["project"].c.id == 20).values(
+                last_task_id=999
+            )
+        )
+
+    target_engine = create_engine(target_url)
+    SQLModel.metadata.create_all(target_engine)
+
+    migrate_sqlite_to_database(source_url, target_url)
+
+    with Session(target_engine) as session:
+        project = session.exec(select(Project).where(Project.id == 20)).one()
+        assert project.last_task_id is None

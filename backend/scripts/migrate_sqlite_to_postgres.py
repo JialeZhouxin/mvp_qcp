@@ -70,10 +70,9 @@ def _reset_postgres_sequence(target_engine: Engine, table_name: str) -> None:
     with target_engine.begin() as connection:
         connection.execute(
             text(
-                "SELECT setval(pg_get_serial_sequence(:table_name, 'id'), "
-                "COALESCE((SELECT MAX(id) FROM %s), 1), true)" % table_name
-            ),
-            {"table_name": table_name},
+                f"SELECT setval(pg_get_serial_sequence('\"{table_name}\"', 'id'), "
+                f"COALESCE((SELECT MAX(id) FROM \"{table_name}\"), 1), true)"
+            )
         )
 
 
@@ -112,6 +111,7 @@ def migrate_sqlite_to_database(source_url: str, target_url: str) -> MigrationCou
     legacy_tasks = _load_rows(source_engine, "task", legacy_metadata)
     legacy_projects = _load_rows(source_engine, "project", legacy_metadata)
     legacy_records = _load_rows(source_engine, "idempotencyrecord", legacy_metadata)
+    valid_task_ids = {int(legacy_task["id"]) for legacy_task in legacy_tasks}
 
     tenant_mapping: dict[int, int] = {}
 
@@ -163,8 +163,17 @@ def migrate_sqlite_to_database(source_url: str, target_url: str) -> MigrationCou
             )
             session.add(task)
 
+        session.flush()
+
         for legacy_project in legacy_projects:
             tenant_id = tenant_mapping[int(legacy_project["user_id"])]
+            last_task_id = legacy_project["last_task_id"]
+            if last_task_id is not None and int(last_task_id) not in valid_task_ids:
+                logger.warning(
+                    "dropping dangling project.last_task_id during migration",
+                    extra={"project_id": legacy_project["id"], "last_task_id": last_task_id},
+                )
+                last_task_id = None
             project = Project(
                 id=legacy_project["id"],
                 tenant_id=tenant_id,
@@ -172,7 +181,7 @@ def migrate_sqlite_to_database(source_url: str, target_url: str) -> MigrationCou
                 name=legacy_project["name"],
                 entry_type=legacy_project["entry_type"],
                 payload_json=legacy_project["payload_json"],
-                last_task_id=legacy_project["last_task_id"],
+                last_task_id=last_task_id,
                 created_at=legacy_project["created_at"],
                 updated_at=legacy_project["updated_at"],
             )
