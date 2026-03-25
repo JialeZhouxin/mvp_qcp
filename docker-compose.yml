@@ -1,8 +1,10 @@
+name: ${COMPOSE_PROJECT_NAME:-mvp_qcp}
+
 services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -24,11 +26,12 @@ services:
       DATABASE_URL: sqlite:///./data/qcp.db
       REDIS_URL: redis://redis:6379/0
       WATCHFILES_FORCE_POLLING: "true"
+      CORS_ALLOW_ORIGINS: http://127.0.0.1:${FRONTEND_PORT:-5173},http://localhost:${FRONTEND_PORT:-5173}
     volumes:
       - ./backend:/app/backend
       - sqlite-data:/app/backend/data
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       redis:
         condition: service_healthy
@@ -71,13 +74,13 @@ services:
       sh -c 'LOCK_HASH=$$(sha256sum package-lock.json | cut -d " " -f1); STORED_HASH=$$(cat node_modules/.package-lock.sha256 2>/dev/null || true); if [ "$$LOCK_HASH" != "$$STORED_HASH" ]; then npm ci && echo "$$LOCK_HASH" > node_modules/.package-lock.sha256; fi; npm run dev'
     working_dir: /app/frontend
     environment:
-      VITE_API_BASE_URL: http://127.0.0.1:8000
+      VITE_API_BASE_URL: http://127.0.0.1:${BACKEND_PORT:-8000}
       CHOKIDAR_USEPOLLING: "true"
     volumes:
       - ./frontend:/app/frontend
       - frontend-node-modules:/app/frontend/node_modules
     ports:
-      - "5173:5173"
+      - "${FRONTEND_PORT:-5173}:5173"
     depends_on:
       backend:
         condition: service_started
