@@ -14,9 +14,9 @@ class IdempotencyService:
         self._session = session
         self._ttl = timedelta(hours=ttl_hours)
 
-    def resolve_existing_task(self, user_id: int, key: str, now: datetime | None = None) -> Task | None:
+    def resolve_existing_task(self, tenant_id: int, user_id: int, key: str, now: datetime | None = None) -> Task | None:
         current_time = now or datetime.utcnow()
-        record = self._find_record(user_id=user_id, key=key)
+        record = self._find_record(tenant_id=tenant_id, user_id=user_id, key=key)
         if record is None:
             return None
 
@@ -41,19 +41,21 @@ class IdempotencyService:
 
     def bind_task_key(
         self,
+        tenant_id: int,
         user_id: int,
         key: str,
         task_id: int,
         now: datetime | None = None,
     ) -> IdempotencyRecord:
         current_time = now or datetime.utcnow()
-        existing = self._find_record(user_id=user_id, key=key)
+        existing = self._find_record(tenant_id=tenant_id, user_id=user_id, key=key)
         if existing is not None and existing.task_id != task_id:
             raise ValueError(f"idempotency key already bound to another task: user_id={user_id}")
         if existing is not None:
             return existing
 
         record = IdempotencyRecord(
+            tenant_id=tenant_id,
             user_id=user_id,
             idempotency_key=key,
             task_id=task_id,
@@ -78,8 +80,12 @@ class IdempotencyService:
         self._session.commit()
         return len(records)
 
-    def _find_record(self, user_id: int, key: str) -> IdempotencyRecord | None:
-        query = select(IdempotencyRecord).where(IdempotencyRecord.user_id == user_id, IdempotencyRecord.idempotency_key == key)
+    def _find_record(self, tenant_id: int, user_id: int, key: str) -> IdempotencyRecord | None:
+        query = select(IdempotencyRecord).where(
+            IdempotencyRecord.tenant_id == tenant_id,
+            IdempotencyRecord.user_id == user_id,
+            IdempotencyRecord.idempotency_key == key,
+        )
         return self._session.exec(query).first()
 
     def _persist(self, record: IdempotencyRecord) -> None:

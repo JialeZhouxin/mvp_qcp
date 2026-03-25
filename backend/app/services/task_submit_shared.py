@@ -14,6 +14,7 @@ class TaskSubmitConfig:
 
 @dataclass(frozen=True)
 class TaskSubmitCommand:
+    tenant_id: int
     user_id: int
     code: str
     raw_idempotency_key: str | None = None

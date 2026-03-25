@@ -24,6 +24,7 @@ class ProjectService:
 
     def upsert_project(
         self,
+        tenant_id: int,
         user_id: int,
         name: str,
         entry_type: str,
@@ -33,9 +34,10 @@ class ProjectService:
     ) -> Project:
         persisted_at = now or datetime.utcnow()
         project_name = _validate_project_name(name)
-        existing = self._load_by_name(user_id, project_name)
+        existing = self._load_by_name(tenant_id, user_id, project_name)
         if existing is None:
             project = Project(
+                tenant_id=tenant_id,
                 user_id=user_id,
                 name=project_name,
                 entry_type=entry_type,
@@ -53,18 +55,18 @@ class ProjectService:
         self._persist(project)
         return project
 
-    def list_projects(self, user_id: int, limit: int, offset: int) -> list[Project]:
+    def list_projects(self, tenant_id: int, user_id: int, limit: int, offset: int) -> list[Project]:
         statement = (
             select(Project)
-            .where(Project.user_id == user_id)
+            .where(Project.tenant_id == tenant_id, Project.user_id == user_id)
             .order_by(Project.updated_at.desc())
             .offset(offset)
             .limit(limit)
         )
         return list(self._session.exec(statement).all())
 
-    def get_project(self, user_id: int, project_id: int) -> Project | None:
-        statement = select(Project).where(Project.id == project_id, Project.user_id == user_id)
+    def get_project(self, tenant_id: int, user_id: int, project_id: int) -> Project | None:
+        statement = select(Project).where(Project.id == project_id, Project.tenant_id == tenant_id, Project.user_id == user_id)
         return self._session.exec(statement).first()
 
     def decode_payload(self, project: Project) -> dict[str, Any]:
@@ -76,8 +78,8 @@ class ProjectService:
             raise ValueError("project payload must be a JSON object")
         return payload
 
-    def _load_by_name(self, user_id: int, name: str) -> Project | None:
-        statement = select(Project).where(Project.user_id == user_id, Project.name == name)
+    def _load_by_name(self, tenant_id: int, user_id: int, name: str) -> Project | None:
+        statement = select(Project).where(Project.tenant_id == tenant_id, Project.user_id == user_id, Project.name == name)
         return self._session.exec(statement).first()
 
     def _persist(self, project: Project) -> None:

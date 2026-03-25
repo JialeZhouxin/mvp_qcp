@@ -21,11 +21,11 @@ class TaskSubmitIdempotencyCoordinator:
             self._config.idempotency_cleanup_batch_size,
         )
 
-    def resolve_existing(self, user_id: int, normalized_key: str, now: datetime) -> Task | None:
-        return self._service.resolve_existing_task(user_id, normalized_key, now)
+    def resolve_existing(self, tenant_id: int, user_id: int, normalized_key: str, now: datetime) -> Task | None:
+        return self._service.resolve_existing_task(tenant_id, user_id, normalized_key, now)
 
-    def bind(self, user_id: int, normalized_key: str, task_id: int, now: datetime) -> None:
-        self._service.bind_task_key(user_id, normalized_key, task_id, now)
+    def bind(self, tenant_id: int, user_id: int, normalized_key: str, task_id: int, now: datetime) -> None:
+        self._service.bind_task_key(tenant_id, user_id, normalized_key, task_id, now)
 
     def refresh_terminal(self, task_id: int, failed_at: datetime) -> None:
         self._service.refresh_terminal_ttl(task_id, failed_at)

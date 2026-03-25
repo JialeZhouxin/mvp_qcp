@@ -22,11 +22,12 @@ class TaskEventStreamService:
 
     def list_changed_tasks(
         self,
+        tenant_id: int,
         user_id: int,
         watched_task_ids: set[int] | None,
         versions: dict[int, str],
     ) -> tuple[list[TaskStatusStreamPayload], dict[int, str]]:
-        tasks = self._load_tasks(user_id, watched_task_ids)
+        tasks = self._load_tasks(tenant_id, user_id, watched_task_ids)
         next_versions = dict(versions)
         changed: list[TaskStatusStreamPayload] = []
         for task in tasks:
@@ -41,8 +42,8 @@ class TaskEventStreamService:
     def build_heartbeat(self) -> TaskHeartbeatPayload:
         return TaskHeartbeatPayload(timestamp=datetime.utcnow())
 
-    def _load_tasks(self, user_id: int, watched_task_ids: set[int] | None) -> list[Task]:
-        statement = select(Task).where(Task.user_id == user_id)
+    def _load_tasks(self, tenant_id: int, user_id: int, watched_task_ids: set[int] | None) -> list[Task]:
+        statement = select(Task).where(Task.tenant_id == tenant_id, Task.user_id == user_id)
         if watched_task_ids:
             statement = statement.where(Task.id.in_(watched_task_ids))
         statement = statement.order_by(Task.updated_at.desc()).limit(MAX_STREAM_TASKS)

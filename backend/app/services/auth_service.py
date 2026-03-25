@@ -6,7 +6,9 @@ from datetime import datetime, timedelta
 from sqlmodel import Session, select
 
 from app.core.config import settings
+from app.models.tenant import Tenant
 from app.models.user import User
+from app.services.tenant_naming import build_tenant_slug, ensure_unique_tenant_slug
 
 PBKDF2_ALGORITHM = "pbkdf2_sha256"
 PBKDF2_ITERATIONS = 260000
@@ -93,10 +95,23 @@ def register_user(session: Session, username: str, password: str) -> User:
         )
 
     salt = secrets.token_hex(PASSWORD_SALT_BYTES)
+    now = datetime.utcnow()
+    tenant = Tenant(
+        slug=ensure_unique_tenant_slug(session, build_tenant_slug(username)),
+        name=f"{username} workspace",
+        created_at=now,
+        updated_at=now,
+    )
+    session.add(tenant)
+    session.commit()
+    session.refresh(tenant)
     user = User(
+        tenant_id=int(tenant.id or 0),
         username=username,
         password_salt=salt,
         password_hash=_encode_pbkdf2_password(password, salt),
+        created_at=now,
+        updated_at=now,
     )
     session.add(user)
     session.commit()
@@ -121,6 +136,7 @@ def login_user(session: Session, username: str, password: str) -> str:
     token = secrets.token_urlsafe(32)
     user.token = token
     user.token_expires_at = datetime.utcnow() + timedelta(hours=settings.token_expire_hours)
+    user.updated_at = datetime.utcnow()
     session.add(user)
     session.commit()
     return token

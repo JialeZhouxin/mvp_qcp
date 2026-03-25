@@ -4,6 +4,7 @@ import pytest
 from sqlmodel import SQLModel, Session, create_engine, select
 
 from app.models.idempotency_record import IdempotencyRecord
+from app.models.tenant import Tenant
 from app.models.task import Task, TaskStatus
 from app.services.execution.base import ExecutionBackendError
 from app.services.idempotency_service import IdempotencyService
@@ -19,8 +20,16 @@ def session() -> Session:
         yield db_session
 
 
-def _create_task(session: Session, status: TaskStatus = TaskStatus.PENDING) -> Task:
-    task = Task(user_id=1, code="def main():\n    return {'counts': {'00': 1}}", status=status)
+def _create_tenant(session: Session, slug: str = "reliability-tenant") -> int:
+    tenant = Tenant(slug=slug, name=f"{slug} workspace")
+    session.add(tenant)
+    session.commit()
+    session.refresh(tenant)
+    return int(tenant.id or 0)
+
+
+def _create_task(session: Session, tenant_id: int, status: TaskStatus = TaskStatus.PENDING) -> Task:
+    task = Task(tenant_id=tenant_id, user_id=1, code="def main():\n    return {'counts': {'00': 1}}", status=status)
     session.add(task)
     session.commit()
     session.refresh(task)
@@ -28,7 +37,7 @@ def _create_task(session: Session, status: TaskStatus = TaskStatus.PENDING) -> T
 
 
 def test_task_lifecycle_blocks_transition_after_terminal_state(session: Session) -> None:
-    task = _create_task(session)
+    task = _create_task(session, tenant_id=_create_tenant(session, slug="lifecycle-tenant"))
     lifecycle = TaskLifecycleService(session)
 
     lifecycle.start_attempt(task, datetime.utcnow())
@@ -39,17 +48,18 @@ def test_task_lifecycle_blocks_transition_after_terminal_state(session: Session)
 
 
 def test_idempotency_service_keeps_non_terminal_binding_even_if_expired(session: Session) -> None:
-    task = _create_task(session, status=TaskStatus.RUNNING)
+    tenant_id = _create_tenant(session, slug="running-tenant")
+    task = _create_task(session, tenant_id=tenant_id, status=TaskStatus.RUNNING)
     service = IdempotencyService(session, ttl_hours=24)
     now = datetime.utcnow()
 
-    record = service.bind_task_key(user_id=task.user_id, key="same-key", task_id=task.id, now=now)
+    record = service.bind_task_key(tenant_id=tenant_id, user_id=task.user_id, key="same-key", task_id=task.id, now=now)
     record.expires_at = now - timedelta(seconds=1)
     record.updated_at = now
     session.add(record)
     session.commit()
 
-    resolved = service.resolve_existing_task(task.user_id, "same-key", now)
+    resolved = service.resolve_existing_task(tenant_id, task.user_id, "same-key", now)
 
     assert resolved is not None
     assert resolved.id == task.id
@@ -58,17 +68,24 @@ def test_idempotency_service_keeps_non_terminal_binding_even_if_expired(session:
 
 
 def test_idempotency_service_drops_expired_terminal_binding(session: Session) -> None:
-    task = _create_task(session, status=TaskStatus.SUCCESS)
+    tenant_id = _create_tenant(session, slug="success-tenant")
+    task = _create_task(session, tenant_id=tenant_id, status=TaskStatus.SUCCESS)
     service = IdempotencyService(session, ttl_hours=24)
     now = datetime.utcnow()
 
-    record = service.bind_task_key(user_id=task.user_id, key="expired-key", task_id=task.id, now=now)
+    record = service.bind_task_key(
+        tenant_id=tenant_id,
+        user_id=task.user_id,
+        key="expired-key",
+        task_id=task.id,
+        now=now,
+    )
     record.expires_at = now - timedelta(seconds=1)
     record.updated_at = now
     session.add(record)
     session.commit()
 
-    resolved = service.resolve_existing_task(task.user_id, "expired-key", now)
+    resolved = service.resolve_existing_task(tenant_id, task.user_id, "expired-key", now)
 
     assert resolved is None
     remaining = session.exec(select(IdempotencyRecord).where(IdempotencyRecord.id == record.id)).first()

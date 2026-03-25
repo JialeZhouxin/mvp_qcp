@@ -35,6 +35,7 @@ def get_task_list(
         return to_task_center_list_response(
             use_case.list_tasks(
                 TaskCenterListQuery(
+                    tenant_id=current_user.tenant_id,
                     user_id=current_user.id,
                     status_filter=status_filter,
                     limit=limit,
@@ -53,7 +54,7 @@ def get_task_detail(
     session: Session = Depends(get_session),
 ) -> TaskCenterDetailResponse:
     use_case = TaskCenterQueryUseCase(TaskQueryService(session))
-    detail = use_case.get_task_detail(current_user.id, task_id)
+    detail = use_case.get_task_detail(current_user.tenant_id, int(current_user.id or 0), task_id)
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found")
     return to_task_center_detail_response(detail)
@@ -82,6 +83,7 @@ async def stream_task_status(
     return StreamingResponse(
         stream_task_events(
             request,
+            tenant_id=current_user.tenant_id,
             user_id=current_user.id,
             watched_task_ids=watched_task_ids,
             use_case=stream_use_case,

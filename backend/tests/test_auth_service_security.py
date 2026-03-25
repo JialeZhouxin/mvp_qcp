@@ -2,6 +2,7 @@ import hashlib
 
 from sqlmodel import SQLModel, Session, create_engine, select
 
+from app.models.tenant import Tenant
 from app.models.user import User
 from app.services.auth_service import login_user, register_user
 
@@ -26,8 +27,13 @@ def test_register_user_uses_pbkdf2_hash_format() -> None:
 
 def test_login_migrates_legacy_sha256_password_hash() -> None:
     with _build_session() as session:
+        tenant = Tenant(slug="legacy-user", name="legacy-user workspace")
+        session.add(tenant)
+        session.commit()
+        session.refresh(tenant)
         legacy_user = User(
             username="legacy_user",
+            tenant_id=int(tenant.id or 0),
             password_hash=hashlib.sha256("pass123456".encode("utf-8")).hexdigest(),
             password_salt=None,
         )

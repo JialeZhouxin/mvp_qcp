@@ -17,17 +17,19 @@ init_db()
 client = TestClient(app)
 
 
-def _auth(username: str, password: str = "pass123456") -> tuple[int, dict[str, str]]:
+def _auth(username: str, password: str = "pass123456") -> tuple[int, int, dict[str, str]]:
     register = client.post("/api/auth/register", json={"username": username, "password": password})
+    tenant_id = register.json().get("tenant_id")
     user_id = register.json().get("user_id")
     login = client.post("/api/auth/login", json={"username": username, "password": password})
     token = login.json()["access_token"]
-    return int(user_id), {"Authorization": f"Bearer {token}"}
+    return int(tenant_id), int(user_id), {"Authorization": f"Bearer {token}"}
 
 
-def _create_task(user_id: int, status: TaskStatus, error_payload: str | None = None) -> int:
+def _create_task(tenant_id: int, user_id: int, status: TaskStatus, error_payload: str | None = None) -> int:
     with Session(engine) as session:
         task = Task(
+            tenant_id=tenant_id,
             user_id=user_id,
             code="def main():\n    return {'counts': {'00': 1}}",
             status=status,
@@ -41,8 +43,9 @@ def _create_task(user_id: int, status: TaskStatus, error_payload: str | None = N
 
 
 def test_task_center_list_and_detail() -> None:
-    user_id, headers = _auth("task_center_owner")
+    tenant_id, user_id, headers = _auth("task_center_owner")
     task_id = _create_task(
+        tenant_id,
         user_id,
         TaskStatus.FAILURE,
         error_payload='{"code":"EXECUTION_TIMEOUT","message":"execution timeout: 60s"}',
@@ -62,9 +65,9 @@ def test_task_center_list_and_detail() -> None:
 
 
 def test_task_center_detail_isolation() -> None:
-    owner_id, owner_headers = _auth("task_center_iso_owner")
-    _other_id, other_headers = _auth("task_center_iso_other")
-    task_id = _create_task(owner_id, TaskStatus.SUCCESS)
+    owner_tenant_id, owner_id, owner_headers = _auth("task_center_iso_owner")
+    _other_tenant_id, _other_id, other_headers = _auth("task_center_iso_other")
+    task_id = _create_task(owner_tenant_id, owner_id, TaskStatus.SUCCESS)
 
     other_detail = client.get(f"/api/tasks/{task_id}/detail", headers=other_headers)
     assert other_detail.status_code == 404
@@ -72,18 +75,18 @@ def test_task_center_detail_isolation() -> None:
 
 
 def test_task_stream_rejects_invalid_task_ids() -> None:
-    _user_id, headers = _auth("task_stream_bad_query")
+    _tenant_id, _user_id, headers = _auth("task_stream_bad_query")
     response = client.get("/api/tasks/stream?task_ids=abc", headers=headers)
     assert response.status_code == 400
     assert "invalid task id" in response.json()["detail"]
 
 
 def test_task_event_stream_service_emits_change_payload() -> None:
-    user_id, _headers = _auth("task_stream_owner")
-    task_id = _create_task(user_id, TaskStatus.PENDING)
+    tenant_id, user_id, _headers = _auth("task_stream_owner")
+    task_id = _create_task(tenant_id, user_id, TaskStatus.PENDING)
 
     service = TaskEventStreamService()
-    changed, versions = service.list_changed_tasks(user_id, {task_id}, {})
+    changed, versions = service.list_changed_tasks(tenant_id, user_id, {task_id}, {})
 
     assert len(changed) == 1
     assert isinstance(changed[0], TaskStatusStreamPayload)

@@ -27,6 +27,7 @@ class UpsertProjectUseCase:
 
     def execute(
         self,
+        tenant_id: int,
         user_id: int,
         name: str,
         entry_type: str,
@@ -34,6 +35,7 @@ class UpsertProjectUseCase:
         last_task_id: int | None,
     ) -> ProjectDetailView:
         project = self._service.upsert_project(
+            tenant_id=tenant_id,
             user_id=user_id,
             name=name,
             entry_type=entry_type,
@@ -54,7 +56,7 @@ class ListProjectsUseCase:
     def __init__(self, session: Session) -> None:
         self._service = ProjectService(session)
 
-    def execute(self, user_id: int, limit: int, offset: int) -> list[ProjectItemView]:
+    def execute(self, tenant_id: int, user_id: int, limit: int, offset: int) -> list[ProjectItemView]:
         return [
             ProjectItemView(
                 id=project.id or 0,
@@ -63,7 +65,7 @@ class ListProjectsUseCase:
                 last_task_id=project.last_task_id,
                 updated_at=project.updated_at,
             )
-            for project in self._service.list_projects(user_id, limit=limit, offset=offset)
+            for project in self._service.list_projects(tenant_id, user_id, limit=limit, offset=offset)
         ]
 
 
@@ -71,8 +73,8 @@ class GetProjectUseCase:
     def __init__(self, session: Session) -> None:
         self._service = ProjectService(session)
 
-    def execute(self, user_id: int, project_id: int) -> ProjectDetailView | None:
-        project = self._service.get_project(user_id, project_id)
+    def execute(self, tenant_id: int, user_id: int, project_id: int) -> ProjectDetailView | None:
+        project = self._service.get_project(tenant_id, user_id, project_id)
         if project is None:
             return None
         return ProjectDetailView(

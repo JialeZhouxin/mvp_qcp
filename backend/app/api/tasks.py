@@ -32,7 +32,7 @@ def submit_task(
     use_case = build_submit_task_use_case(session)
 
     try:
-        outcome = use_case.execute(current_user.id, payload.code, idempotency_key)
+        outcome = use_case.execute(current_user.tenant_id, int(current_user.id or 0), payload.code, idempotency_key)
     except TaskSubmitValidationError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -59,7 +59,7 @@ def get_task_status(
     session: Session = Depends(get_session),
 ) -> TaskStatusResponse:
     try:
-        task = GetTaskStatusUseCase(TaskQueryService(session)).execute(current_user.id, task_id)
+        task = GetTaskStatusUseCase(TaskQueryService(session)).execute(current_user.tenant_id, int(current_user.id or 0), task_id)
     except (TaskNotFoundError, TaskAccessDeniedError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found") from exc
     return TaskStatusResponse(
@@ -76,7 +76,7 @@ def get_task_result(
     session: Session = Depends(get_session),
 ) -> TaskResultResponse:
     try:
-        task = GetTaskResultUseCase(TaskQueryService(session)).execute(current_user.id, task_id)
+        task = GetTaskResultUseCase(TaskQueryService(session)).execute(current_user.tenant_id, int(current_user.id or 0), task_id)
     except (TaskNotFoundError, TaskAccessDeniedError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found") from exc
 

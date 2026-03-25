@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     database_url: str = "sqlite:///./data/qcp.db"
+    database_pool_size: int = 10
+    database_max_overflow: int = 20
+    database_pool_recycle_seconds: int = 1800
     redis_url: str = "redis://127.0.0.1:6379/0"
     cors_allow_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
     task_queue_name: str = "qcp-default"

@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel, Session, create_engine
 
+from app.models.tenant import Tenant
 from app.models.task import Task, TaskStatus
 from app.services.task_query_service import TaskAccessDeniedError, TaskNotFoundError, TaskQueryService
 
@@ -9,7 +10,12 @@ def test_task_query_service_returns_status_and_result_views() -> None:
     SQLModel.metadata.create_all(engine)
 
     with Session(engine) as session:
+        tenant = Tenant(slug="tenant-status", name="tenant-status workspace")
+        session.add(tenant)
+        session.commit()
+        session.refresh(tenant)
         task = Task(
+            tenant_id=int(tenant.id or 0),
             user_id=7,
             code="def main():\n    return {'counts': {'00': 1}}",
             status=TaskStatus.SUCCESS,
@@ -23,8 +29,8 @@ def test_task_query_service_returns_status_and_result_views() -> None:
 
         service = TaskQueryService(session)
 
-        status_view = service.get_status_view(7, int(task.id or 0))
-        result_view = service.get_result_view(7, int(task.id or 0))
+        status_view = service.get_status_view(int(tenant.id or 0), 7, int(task.id or 0))
+        result_view = service.get_result_view(int(tenant.id or 0), 7, int(task.id or 0))
 
         assert status_view.task_id == task.id
         assert status_view.status == "SUCCESS"
@@ -38,7 +44,12 @@ def test_task_query_service_enforces_owner_isolation() -> None:
     SQLModel.metadata.create_all(engine)
 
     with Session(engine) as session:
+        tenant = Tenant(slug="tenant-owner", name="tenant-owner workspace")
+        session.add(tenant)
+        session.commit()
+        session.refresh(tenant)
         task = Task(
+            tenant_id=int(tenant.id or 0),
             user_id=11,
             code="def main():\n    return {'counts': {'00': 1}}",
             status=TaskStatus.PENDING,
@@ -51,14 +62,14 @@ def test_task_query_service_enforces_owner_isolation() -> None:
         service = TaskQueryService(session)
 
         try:
-            service.get_status_view(12, int(task.id or 0))
+            service.get_status_view(int(tenant.id or 0), 12, int(task.id or 0))
         except TaskAccessDeniedError:
             pass
         else:
             raise AssertionError("expected TaskAccessDeniedError")
 
         try:
-            service.get_result_view(11, 999999)
+            service.get_result_view(int(tenant.id or 0), 11, 999999)
         except TaskNotFoundError:
             pass
         else:

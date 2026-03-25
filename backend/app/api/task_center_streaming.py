@@ -14,6 +14,7 @@ from app.use_cases.task_center_use_cases import TaskStatusStreamUseCase
 async def stream_task_events(
     request: Request,
     *,
+    tenant_id: int,
     user_id: int,
     watched_task_ids: set[int] | None,
     use_case: TaskStatusStreamUseCase,
@@ -25,7 +26,7 @@ async def stream_task_events(
         if await request.is_disconnected():
             break
 
-        events, versions = use_case.poll(user_id, watched_task_ids, versions)
+        events, versions = use_case.poll(tenant_id, user_id, watched_task_ids, versions)
         if events:
             for event_payload in events:
                 yield to_sse("task_status", to_task_status_stream_event(event_payload))

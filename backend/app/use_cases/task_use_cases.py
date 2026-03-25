@@ -13,10 +13,10 @@ from app.services.task_submit_shared import (
 
 
 class UserTaskQueryPort(Protocol):
-    def get_status_view(self, user_id: int, task_id: int) -> UserTaskStatusView:
+    def get_status_view(self, tenant_id: int, user_id: int, task_id: int) -> UserTaskStatusView:
         ...
 
-    def get_result_view(self, user_id: int, task_id: int) -> UserTaskResultView:
+    def get_result_view(self, tenant_id: int, user_id: int, task_id: int) -> UserTaskResultView:
         ...
 
 
@@ -24,9 +24,10 @@ class SubmitTaskUseCase:
     def __init__(self, service: TaskSubmitService) -> None:
         self._service = service
 
-    def execute(self, user_id: int, code: str, idempotency_key: str | None) -> TaskSubmitOutcome:
+    def execute(self, tenant_id: int, user_id: int, code: str, idempotency_key: str | None) -> TaskSubmitOutcome:
         return self._service.submit(
             TaskSubmitCommand(
+                tenant_id=tenant_id,
                 user_id=user_id,
                 code=code,
                 raw_idempotency_key=idempotency_key,
@@ -38,16 +39,16 @@ class GetTaskStatusUseCase:
     def __init__(self, query: UserTaskQueryPort) -> None:
         self._query = query
 
-    def execute(self, user_id: int, task_id: int) -> UserTaskStatusView:
-        return self._query.get_status_view(user_id, task_id)
+    def execute(self, tenant_id: int, user_id: int, task_id: int) -> UserTaskStatusView:
+        return self._query.get_status_view(tenant_id, user_id, task_id)
 
 
 class GetTaskResultUseCase:
     def __init__(self, query: UserTaskQueryPort) -> None:
         self._query = query
 
-    def execute(self, user_id: int, task_id: int) -> UserTaskResultView:
-        return self._query.get_result_view(user_id, task_id)
+    def execute(self, tenant_id: int, user_id: int, task_id: int) -> UserTaskResultView:
+        return self._query.get_result_view(tenant_id, user_id, task_id)
 
 
 __all__ = [

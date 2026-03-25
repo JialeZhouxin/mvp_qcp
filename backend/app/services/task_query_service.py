@@ -74,16 +74,16 @@ class TaskQueryService:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get_status_view(self, user_id: int, task_id: int) -> UserTaskStatusView:
-        task = self._load_user_task(task_id, user_id, action="task_status")
+    def get_status_view(self, tenant_id: int, user_id: int, task_id: int) -> UserTaskStatusView:
+        task = self._load_user_task(task_id, tenant_id, user_id, action="task_status")
         return UserTaskStatusView(
             task_id=task.id or 0,
             status=task.status.value,
             error_message=_parse_json_or_none(task.error_message),
         )
 
-    def get_result_view(self, user_id: int, task_id: int) -> UserTaskResultView:
-        task = self._load_user_task(task_id, user_id, action="task_result")
+    def get_result_view(self, tenant_id: int, user_id: int, task_id: int) -> UserTaskResultView:
+        task = self._load_user_task(task_id, tenant_id, user_id, action="task_result")
 
         message = None
         if task.status in {TaskStatus.PENDING, TaskStatus.RUNNING}:
@@ -100,14 +100,15 @@ class TaskQueryService:
 
     def list_tasks(
         self,
+        tenant_id: int,
         user_id: int,
         status_filter: str | None,
         limit: int,
         offset: int,
     ) -> TaskListView:
         normalized_status = _parse_task_status(status_filter)
-        query = select(Task).where(Task.user_id == user_id)
-        count_query = select(func.count()).select_from(Task).where(Task.user_id == user_id)
+        query = select(Task).where(Task.tenant_id == tenant_id, Task.user_id == user_id)
+        count_query = select(func.count()).select_from(Task).where(Task.tenant_id == tenant_id, Task.user_id == user_id)
         if normalized_status is not None:
             query = query.where(Task.status == normalized_status)
             count_query = count_query.where(Task.status == normalized_status)
@@ -134,8 +135,8 @@ class TaskQueryService:
             offset=offset,
         )
 
-    def get_task_detail(self, user_id: int, task_id: int) -> TaskDetailView | None:
-        statement = select(Task).where(Task.id == task_id, Task.user_id == user_id)
+    def get_task_detail(self, tenant_id: int, user_id: int, task_id: int) -> TaskDetailView | None:
+        statement = select(Task).where(Task.id == task_id, Task.tenant_id == tenant_id, Task.user_id == user_id)
         task = self._session.exec(statement).first()
         if task is None:
             return None
@@ -152,16 +153,17 @@ class TaskQueryService:
             diagnostic=_build_diagnostic(task.error_message),
         )
 
-    def _load_user_task(self, task_id: int, user_id: int, action: str) -> Task:
+    def _load_user_task(self, task_id: int, tenant_id: int, user_id: int, action: str) -> Task:
         task = self._session.exec(select(Task).where(Task.id == task_id)).first()
         if task is None:
-            logger.info("event=%s_not_found task_id=%s user_id=%s", action, task_id, user_id)
+            logger.info("event=%s_not_found task_id=%s tenant_id=%s user_id=%s", action, task_id, tenant_id, user_id)
             raise TaskNotFoundError("task not found")
-        if task.user_id != user_id:
+        if task.tenant_id != tenant_id or task.user_id != user_id:
             logger.warning(
-                "event=%s_forbidden task_id=%s owner_id=%s user_id=%s",
+                "event=%s_forbidden task_id=%s tenant_id=%s owner_id=%s user_id=%s",
                 action,
                 task_id,
+                tenant_id,
                 task.user_id,
                 user_id,
             )

@@ -1,18 +1,16 @@
-﻿from fastapi import FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
 from app.api import auth_router, health_router, metrics_router, projects_router, tasks_center_router, tasks_router
 from app.core.config import settings
 from app.core.logging import configure_logging
-from app.db.session import init_db
 from app.schemas.task_stream import TaskHeartbeatEvent, TaskStatusStreamEvent
 
 
 configure_logging()
 app = FastAPI(title=settings.app_name)
 
-# 配置跨域访问，允许前端开发服务器访问后端 API。
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -20,13 +18,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def on_startup() -> None:
-    # 启动时初始化数据库，确保本地开发和测试环境具备基础表结构。
-    init_db()
-
 
 app.include_router(health_router)
 app.include_router(metrics_router)

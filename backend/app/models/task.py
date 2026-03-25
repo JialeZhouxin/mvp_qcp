@@ -2,6 +2,7 @@
 from enum import Enum
 from typing import Optional
 
+from sqlalchemy import Index
 from sqlmodel import Field, SQLModel
 
 
@@ -15,8 +16,14 @@ class TaskStatus(str, Enum):
 
 
 class Task(SQLModel, table=True):
+    __table_args__ = (
+        Index("ix_task_tenant_user_created_at", "tenant_id", "user_id", "created_at"),
+        Index("ix_task_tenant_status_created_at", "tenant_id", "status", "created_at"),
+    )
+
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(index=True)
+    tenant_id: int = Field(index=True, foreign_key="tenant.id")
+    user_id: int = Field(index=True, foreign_key="user.id")
     code: str
     status: TaskStatus = Field(default=TaskStatus.PENDING, index=True)
     result_json: Optional[str] = Field(default=None)

@@ -1,40 +1,37 @@
-﻿from pathlib import Path
 from typing import Generator, Protocol
 
-from sqlmodel import Session, SQLModel, create_engine
+from sqlalchemy.engine import Engine
+from sqlmodel import Session, create_engine
 
 from app.core.config import settings
+from app.db.base import metadata
 
 
-def _normalize_database_url(database_url: str) -> str:
-    """将 SQLite 相对路径标准化为基于 backend 根目录的绝对路径。"""
-    if not database_url.startswith("sqlite:///"):
-        return database_url
-
-    db_path_text = database_url.replace("sqlite:///", "", 1)
-    if db_path_text == ":memory:":
-        return database_url
-
-    backend_root = Path(__file__).resolve().parents[2]
-    db_path = Path(db_path_text)
-    if not db_path.is_absolute():
-        db_path = (backend_root / db_path).resolve()
-
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    return f"sqlite:///{db_path.as_posix()}"
+def _is_sqlite_url(database_url: str) -> bool:
+    return database_url.startswith("sqlite")
 
 
-normalized_database_url = _normalize_database_url(settings.database_url)
+def _build_engine() -> Engine:
+    connect_args = {"check_same_thread": False} if _is_sqlite_url(settings.database_url) else {}
+    engine_kwargs = {
+        "echo": False,
+        "connect_args": connect_args,
+    }
+    if not _is_sqlite_url(settings.database_url):
+        engine_kwargs.update(
+            pool_size=settings.database_pool_size,
+            max_overflow=settings.database_max_overflow,
+            pool_recycle=settings.database_pool_recycle_seconds,
+            pool_pre_ping=True,
+        )
+    return create_engine(settings.database_url, **engine_kwargs)
 
-engine = create_engine(
-    normalized_database_url,
-    echo=False,
-    connect_args={"check_same_thread": False} if normalized_database_url.startswith("sqlite:///") else {},
-)
+
+engine = _build_engine()
 
 
 def init_db() -> None:
-    SQLModel.metadata.create_all(engine)
+    metadata.create_all(engine)
 
 
 class SessionFactory(Protocol):

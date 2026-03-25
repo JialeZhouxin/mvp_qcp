@@ -50,7 +50,8 @@ def upsert_project(
     use_case = UpsertProjectUseCase(session)
     try:
         project = use_case.execute(
-            current_user.id,
+            current_user.tenant_id,
+            int(current_user.id or 0),
             name,
             payload.entry_type,
             payload.payload,
@@ -68,7 +69,7 @@ def list_projects(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> ProjectListResponse:
-    projects = ListProjectsUseCase(session).execute(current_user.id, limit=limit, offset=offset)
+    projects = ListProjectsUseCase(session).execute(current_user.tenant_id, int(current_user.id or 0), limit=limit, offset=offset)
     return ProjectListResponse(
         projects=[_to_project_item_response(project) for project in projects]
     )
@@ -81,7 +82,7 @@ def get_project(
     session: Session = Depends(get_session),
 ) -> ProjectDetailResponse:
     use_case = GetProjectUseCase(session)
-    project = use_case.execute(current_user.id, project_id)
+    project = use_case.execute(current_user.tenant_id, int(current_user.id or 0), project_id)
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
     return _to_project_detail_response(project)

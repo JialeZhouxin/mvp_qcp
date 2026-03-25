@@ -35,7 +35,7 @@ class TaskSubmitService:
         now = self._now_provider()
         self._idempotency.cleanup_expired_records(now)
         if normalized_key is not None:
-            existing_task = self._idempotency.resolve_existing(command.user_id, normalized_key, now)
+            existing_task = self._idempotency.resolve_existing(command.tenant_id, command.user_id, normalized_key, now)
             if existing_task is not None:
                 task_id = self._require_task_id(existing_task)
                 logger.info(
@@ -52,11 +52,11 @@ class TaskSubmitService:
                 )
 
         queue_depth = self._preflight.ensure_submit_capacity(command.user_id)
-        task = self._create_pending_task(command.user_id, command.code)
+        task = self._create_pending_task(command.tenant_id, command.user_id, command.code)
         task_id = self._require_task_id(task)
 
         if normalized_key is not None:
-            self._idempotency.bind(command.user_id, normalized_key, task_id, now)
+            self._idempotency.bind(command.tenant_id, command.user_id, normalized_key, task_id, now)
 
         self._dispatch.dispatch(task, task_id, command.user_id, normalized_key, self._idempotency)
 
@@ -74,8 +74,8 @@ class TaskSubmitService:
             queue_depth=queue_depth,
         )
 
-    def _create_pending_task(self, user_id: int, code: str) -> Task:
-        task = Task(user_id=user_id, code=code, status=TaskStatus.PENDING)
+    def _create_pending_task(self, tenant_id: int, user_id: int, code: str) -> Task:
+        task = Task(tenant_id=tenant_id, user_id=user_id, code=code, status=TaskStatus.PENDING)
         self._session.add(task)
         self._session.commit()
         self._session.refresh(task)

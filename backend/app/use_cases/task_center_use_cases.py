@@ -24,6 +24,7 @@ def parse_watched_task_ids(task_ids: str | None) -> set[int] | None:
 
 @dataclass(frozen=True)
 class TaskCenterListQuery:
+    tenant_id: int
     user_id: int
     status_filter: str | None
     limit: int
@@ -36,14 +37,15 @@ class TaskCenterQueryUseCase:
 
     def list_tasks(self, query: TaskCenterListQuery) -> TaskListView:
         return self._service.list_tasks(
+            query.tenant_id,
             query.user_id,
             query.status_filter,
             query.limit,
             query.offset,
         )
 
-    def get_task_detail(self, user_id: int, task_id: int) -> TaskDetailView | None:
-        return self._service.get_task_detail(user_id, task_id)
+    def get_task_detail(self, tenant_id: int, user_id: int, task_id: int) -> TaskDetailView | None:
+        return self._service.get_task_detail(tenant_id, user_id, task_id)
 
 
 class TaskStatusStreamUseCase:
@@ -60,11 +62,12 @@ class TaskStatusStreamUseCase:
 
     def poll(
         self,
+        tenant_id: int,
         user_id: int,
         watched_task_ids: set[int] | None,
         versions: dict[int, str],
     ):
-        return self._service.list_changed_tasks(user_id, watched_task_ids, versions)
+        return self._service.list_changed_tasks(tenant_id, user_id, watched_task_ids, versions)
 
     def build_heartbeat(self):
         return self._service.build_heartbeat()
