@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://127.0.0.1:6379/0"
     cors_allow_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
     task_queue_name: str = "qcp-default"
+    circuit_task_queue_name: str = "qcp-circuit"
     task_job_timeout_seconds: int = 90
     token_expire_hours: int = 24
     qibo_exec_timeout_seconds: int = 60
@@ -38,6 +39,13 @@ class Settings(BaseSettings):
     task_max_retries: int = 2
     task_retry_backoff_seconds: str = "1,3"
     queue_max_depth: int = 200
+    circuit_exec_backend: str = "numpy"
+    circuit_exec_pool_size: int = 1
+    circuit_exec_timeout_seconds: int = 60
+    circuit_exec_heartbeat_seconds: int = 10
+    circuit_exec_heartbeat_ttl_seconds: int = 30
+    circuit_exec_heartbeat_key: str = "qcp:circuit:heartbeat"
+    worker_role: str = "default"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

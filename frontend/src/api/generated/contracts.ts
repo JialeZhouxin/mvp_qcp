@@ -11,6 +11,9 @@ export interface LoginRequest {
 export interface LoginResponse {
   access_token: string;
   token_type?: string;
+  tenant_id: number;
+  tenant_slug: string;
+  tenant_name: string;
 }
 
 export interface RegisterRequest {
@@ -21,6 +24,9 @@ export interface RegisterRequest {
 export interface RegisterResponse {
   user_id: number;
   username: string;
+  tenant_id: number;
+  tenant_slug: string;
+  tenant_name: string;
 }
 
 export interface ProjectItemResponse {
@@ -54,21 +60,36 @@ export interface TaskSubmitRequest {
   code: string;
 }
 
+export interface CircuitTaskOperationRequest {
+  gate: string;
+  targets: number[];
+  controls?: number[] | null;
+  params?: number[] | null;
+}
+
+export interface CircuitTaskSubmitRequest {
+  num_qubits: number;
+  operations?: CircuitTaskOperationRequest[];
+}
+
 export interface TaskSubmitResponse {
   task_id: number;
   status: string;
+  task_type: string;
   deduplicated?: boolean;
 }
 
 export interface TaskStatusResponse {
   task_id: number;
   status: string;
+  task_type: string;
   error_message?: unknown | null;
 }
 
 export interface TaskResultResponse {
   task_id: number;
   status: string;
+  task_type: string;
   result?: Record<string, unknown> | null;
   message?: string | null;
 }
@@ -84,6 +105,7 @@ export interface TaskDiagnostic {
 export interface TaskCenterListItem {
   task_id: number;
   status: string;
+  task_type: string;
   created_at: string;
   updated_at: string;
   duration_ms?: number | null;
@@ -101,6 +123,7 @@ export interface TaskCenterListResponse {
 export interface TaskCenterDetailResponse {
   task_id: number;
   status: string;
+  task_type: string;
   created_at: string;
   updated_at: string;
   started_at?: string | null;

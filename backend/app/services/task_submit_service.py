@@ -2,7 +2,7 @@ import logging
 
 from sqlmodel import Session
 
-from app.models.task import Task, TaskStatus
+from app.models.task import Task, TaskStatus, TaskType
 from app.services.task_submit_dispatch_preflight import TaskDispatchPreflight
 from app.services.task_submit_dispatch_service import TaskDispatchService
 from app.services.task_submit_idempotency import TaskSubmitIdempotencyCoordinator
@@ -31,6 +31,7 @@ class TaskSubmitService:
         self._now_provider = now_provider
 
     def submit(self, command: TaskSubmitCommand) -> TaskSubmitOutcome:
+        self._validator.validate_command(command)
         normalized_key = self._validator.normalize_idempotency_key(command.raw_idempotency_key)
         now = self._now_provider()
         self._idempotency.cleanup_expired_records(now)
@@ -47,12 +48,13 @@ class TaskSubmitService:
                 return TaskSubmitOutcome(
                     task_id=task_id,
                     status=existing_task.status.value,
+                    task_type=existing_task.task_type.value,
                     deduplicated=True,
                     queue_depth=None,
                 )
 
         queue_depth = self._preflight.ensure_submit_capacity(command.user_id)
-        task = self._create_pending_task(command.tenant_id, command.user_id, command.code)
+        task = self._create_pending_task(command)
         task_id = self._require_task_id(task)
 
         if normalized_key is not None:
@@ -70,12 +72,20 @@ class TaskSubmitService:
         return TaskSubmitOutcome(
             task_id=task_id,
             status=task.status.value,
+            task_type=task.task_type.value,
             deduplicated=False,
             queue_depth=queue_depth,
         )
 
-    def _create_pending_task(self, tenant_id: int, user_id: int, code: str) -> Task:
-        task = Task(tenant_id=tenant_id, user_id=user_id, code=code, status=TaskStatus.PENDING)
+    def _create_pending_task(self, command: TaskSubmitCommand) -> Task:
+        task = Task(
+            tenant_id=command.tenant_id,
+            user_id=command.user_id,
+            task_type=command.task_type,
+            code=command.code if command.task_type == TaskType.CODE else None,
+            payload_json=command.payload_json if command.task_type == TaskType.CIRCUIT else None,
+            status=TaskStatus.PENDING,
+        )
         self._session.add(task)
         self._session.commit()
         self._session.refresh(task)

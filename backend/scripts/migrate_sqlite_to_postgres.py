@@ -15,7 +15,7 @@ from sqlmodel import Session
 from app.db.base import metadata
 from app.models.idempotency_record import IdempotencyRecord
 from app.models.project import Project
-from app.models.task import Task, TaskStatus
+from app.models.task import Task, TaskStatus, TaskType
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.services.tenant_naming import build_tenant_slug, ensure_unique_tenant_slug
@@ -150,7 +150,9 @@ def migrate_sqlite_to_database(source_url: str, target_url: str) -> MigrationCou
                 id=legacy_task["id"],
                 tenant_id=tenant_id,
                 user_id=legacy_task["user_id"],
+                task_type=TaskType.CODE,
                 code=legacy_task["code"],
+                payload_json=None,
                 status=TaskStatus(legacy_task["status"]),
                 result_json=legacy_task["result_json"],
                 error_message=legacy_task["error_message"],

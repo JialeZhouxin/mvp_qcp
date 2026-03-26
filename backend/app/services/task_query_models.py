@@ -16,6 +16,7 @@ class TaskDiagnosticView:
 class UserTaskStatusView:
     task_id: int
     status: str
+    task_type: str
     error_message: Any | None
 
 
@@ -23,6 +24,7 @@ class UserTaskStatusView:
 class UserTaskResultView:
     task_id: int
     status: str
+    task_type: str
     result: Any | None
     message: str | None
 
@@ -31,6 +33,7 @@ class UserTaskResultView:
 class TaskListItemView:
     task_id: int
     status: str
+    task_type: str
     created_at: datetime
     updated_at: datetime
     duration_ms: int | None
@@ -50,6 +53,7 @@ class TaskListView:
 class TaskDetailView:
     task_id: int
     status: str
+    task_type: str
     created_at: datetime
     updated_at: datetime
     started_at: datetime | None

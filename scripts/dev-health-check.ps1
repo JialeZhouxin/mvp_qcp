@@ -94,7 +94,7 @@ function Wait-TaskTerminalStatus {
 
 if ($Docker) {
   Write-Host "[0/4] Checking Docker Compose services..."
-  Assert-DockerComposeServices -RequiredServices @("postgres", "redis", "backend", "worker", "execution-service", "frontend")
+  Assert-DockerComposeServices -RequiredServices @("postgres", "redis", "backend", "worker", "circuit-worker", "execution-service", "frontend")
 }
 
 Write-Host "[1/4] Checking Redis..."

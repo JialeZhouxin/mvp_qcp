@@ -15,6 +15,7 @@ class TaskDiagnostic(BaseModel):
 class TaskCenterListItem(BaseModel):
     task_id: int
     status: str
+    task_type: str
     created_at: datetime
     updated_at: datetime
     duration_ms: int | None = None
@@ -32,6 +33,7 @@ class TaskCenterListResponse(BaseModel):
 class TaskCenterDetailResponse(BaseModel):
     task_id: int
     status: str
+    task_type: str
     created_at: datetime
     updated_at: datetime
     started_at: datetime | None = None

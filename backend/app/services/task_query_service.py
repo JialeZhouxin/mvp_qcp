@@ -79,6 +79,7 @@ class TaskQueryService:
         return UserTaskStatusView(
             task_id=task.id or 0,
             status=task.status.value,
+            task_type=task.task_type.value,
             error_message=_parse_json_or_none(task.error_message),
         )
 
@@ -94,6 +95,7 @@ class TaskQueryService:
         return UserTaskResultView(
             task_id=task.id or 0,
             status=task.status.value,
+            task_type=task.task_type.value,
             result=_parse_json_or_none(task.result_json),
             message=message,
         )
@@ -122,6 +124,7 @@ class TaskQueryService:
                 TaskListItemView(
                     task_id=task.id or 0,
                     status=task.status.value,
+                    task_type=task.task_type.value,
                     created_at=task.created_at,
                     updated_at=task.updated_at,
                     duration_ms=task.duration_ms,
@@ -143,6 +146,7 @@ class TaskQueryService:
         return TaskDetailView(
             task_id=task.id or 0,
             status=task.status.value,
+            task_type=task.task_type.value,
             created_at=task.created_at,
             updated_at=task.updated_at,
             started_at=task.started_at,

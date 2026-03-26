@@ -23,6 +23,8 @@ TARGET_SCHEMAS = [
     "ProjectListResponse",
     "ProjectSaveRequest",
     "TaskSubmitRequest",
+    "CircuitTaskOperationRequest",
+    "CircuitTaskSubmitRequest",
     "TaskSubmitResponse",
     "TaskStatusResponse",
     "TaskResultResponse",

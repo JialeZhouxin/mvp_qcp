@@ -2,6 +2,7 @@
 import type { TaskStatusResponse, TaskSubmitResponse } from "../api/tasks";
 import type { CircuitModel } from "../features/circuit/model/types";
 import type { TaskStreamCallbacks, TaskStreamConnection } from "../features/realtime/task-stream-client";
+import { buildCircuitTaskPayload } from "../features/circuit/submission/circuit-task-submit";
 import {
   useWorkbenchTaskSubmit,
   type UseWorkbenchTaskSubmitDeps,
@@ -54,6 +55,12 @@ function createBaseDeps() {
   const submitTask = vi.fn<
     (code: string, options?: { readonly idempotencyKey?: string }) => Promise<TaskSubmitResponse>
   >();
+  const submitCircuitTask = vi.fn<
+    (
+      payload: ReturnType<typeof buildCircuitTaskPayload>,
+      options?: { readonly idempotencyKey?: string },
+    ) => Promise<TaskSubmitResponse>
+  >();
   const getTaskStatus = vi.fn<(taskId: number) => Promise<TaskStatusResponse>>();
   let callbacks: TaskStreamCallbacks | null = null;
   const close = vi.fn();
@@ -66,6 +73,7 @@ function createBaseDeps() {
 
   return {
     submitTask,
+    submitCircuitTask,
     getTaskStatus,
     connectTaskStatusStream,
     getCallbacks: () => callbacks,
@@ -90,12 +98,18 @@ describe("useWorkbenchTaskSubmit", () => {
 
   it("tracks task status via stream and stops on terminal status", async () => {
     const deps = createBaseDeps();
-    deps.submitTask.mockResolvedValue({ task_id: 101, status: "PENDING", deduplicated: false });
+    deps.submitCircuitTask.mockResolvedValue({
+      task_id: 101,
+      status: "PENDING",
+      task_type: "circuit",
+      deduplicated: false,
+    });
 
     render(
       <HookHarness
         deps={{
           submitTask: deps.submitTask,
+          submitCircuitTask: deps.submitCircuitTask,
           getTaskStatus: deps.getTaskStatus,
           connectTaskStatusStream: deps.connectTaskStatusStream,
         }}
@@ -105,6 +119,8 @@ describe("useWorkbenchTaskSubmit", () => {
     fireEvent.click(screen.getByRole("button", { name: "submit" }));
     await flushAsyncUpdates();
 
+    expect(deps.submitTask).not.toHaveBeenCalled();
+    expect(deps.submitCircuitTask).toHaveBeenCalledWith(buildCircuitTaskPayload(MODEL), expect.any(Object));
     expect(screen.getByTestId("task-id")).toHaveTextContent("101");
     expect(screen.getByTestId("tracking-mode")).toHaveTextContent("sse");
     expect(screen.getByTestId("is-tracking")).toHaveTextContent("true");
@@ -144,15 +160,21 @@ describe("useWorkbenchTaskSubmit", () => {
 
   it("falls back to polling when stream disconnects", async () => {
     const deps = createBaseDeps();
-    deps.submitTask.mockResolvedValue({ task_id: 202, status: "PENDING", deduplicated: false });
+    deps.submitCircuitTask.mockResolvedValue({
+      task_id: 202,
+      status: "PENDING",
+      task_type: "circuit",
+      deduplicated: false,
+    });
     deps.getTaskStatus
-      .mockResolvedValueOnce({ task_id: 202, status: "RUNNING" })
-      .mockResolvedValueOnce({ task_id: 202, status: "SUCCESS" });
+      .mockResolvedValueOnce({ task_id: 202, status: "RUNNING", task_type: "circuit" })
+      .mockResolvedValueOnce({ task_id: 202, status: "SUCCESS", task_type: "circuit" });
 
     render(
       <HookHarness
         deps={{
           submitTask: deps.submitTask,
+          submitCircuitTask: deps.submitCircuitTask,
           getTaskStatus: deps.getTaskStatus,
           connectTaskStatusStream: deps.connectTaskStatusStream,
         }}
@@ -184,13 +206,19 @@ describe("useWorkbenchTaskSubmit", () => {
 
   it("keeps manual refresh available while tracking", async () => {
     const deps = createBaseDeps();
-    deps.submitTask.mockResolvedValue({ task_id: 303, status: "PENDING", deduplicated: false });
-    deps.getTaskStatus.mockResolvedValue({ task_id: 303, status: "SUCCESS" });
+    deps.submitCircuitTask.mockResolvedValue({
+      task_id: 303,
+      status: "PENDING",
+      task_type: "circuit",
+      deduplicated: false,
+    });
+    deps.getTaskStatus.mockResolvedValue({ task_id: 303, status: "SUCCESS", task_type: "circuit" });
 
     render(
       <HookHarness
         deps={{
           submitTask: deps.submitTask,
+          submitCircuitTask: deps.submitCircuitTask,
           getTaskStatus: deps.getTaskStatus,
           connectTaskStatusStream: deps.connectTaskStatusStream,
         }}

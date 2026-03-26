@@ -5,7 +5,7 @@ from sqlmodel import Session, SQLModel, select
 
 from app.models.idempotency_record import IdempotencyRecord
 from app.models.project import Project
-from app.models.task import Task
+from app.models.task import Task, TaskType
 from app.models.tenant import Tenant
 from app.models.user import User
 from scripts.migrate_sqlite_to_postgres import migrate_sqlite_to_database
@@ -157,6 +157,8 @@ def test_migrate_sqlite_to_database_bootstraps_tenants(tmp_path) -> None:
         assert user.token is None
         assert user.token_expires_at is None
         assert task.tenant_id == tenant.id
+        assert task.task_type == TaskType.CODE
+        assert task.payload_json is None
         assert project.tenant_id == tenant.id
         assert record.tenant_id == tenant.id
 

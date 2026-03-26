@@ -141,6 +141,10 @@ export function useTaskRuntime({
   };
 
   const submitTaskCode = async (code: string, options: SubmitTaskCodeOptions = {}) => {
+    await submitTaskRequest(() => resolvedDeps.submitTask(code, options));
+  };
+
+  const submitTaskRequest = async (request: () => Promise<TaskSubmitResponse>) => {
     setSubmittingTask(true);
     setTaskError(null);
     setDeduplicatedSubmit(false);
@@ -151,7 +155,7 @@ export function useTaskRuntime({
     }
 
     try {
-      const response = await resolvedDeps.submitTask(code, options);
+      const response = await request();
       setTaskId(response.task_id);
       setTaskStatus(response.status);
       setDeduplicatedSubmit(response.deduplicated === true);
@@ -223,6 +227,7 @@ export function useTaskRuntime({
     elapsedSeconds,
     isTracking,
     submitTaskCode,
+    submitTaskRequest,
     refreshTaskStatus,
   };
 }

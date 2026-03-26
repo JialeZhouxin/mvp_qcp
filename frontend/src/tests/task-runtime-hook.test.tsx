@@ -94,7 +94,12 @@ describe("useTaskRuntime", () => {
 
   it("uses stream-first tracking and stops after terminal status", async () => {
     const deps = createBaseDeps();
-    deps.submitTask.mockResolvedValue({ task_id: 101, status: "PENDING", deduplicated: false });
+    deps.submitTask.mockResolvedValue({
+      task_id: 101,
+      status: "PENDING",
+      task_type: "code",
+      deduplicated: false,
+    });
 
     render(
       <HookHarness
@@ -148,8 +153,13 @@ describe("useTaskRuntime", () => {
 
   it("supports polling-only tracking and manual refresh when auto polling is disabled", async () => {
     const deps = createBaseDeps();
-    deps.submitTask.mockResolvedValue({ task_id: 202, status: "PENDING", deduplicated: false });
-    deps.getTaskStatus.mockResolvedValue({ task_id: 202, status: "SUCCESS" });
+    deps.submitTask.mockResolvedValue({
+      task_id: 202,
+      status: "PENDING",
+      task_type: "code",
+      deduplicated: false,
+    });
+    deps.getTaskStatus.mockResolvedValue({ task_id: 202, status: "SUCCESS", task_type: "code" });
 
     render(
       <HookHarness

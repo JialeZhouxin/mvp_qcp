@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from app.models.task import TaskType
+
 
 IDEMPOTENCY_KEY_MAX_LENGTH = 255
 QUEUE_PUBLISH_ERROR_CODE = "QUEUE_PUBLISH_ERROR"
@@ -16,7 +18,9 @@ class TaskSubmitConfig:
 class TaskSubmitCommand:
     tenant_id: int
     user_id: int
-    code: str
+    task_type: TaskType
+    code: str | None = None
+    payload_json: str | None = None
     raw_idempotency_key: str | None = None
 
 
@@ -24,6 +28,7 @@ class TaskSubmitCommand:
 class TaskSubmitOutcome:
     task_id: int
     status: str
+    task_type: str
     deduplicated: bool
     queue_depth: int | None
 

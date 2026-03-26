@@ -41,8 +41,15 @@ services:
       DATABASE_URL: postgresql+psycopg://qcp:QcpDev_2026_Strong!@postgres:5432/qcp
       REDIS_URL: redis://redis:6379/0
       TASK_QUEUE_NAME: qcp-default
+      CIRCUIT_TASK_QUEUE_NAME: qcp-circuit
       TASK_JOB_TIMEOUT_SECONDS: "90"
       QIBO_EXEC_TIMEOUT_SECONDS: "60"
+      CIRCUIT_EXEC_BACKEND: numpy
+      CIRCUIT_EXEC_POOL_SIZE: "1"
+      CIRCUIT_EXEC_TIMEOUT_SECONDS: "60"
+      CIRCUIT_EXEC_HEARTBEAT_SECONDS: "10"
+      CIRCUIT_EXEC_HEARTBEAT_TTL_SECONDS: "30"
+      CIRCUIT_EXEC_HEARTBEAT_KEY: qcp:circuit:heartbeat
       EXECUTION_BACKEND: remote
       EXECUTION_SERVICE_URL: http://execution-service:8010
       EXECUTION_SERVICE_TIMEOUT_SECONDS: "75"
@@ -66,15 +73,17 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     image: qcp-backend-dev:latest
-    command: celery -A app.worker.celery_app:celery_app worker --loglevel=info
+    command: celery -A app.worker.celery_app:celery_app worker --loglevel=info --queues=qcp-default
     working_dir: /app/backend
     environment:
       ENV: dev
       DATABASE_URL: postgresql+psycopg://qcp:QcpDev_2026_Strong!@postgres:5432/qcp
       REDIS_URL: redis://redis:6379/0
       TASK_QUEUE_NAME: qcp-default
+      CIRCUIT_TASK_QUEUE_NAME: qcp-circuit
       TASK_JOB_TIMEOUT_SECONDS: "90"
       QIBO_EXEC_TIMEOUT_SECONDS: "60"
+      WORKER_ROLE: default
       EXECUTION_BACKEND: remote
       EXECUTION_SERVICE_URL: http://execution-service:8010
       EXECUTION_SERVICE_TIMEOUT_SECONDS: "75"
@@ -87,6 +96,36 @@ services:
         condition: service_healthy
       execution-service:
         condition: service_started
+    restart: unless-stopped
+
+  circuit-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: qcp-backend-dev:latest
+    command: celery -A app.worker.celery_app:celery_app worker --loglevel=info --pool=solo --concurrency=1 --queues=qcp-circuit
+    working_dir: /app/backend
+    environment:
+      ENV: dev
+      DATABASE_URL: postgresql+psycopg://qcp:QcpDev_2026_Strong!@postgres:5432/qcp
+      REDIS_URL: redis://redis:6379/0
+      TASK_QUEUE_NAME: qcp-default
+      CIRCUIT_TASK_QUEUE_NAME: qcp-circuit
+      TASK_JOB_TIMEOUT_SECONDS: "90"
+      CIRCUIT_EXEC_BACKEND: numpy
+      CIRCUIT_EXEC_POOL_SIZE: "1"
+      CIRCUIT_EXEC_TIMEOUT_SECONDS: "60"
+      CIRCUIT_EXEC_HEARTBEAT_SECONDS: "10"
+      CIRCUIT_EXEC_HEARTBEAT_TTL_SECONDS: "30"
+      CIRCUIT_EXEC_HEARTBEAT_KEY: qcp:circuit:heartbeat
+      WORKER_ROLE: circuit
+    volumes:
+      - ./backend:/app/backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   execution-service:

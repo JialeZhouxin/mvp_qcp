@@ -15,6 +15,11 @@ class TaskStatus(str, Enum):
     RETRY_EXHAUSTED = "RETRY_EXHAUSTED"
 
 
+class TaskType(str, Enum):
+    CODE = "code"
+    CIRCUIT = "circuit"
+
+
 class Task(SQLModel, table=True):
     __table_args__ = (
         Index("ix_task_tenant_user_created_at", "tenant_id", "user_id", "created_at"),
@@ -24,7 +29,9 @@ class Task(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     tenant_id: int = Field(index=True, foreign_key="tenant.id")
     user_id: int = Field(index=True, foreign_key="user.id")
-    code: str
+    task_type: TaskType = Field(default=TaskType.CODE, index=True)
+    code: Optional[str] = Field(default=None)
+    payload_json: Optional[str] = Field(default=None)
     status: TaskStatus = Field(default=TaskStatus.PENDING, index=True)
     result_json: Optional[str] = Field(default=None)
     error_message: Optional[str] = Field(default=None)

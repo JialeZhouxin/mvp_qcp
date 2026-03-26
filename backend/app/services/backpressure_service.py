@@ -11,17 +11,18 @@ class QueueOverloadedError(RuntimeError):
 
 
 class BackpressureService:
-    def __init__(self, max_depth: int) -> None:
+    def __init__(self, max_depth: int, queue_name: str | None = None) -> None:
         if max_depth <= 0:
             raise ValueError("max_depth must be positive")
         self.max_depth = max_depth
+        self.queue_name = queue_name
 
     @classmethod
-    def from_settings(cls) -> "BackpressureService":
-        return cls(max_depth=settings.queue_max_depth)
+    def from_settings(cls, queue_name: str | None = None) -> "BackpressureService":
+        return cls(max_depth=settings.queue_max_depth, queue_name=queue_name)
 
     def current_depth(self) -> int:
-        return get_task_queue_depth()
+        return get_task_queue_depth(queue_name=self.queue_name)
 
     def ensure_submit_capacity(self) -> int:
         depth = self.current_depth()

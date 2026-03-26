@@ -1,5 +1,6 @@
 from typing import Protocol
 
+from app.models.task import TaskType
 from app.services.task_submit_service import TaskSubmitService
 from app.services.task_query_models import UserTaskResultView, UserTaskStatusView
 from app.services.task_query_service import TaskAccessDeniedError, TaskNotFoundError
@@ -29,7 +30,24 @@ class SubmitTaskUseCase:
             TaskSubmitCommand(
                 tenant_id=tenant_id,
                 user_id=user_id,
+                task_type=TaskType.CODE,
                 code=code,
+                raw_idempotency_key=idempotency_key,
+            )
+        )
+
+
+class SubmitCircuitTaskUseCase:
+    def __init__(self, service: TaskSubmitService) -> None:
+        self._service = service
+
+    def execute(self, tenant_id: int, user_id: int, payload_json: str, idempotency_key: str | None) -> TaskSubmitOutcome:
+        return self._service.submit(
+            TaskSubmitCommand(
+                tenant_id=tenant_id,
+                user_id=user_id,
+                task_type=TaskType.CIRCUIT,
+                payload_json=payload_json,
                 raw_idempotency_key=idempotency_key,
             )
         )
@@ -54,6 +72,7 @@ class GetTaskResultUseCase:
 __all__ = [
     "GetTaskResultUseCase",
     "GetTaskStatusUseCase",
+    "SubmitCircuitTaskUseCase",
     "SubmitTaskUseCase",
     "TaskAccessDeniedError",
     "TaskNotFoundError",

@@ -15,3 +15,7 @@ def test_alembic_upgrade_head_creates_multitenant_schema(tmp_path) -> None:
     table_names = set(inspector.get_table_names())
 
     assert {"tenant", "user", "task", "project", "idempotencyrecord"}.issubset(table_names)
+    task_columns = {column["name"] for column in inspector.get_columns("task")}
+    assert {"task_type", "payload_json"}.issubset(task_columns)
+    nullable_map = {column["name"]: column["nullable"] for column in inspector.get_columns("task")}
+    assert nullable_map["code"] is True

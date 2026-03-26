@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { submitCircuitTask, type CircuitTaskSubmitRequest, type TaskSubmitResponse } from "../../../api/tasks";
 import {
   useTaskRuntime,
   type UseTaskRuntimeDeps,
@@ -9,7 +10,7 @@ import type { CircuitModel } from "../model/types";
 import type { QasmParseError } from "../qasm/qasm-errors";
 import {
   buildIdempotencyKey,
-  buildQiboTaskCode,
+  buildCircuitTaskPayload,
   buildSubmitFingerprint,
 } from "./circuit-task-submit";
 
@@ -18,7 +19,12 @@ const STATUS_REFRESH_ERROR_HINT = "\u5237\u65b0\u4efb\u52a1\u72b6\u6001\u5931\u8
 const TASK_SUBMIT_ERROR_HINT = "\u4efb\u52a1\u63d0\u4ea4\u5931\u8d25";
 const VALIDATION_ERROR_PREFIX = "\u7535\u8def\u6821\u9a8c\u5931\u8d25\uff1a";
 
-export interface UseWorkbenchTaskSubmitDeps extends UseTaskRuntimeDeps {}
+export interface UseWorkbenchTaskSubmitDeps extends UseTaskRuntimeDeps {
+  readonly submitCircuitTask: (
+    payload: CircuitTaskSubmitRequest,
+    options?: { readonly idempotencyKey?: string },
+  ) => Promise<TaskSubmitResponse>;
+}
 
 interface UseWorkbenchTaskSubmitParams {
   readonly circuit: CircuitModel;
@@ -52,7 +58,7 @@ export function useWorkbenchTaskSubmit({ circuit, parseError, deps }: UseWorkben
     trackingMode,
     isTracking,
     elapsedSeconds,
-    submitTaskCode,
+    submitTaskRequest,
     refreshTaskStatus,
   } = useTaskRuntime({
     deps,
@@ -77,10 +83,11 @@ export function useWorkbenchTaskSubmit({ circuit, parseError, deps }: UseWorkben
     }
 
     setBlockedSubmitError(null);
-    const generatedCode = buildQiboTaskCode(circuit);
+    const payload = buildCircuitTaskPayload(circuit);
     const fingerprint = buildSubmitFingerprint(circuit);
     const idempotencyKey = buildIdempotencyKey(fingerprint);
-    await submitTaskCode(generatedCode, { idempotencyKey });
+    const submit = deps?.submitCircuitTask ?? submitCircuitTask;
+    await submitTaskRequest(() => submit(payload, { idempotencyKey }));
   }
 
   async function onRefreshTaskStatus() {

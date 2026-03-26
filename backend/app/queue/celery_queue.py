@@ -53,6 +53,10 @@ def get_task_queue() -> CeleryQueueAdapter:
     return CeleryQueueAdapter(queue_name=settings.task_queue_name)
 
 
+def get_circuit_task_queue() -> CeleryQueueAdapter:
+    return CeleryQueueAdapter(queue_name=settings.circuit_task_queue_name)
+
+
 def get_task_queue_depth(
     redis_getter: Callable[[], RedisDepthPort] = get_redis_connection,
     queue_name: str | None = None,

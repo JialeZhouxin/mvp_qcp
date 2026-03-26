@@ -18,6 +18,7 @@ def to_task_center_list_response(view: TaskListView) -> TaskCenterListResponse:
             {
                 "task_id": item.task_id,
                 "status": item.status,
+                "task_type": item.task_type,
                 "created_at": item.created_at,
                 "updated_at": item.updated_at,
                 "duration_ms": item.duration_ms,
@@ -39,6 +40,7 @@ def to_task_center_detail_response(view: TaskDetailView) -> TaskCenterDetailResp
     return TaskCenterDetailResponse(
         task_id=view.task_id,
         status=view.status,
+        task_type=view.task_type,
         created_at=view.created_at,
         updated_at=view.updated_at,
         started_at=view.started_at,

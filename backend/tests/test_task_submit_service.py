@@ -6,7 +6,7 @@ from sqlmodel import SQLModel, Session, create_engine, select
 
 from app.models.idempotency_record import IdempotencyRecord
 from app.models.tenant import Tenant
-from app.models.task import Task, TaskStatus
+from app.models.task import Task, TaskStatus, TaskType
 from app.services.backpressure_service import QueueOverloadedError
 from app.services.idempotency_service import IdempotencyService
 from app.services.task_submit_dispatch_preflight import TaskDispatchPreflight
@@ -147,6 +147,7 @@ def test_submit_rejects_invalid_idempotency_key(
             TaskSubmitCommand(
                 tenant_id=tenant_id,
                 user_id=1,
+                task_type=TaskType.CODE,
                 code="def main():\n    return 1",
                 raw_idempotency_key=raw_key,
             )
@@ -175,15 +176,17 @@ def test_submit_returns_deduplicated_task_without_enqueue(session: Session) -> N
 
     outcome = service.submit(
         TaskSubmitCommand(
-            tenant_id=tenant_id,
-            user_id=1,
-            code="def main():\n    return {'counts': {'11': 1}}",
-            raw_idempotency_key="same-key",
-        )
+                tenant_id=tenant_id,
+                user_id=1,
+                task_type=TaskType.CODE,
+                code="def main():\n    return {'counts': {'11': 1}}",
+                raw_idempotency_key="same-key",
+            )
     )
 
     assert outcome.task_id == existing_task.id
     assert outcome.status == existing_task.status.value
+    assert outcome.task_type == "code"
     assert outcome.deduplicated is True
     assert queue.calls == []
 
@@ -196,7 +199,14 @@ def test_submit_raises_overloaded_error_before_task_creation(session: Session) -
     tenant_id = _create_tenant(session, slug="overload-tenant")
 
     with pytest.raises(TaskSubmitOverloadedError) as exc_info:
-        service.submit(TaskSubmitCommand(tenant_id=tenant_id, user_id=1, code="def main():\n    return 1"))
+        service.submit(
+            TaskSubmitCommand(
+                tenant_id=tenant_id,
+                user_id=1,
+                task_type=TaskType.CODE,
+                code="def main():\n    return 1",
+            )
+        )
 
     assert exc_info.value.code == "QUEUE_OVERLOADED"
     assert exc_info.value.depth == 201
@@ -218,6 +228,7 @@ def test_submit_marks_failure_and_refreshes_idempotency_on_enqueue_failure(sessi
             TaskSubmitCommand(
                 tenant_id=tenant_id,
                 user_id=1,
+                task_type=TaskType.CODE,
                 code="def main():\n    return {'counts': {'00': 1}}",
                 raw_idempotency_key="enqueue-fail-key",
             )
@@ -248,15 +259,17 @@ def test_submit_enqueues_pending_task_successfully(session: Session) -> None:
     tenant_id = _create_tenant(session, slug="enqueue-success-tenant")
 
     outcome = service.submit(
-        TaskSubmitCommand(
-            tenant_id=tenant_id,
-            user_id=1,
-            code="def main():\n    return {'counts': {'00': 3, '11': 1}}",
+            TaskSubmitCommand(
+                tenant_id=tenant_id,
+                user_id=1,
+                task_type=TaskType.CODE,
+                code="def main():\n    return {'counts': {'00': 3, '11': 1}}",
+            )
         )
-    )
 
     assert outcome.deduplicated is False
     assert outcome.status == "PENDING"
+    assert outcome.task_type == "code"
     assert outcome.queue_depth == 7
     assert len(queue.calls) == 1
     task_name, task_id, job_timeout = queue.calls[0]
@@ -267,3 +280,29 @@ def test_submit_enqueues_pending_task_successfully(session: Session) -> None:
     task = session.exec(select(Task).where(Task.id == outcome.task_id)).first()
     assert task is not None
     assert task.status == TaskStatus.PENDING
+    assert task.task_type == TaskType.CODE
+
+
+def test_submit_persists_circuit_payload_without_code(session: Session) -> None:
+    queue = QueueRecorder()
+    backpressure = BackpressureStub(depth=2)
+    service = _build_submit_service(session, queue=queue, backpressure=backpressure)
+    tenant_id = _create_tenant(session, slug="circuit-submit-tenant")
+    payload_json = '{"num_qubits":2,"operations":[{"gate":"h","targets":[0]}]}'
+
+    outcome = service.submit(
+        TaskSubmitCommand(
+            tenant_id=tenant_id,
+            user_id=1,
+            task_type=TaskType.CIRCUIT,
+            payload_json=payload_json,
+        )
+    )
+
+    assert outcome.status == "PENDING"
+    assert outcome.task_type == "circuit"
+    task = session.exec(select(Task).where(Task.id == outcome.task_id)).first()
+    assert task is not None
+    assert task.task_type == TaskType.CIRCUIT
+    assert task.code is None
+    assert task.payload_json == payload_json
