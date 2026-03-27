@@ -1,5 +1,8 @@
 ﻿import { fireEvent, render, screen, within } from "@testing-library/react";
 
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import CircuitCanvas from "../features/circuit/components/CircuitCanvas";
 import type { CircuitModel } from "../features/circuit/model/types";
 
@@ -335,6 +338,18 @@ describe("CircuitCanvas", () => {
     }
     expect(zoomPercent).toHaveTextContent("50%");
     expect(zoomOutButton).toBeDisabled();
+  });
+
+  it("does not locally reset the canvas scale variable on the grid root", () => {
+    const cssPath = path.resolve(
+      import.meta.dirname,
+      "../features/circuit/components/CircuitCanvas.css",
+    );
+    const cssSource = readFileSync(cssPath, "utf8");
+    const gridRuleMatch = cssSource.match(/\.canvas-grid\s*\{([\s\S]*?)\}/);
+
+    expect(gridRuleMatch?.[1]).toBeDefined();
+    expect(gridRuleMatch?.[1]).not.toMatch(/--canvas-scale\s*:/);
   });
 
   it("supports zoom by wheel and keyboard shortcuts", () => {

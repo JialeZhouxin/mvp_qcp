@@ -223,7 +223,6 @@
 }
 
 .canvas-grid {
-  --canvas-scale: 1;
   --canvas-gap: calc(6px * var(--canvas-scale));
   --canvas-wire-empty: #8fa0b8;
   --canvas-wire-connector: #4f5f73;
