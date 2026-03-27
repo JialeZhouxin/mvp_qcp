@@ -1,0 +1,106 @@
+.workbench-control-button {
+  --workbench-accent-color: currentColor;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.workbench-control-button:hover {
+  opacity: 0.8;
+}
+
+.workbench-control-button:active {
+  transform: translateY(0.5px);
+}
+
+.workbench-control-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.workbench-control-button:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.45);
+  outline-offset: 2px;
+}
+
+.workbench-control-button__content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.workbench-control-button--icon {
+  width: 32px;
+  padding: 0;
+}
+
+.workbench-control-button--ghost {
+  padding-inline: 6px;
+}
+
+.workbench-control-button--surface {
+  min-width: 56px;
+  justify-content: flex-start;
+  padding: 6px 10px 6px 8px;
+}
+
+.workbench-control-divider {
+  width: 1px;
+  height: 18px;
+  background: currentColor;
+  opacity: 0.12;
+}
+
+.gate-palette-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.gate-palette-heading {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gate-palette-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gate-palette-item {
+  position: relative;
+}
+
+.gate-palette-button {
+  min-width: 56px;
+}
+
+.gate-palette-button__accent {
+  width: 4px;
+  height: 18px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--workbench-accent-color);
+  opacity: 0.7;
+}
+
+.gate-palette-button__label {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}

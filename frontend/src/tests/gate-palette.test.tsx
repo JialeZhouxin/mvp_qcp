@@ -35,21 +35,30 @@ describe("GatePalette", () => {
     expect(buttonTestIds.indexOf("gate-cx")).toBeLessThan(buttonTestIds.indexOf("gate-m"));
   });
 
-  it("applies category color token to gate buttons", () => {
+  it("renders gate buttons with shared workbench button styling and weak category accent", () => {
     render(<GatePalette />);
 
-    expect(screen.getByTestId("gate-h")).toHaveStyle({
-      color: "rgb(29, 78, 216)",
-      borderColor: "rgb(29, 78, 216)",
-    });
-    expect(screen.getByTestId("gate-cx")).toHaveStyle({
-      color: "rgb(21, 128, 61)",
-      borderColor: "rgb(21, 128, 61)",
-    });
-    expect(screen.getByTestId("gate-m")).toHaveStyle({
-      color: "rgb(75, 85, 99)",
-      borderColor: "rgb(75, 85, 99)",
-    });
+    const singleGate = screen.getByTestId("gate-h");
+    const controlledGate = screen.getByTestId("gate-cx");
+    const measurementGate = screen.getByTestId("gate-m");
+
+    expect(singleGate).toHaveClass("workbench-control-button", "gate-palette-button");
+    expect(controlledGate).toHaveClass("workbench-control-button", "gate-palette-button");
+    expect(measurementGate).toHaveClass("workbench-control-button", "gate-palette-button");
+
+    const singleAccent = within(singleGate).getByTestId("gate-accent-h");
+    const controlledAccent = within(controlledGate).getByTestId("gate-accent-cx");
+    const measurementAccent = within(measurementGate).getByTestId("gate-accent-m");
+
+    expect(singleAccent).toHaveClass("gate-palette-button__accent", "gate-palette-button__accent--single");
+    expect(controlledAccent).toHaveClass(
+      "gate-palette-button__accent",
+      "gate-palette-button__accent--controlled",
+    );
+    expect(measurementAccent).toHaveClass(
+      "gate-palette-button__accent",
+      "gate-palette-button__accent--measurement",
+    );
   });
 
   it("shows compact Chinese tooltip on hover and focus for x gate", () => {
@@ -104,5 +113,23 @@ describe("GatePalette", () => {
 
     expect(screen.queryByTestId("gate-matrix-tooltip-x")).not.toBeInTheDocument();
     expect(screen.queryByTestId("gate-matrix-tooltip-h")).not.toBeInTheDocument();
+  });
+
+  it("does not restore a previously focused gate tooltip after hovering another gate", () => {
+    render(<GatePalette />);
+
+    const zButton = screen.getByTestId("gate-z");
+    const xButton = screen.getByTestId("gate-x");
+
+    fireEvent.focus(zButton);
+    expect(screen.getByTestId("gate-matrix-tooltip-z")).toBeInTheDocument();
+
+    fireEvent.mouseEnter(xButton);
+    expect(screen.getByTestId("gate-matrix-tooltip-x")).toBeInTheDocument();
+    expect(screen.queryByTestId("gate-matrix-tooltip-z")).not.toBeInTheDocument();
+
+    fireEvent.mouseLeave(xButton);
+    expect(screen.queryByTestId("gate-matrix-tooltip-x")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("gate-matrix-tooltip-z")).not.toBeInTheDocument();
   });
 });

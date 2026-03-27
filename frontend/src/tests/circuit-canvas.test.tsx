@@ -269,6 +269,7 @@ describe("CircuitCanvas", () => {
     fireEvent.click(qubitButtons[1]);
 
     const templateMenu = screen.getByTestId("canvas-template-menu-trigger");
+    expect(templateMenu).toHaveClass("workbench-control-button", "workbench-control-button--ghost");
     fireEvent.click(templateMenu);
     fireEvent.click(screen.getByTestId("canvas-template-option-bell"));
     fireEvent.click(templateMenu);
@@ -327,6 +328,8 @@ describe("CircuitCanvas", () => {
     const zoomToolbar = screen.getByTestId("canvas-zoom-toolbar");
 
     expect(zoomToolbar).toHaveClass("canvas-workbench-toolbar-cluster");
+    expect(zoomInButton).toHaveClass("workbench-control-button", "workbench-control-button--icon");
+    expect(zoomOutButton).toHaveClass("workbench-control-button", "workbench-control-button--icon");
     expect(zoomPercent).toHaveTextContent("100%");
     fireEvent.click(zoomInButton);
     expect(zoomPercent).toHaveTextContent("110%");

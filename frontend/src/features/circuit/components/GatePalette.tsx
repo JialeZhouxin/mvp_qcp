@@ -7,6 +7,8 @@ import {
 } from "../gates/gate-catalog";
 import type { GateName } from "../model/types";
 import GateMatrixTooltip from "./GateMatrixTooltip";
+import { WorkbenchControlButton } from "./WorkbenchControls";
+import "./WorkbenchControls.css";
 
 const CATEGORY_ORDER: readonly GateCategory[] = [
   "single",
@@ -83,6 +85,7 @@ function GatePalette({ gates, showMatrixTooltip = true }: GatePaletteProps) {
     if (isDragging || suppressedGate === gate) {
       return;
     }
+    setFocusedGate((current) => (current === gate ? current : null));
     setHoveredGate(gate);
   };
 
@@ -112,16 +115,12 @@ function GatePalette({ gates, showMatrixTooltip = true }: GatePaletteProps) {
         : null;
 
   return (
-    <section
-      data-testid="gate-palette-panel"
-      style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}
-    >
-      <h3 style={{ marginTop: 0 }}>门库</h3>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+    <section data-testid="gate-palette-panel" className="gate-palette-panel">
+      <h3 className="gate-palette-heading">Gate Library</h3>
+      <div className="gate-palette-grid">
         {orderedItems.map((item) => (
-          <div key={item.name} style={{ position: "relative" }}>
-            <button
-              type="button"
+          <div key={item.name} className="gate-palette-item">
+            <WorkbenchControlButton
               draggable
               onDragStart={(event) => onDragStart(event, item.name)}
               onDragEnd={onDragEnd}
@@ -130,23 +129,16 @@ function GatePalette({ gates, showMatrixTooltip = true }: GatePaletteProps) {
               onFocus={() => onFocus(item.name)}
               onBlur={() => onBlur(item.name)}
               data-testid={`gate-${item.name}`}
-              style={{
-                minWidth: 56,
-                padding: "6px 8px",
-                borderRadius: 6,
-                border: `1px solid ${item.colorToken}`,
-                color: item.colorToken,
-                background: "#fff",
-                fontWeight: 600,
-              }}
+              className="gate-palette-button"
+              variant="surface"
+              accentTone={item.category}
+              accentColor={item.colorToken}
+              accentTestId={`gate-accent-${item.name}`}
             >
-              {item.label}
-            </button>
+              <span className="gate-palette-button__label">{item.label}</span>
+            </WorkbenchControlButton>
             {showMatrixTooltip && activeGate === item.name ? (
-              <GateMatrixTooltip
-                gate={item.name}
-                accentColor={item.colorToken}
-              />
+              <GateMatrixTooltip gate={item.name} accentColor={item.colorToken} />
             ) : null}
           </div>
         ))}

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { WORKBENCH_COPY } from "../ui/copy-catalog";
+import { WorkbenchControlButton, WorkbenchDivider } from "./WorkbenchControls";
+import "./WorkbenchControls.css";
 
 interface CircuitCanvasToolbarProps {
   readonly hasWorkbenchControls: boolean;
@@ -27,40 +29,6 @@ interface CircuitCanvasToolbarProps {
   readonly onZoomIn: () => void;
   readonly onZoomReset: () => void;
   readonly onSimulationStepChange: (step: number) => void;
-}
-
-interface ToolbarIconButtonProps {
-  readonly label: string;
-  readonly onClick: () => void;
-  readonly disabled?: boolean;
-  readonly children: ReactNode;
-  readonly testId?: string;
-}
-
-function ToolbarIconButton({
-  label,
-  onClick,
-  disabled = false,
-  children,
-  testId,
-}: ToolbarIconButtonProps) {
-  return (
-    <button
-      type="button"
-      className="canvas-toolbar-icon-button"
-      aria-label={label}
-      title={label}
-      data-testid={testId}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      {children}
-    </button>
-  );
-}
-
-function ToolbarDivider() {
-  return <span className="canvas-toolbar-divider" aria-hidden="true" />;
 }
 
 function IconBase({ children }: { readonly children: ReactNode }) {
@@ -275,8 +243,8 @@ function TemplateMenu({
 
   return (
     <div className="canvas-template-menu" data-testid="canvas-workbench-templates" ref={rootRef}>
-      <button
-        type="button"
+      <WorkbenchControlButton
+        variant="ghost"
         className="canvas-template-menu-trigger"
         data-testid="canvas-template-menu-trigger"
         aria-haspopup="menu"
@@ -285,11 +253,11 @@ function TemplateMenu({
       >
         <span>{WORKBENCH_COPY.toolbar.templateLabel}</span>
         <ChevronDownIcon />
-      </button>
+      </WorkbenchControlButton>
       {isOpen ? (
         <div className="canvas-template-menu-content" role="menu">
-          <button
-            type="button"
+          <WorkbenchControlButton
+            variant="ghost"
             role="menuitem"
             className="canvas-template-menu-item"
             data-testid="canvas-template-option-bell"
@@ -299,9 +267,9 @@ function TemplateMenu({
             }}
           >
             {WORKBENCH_COPY.toolbar.bellTemplate}
-          </button>
-          <button
-            type="button"
+          </WorkbenchControlButton>
+          <WorkbenchControlButton
+            variant="ghost"
             role="menuitem"
             className="canvas-template-menu-item"
             data-testid="canvas-template-option-superposition"
@@ -311,7 +279,7 @@ function TemplateMenu({
             }}
           >
             {WORKBENCH_COPY.toolbar.superpositionTemplate}
-          </button>
+          </WorkbenchControlButton>
         </div>
       ) : null}
     </div>
@@ -354,37 +322,45 @@ function CircuitCanvasToolbar({
           <div className="canvas-workbench-section canvas-workbench-section--left" data-testid="canvas-workbench-left">
             {hasWorkbenchControls ? (
               <div className="canvas-workbench-toolbar-cluster" data-testid="canvas-workbench-actions">
-                <ToolbarIconButton
-                  label={WORKBENCH_COPY.toolbar.undo}
+                <WorkbenchControlButton
+                  variant="icon"
+                  aria-label={WORKBENCH_COPY.toolbar.undo}
+                  title={WORKBENCH_COPY.toolbar.undo}
                   onClick={onUndo}
                   disabled={!canUndoAction}
-                  testId="canvas-undo"
+                  data-testid="canvas-undo"
                 >
                   <UndoIcon />
-                </ToolbarIconButton>
-                <ToolbarIconButton
-                  label={WORKBENCH_COPY.toolbar.redo}
+                </WorkbenchControlButton>
+                <WorkbenchControlButton
+                  variant="icon"
+                  aria-label={WORKBENCH_COPY.toolbar.redo}
+                  title={WORKBENCH_COPY.toolbar.redo}
                   onClick={onRedo}
                   disabled={!canRedoAction}
-                  testId="canvas-redo"
+                  data-testid="canvas-redo"
                 >
                   <RedoIcon />
-                </ToolbarIconButton>
-                <ToolbarDivider />
-                <ToolbarIconButton
-                  label={WORKBENCH_COPY.toolbar.clearCircuit}
+                </WorkbenchControlButton>
+                <WorkbenchDivider />
+                <WorkbenchControlButton
+                  variant="icon"
+                  aria-label={WORKBENCH_COPY.toolbar.clearCircuit}
+                  title={WORKBENCH_COPY.toolbar.clearCircuit}
                   onClick={onClearCircuit}
-                  testId="canvas-clear-circuit"
+                  data-testid="canvas-clear-circuit"
                 >
                   <ClearIcon />
-                </ToolbarIconButton>
-                <ToolbarIconButton
-                  label={WORKBENCH_COPY.toolbar.resetWorkbench}
+                </WorkbenchControlButton>
+                <WorkbenchControlButton
+                  variant="icon"
+                  aria-label={WORKBENCH_COPY.toolbar.resetWorkbench}
+                  title={WORKBENCH_COPY.toolbar.resetWorkbench}
                   onClick={onResetWorkbench}
-                  testId="canvas-reset-workbench"
+                  data-testid="canvas-reset-workbench"
                 >
                   <ResetIcon />
-                </ToolbarIconButton>
+                </WorkbenchControlButton>
               </div>
             ) : null}
           </div>
@@ -396,25 +372,29 @@ function CircuitCanvasToolbar({
             {hasWorkbenchControls ? (
               <div className="canvas-workbench-toolbar-cluster" data-testid="canvas-workbench-qubits">
                 <span className="canvas-workbench-label">Qubits</span>
-                <ToolbarIconButton
-                  label="减少量子比特"
+                <WorkbenchControlButton
+                  variant="icon"
+                  aria-label="减少 qubits"
+                  title="减少 qubits"
                   onClick={onDecreaseQubits}
                   disabled={!canDecreaseQubits}
-                  testId="canvas-decrease-qubits"
+                  data-testid="canvas-decrease-qubits"
                 >
                   <MinusIcon />
-                </ToolbarIconButton>
+                </WorkbenchControlButton>
                 <span className="canvas-workbench-value" data-testid="canvas-qubit-count">
                   {currentQubits}
                 </span>
-                <ToolbarIconButton
-                  label="增加量子比特"
+                <WorkbenchControlButton
+                  variant="icon"
+                  aria-label="增加 qubits"
+                  title="增加 qubits"
                   onClick={onIncreaseQubits}
                   disabled={!canIncreaseQubits}
-                  testId="canvas-increase-qubits"
+                  data-testid="canvas-increase-qubits"
                 >
                   <PlusIcon />
-                </ToolbarIconButton>
+                </WorkbenchControlButton>
               </div>
             ) : null}
           </div>
@@ -433,29 +413,35 @@ function CircuitCanvasToolbar({
               <span className="canvas-zoom-percent" data-testid="canvas-zoom-percent">
                 {zoomPercentText}
               </span>
-              <ToolbarIconButton
-                label={WORKBENCH_COPY.toolbar.zoomOutAriaLabel}
+              <WorkbenchControlButton
+                variant="icon"
+                aria-label={WORKBENCH_COPY.toolbar.zoomOutAriaLabel}
+                title={WORKBENCH_COPY.toolbar.zoomOutAriaLabel}
                 onClick={onZoomOut}
                 disabled={!canZoomOut}
-                testId="canvas-zoom-out"
+                data-testid="canvas-zoom-out"
               >
                 <MinusIcon />
-              </ToolbarIconButton>
-              <ToolbarIconButton
-                label={WORKBENCH_COPY.toolbar.zoomInAriaLabel}
+              </WorkbenchControlButton>
+              <WorkbenchControlButton
+                variant="icon"
+                aria-label={WORKBENCH_COPY.toolbar.zoomInAriaLabel}
+                title={WORKBENCH_COPY.toolbar.zoomInAriaLabel}
                 onClick={onZoomIn}
                 disabled={!canZoomIn}
-                testId="canvas-zoom-in"
+                data-testid="canvas-zoom-in"
               >
                 <PlusIcon />
-              </ToolbarIconButton>
-              <ToolbarIconButton
-                label={WORKBENCH_COPY.toolbar.zoomResetAriaLabel}
+              </WorkbenchControlButton>
+              <WorkbenchControlButton
+                variant="icon"
+                aria-label={WORKBENCH_COPY.toolbar.zoomResetAriaLabel}
+                title={WORKBENCH_COPY.toolbar.zoomResetAriaLabel}
                 onClick={onZoomReset}
-                testId="canvas-zoom-reset"
+                data-testid="canvas-zoom-reset"
               >
                 <span className="canvas-toolbar-reset-text">100</span>
-              </ToolbarIconButton>
+              </WorkbenchControlButton>
             </div>
           </div>
         </div>

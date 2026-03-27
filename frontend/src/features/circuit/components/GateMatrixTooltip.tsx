@@ -58,6 +58,7 @@ function GateMatrixTooltip({ gate, accentColor }: GateMatrixTooltipProps) {
         top: "calc(100% + 4px)",
         left: 0,
         zIndex: 20,
+        pointerEvents: "none",
         width: "max-content",
         maxWidth: "min(420px, calc(100vw - 32px))",
         border: "1px solid #dbe5f0",
