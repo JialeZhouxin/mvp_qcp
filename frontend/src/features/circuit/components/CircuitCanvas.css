@@ -1,30 +1,52 @@
-﻿.canvas-workbench-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: stretch;
+.canvas-workbench-toolbar {
+  display: grid;
+  gap: 10px;
   margin-bottom: 8px;
 }
 
-.canvas-workbench-group {
+.canvas-workbench-topbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
   flex-wrap: wrap;
-  padding: 8px;
-  border: 1px solid #d9e2ec;
-  border-radius: 6px;
-  background: #ffffff;
 }
 
-.canvas-workbench-group--zoom {
+.canvas-workbench-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.canvas-workbench-section--center {
+  justify-content: center;
+  flex: 1 1 auto;
+}
+
+.canvas-workbench-section--right {
+  justify-content: flex-end;
   margin-left: auto;
 }
 
+.canvas-workbench-toolbar-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+}
+
+.canvas-toolbar-divider {
+  width: 1px;
+  height: 18px;
+  background: currentColor;
+  opacity: 0.12;
+}
+
 .canvas-workbench-label {
-  color: #475569;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1;
 }
 
 .canvas-workbench-value {
@@ -33,35 +55,148 @@
   font-weight: 600;
 }
 
-.canvas-workbench-btn {
+.canvas-toolbar-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
   height: 32px;
-  min-width: 84px;
-  padding: 0 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #ffffff;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.canvas-toolbar-icon-button:hover,
+.canvas-template-menu-item:hover,
+.canvas-template-menu-trigger:hover {
+  opacity: 0.78;
+}
+
+.canvas-toolbar-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.canvas-toolbar-icon-button:focus-visible,
+.canvas-template-menu-trigger:focus-visible,
+.canvas-template-menu-item:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.45);
+  outline-offset: 2px;
+}
+
+.canvas-toolbar-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.canvas-toolbar-reset-text {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.canvas-template-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.canvas-template-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
   cursor: pointer;
 }
 
-.canvas-workbench-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
+.canvas-template-menu-trigger .canvas-toolbar-icon {
+  width: 14px;
+  height: 14px;
 }
 
-.canvas-workbench-btn--small {
-  min-width: 72px;
+.canvas-template-menu-content {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  gap: 2px;
+  min-width: 148px;
+  padding: 6px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 8px;
+  background: inherit;
+  z-index: 8;
+}
+
+.canvas-template-menu-item {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
 }
 
 .canvas-zoom-percent {
-  min-width: 56px;
+  min-width: 52px;
   text-align: right;
   font-size: 12px;
-  color: #475569;
+}
+
+.canvas-workbench-timeline {
+  display: grid;
+  gap: 6px;
+}
+
+.canvas-workbench-timeline-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.canvas-workbench-timeline-slider {
+  width: 100%;
+  margin: 0;
+}
+
+.canvas-workbench-message {
+  margin: 0 0 8px 0;
+  color: #cf1322;
 }
 
 @media (max-width: 1200px) {
-  .canvas-workbench-group--zoom {
+  .canvas-workbench-topbar {
+    align-items: flex-start;
+  }
+
+  .canvas-workbench-section--center {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+
+  .canvas-workbench-section--right {
     margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .canvas-template-menu-content {
+    left: 0;
+    right: auto;
   }
 }
 
@@ -420,4 +555,3 @@
   outline: 2px solid #93c5fd;
   outline-offset: 1px;
 }
-

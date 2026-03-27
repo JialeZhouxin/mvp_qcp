@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 import CircuitWorkbenchPage from "../pages/CircuitWorkbenchPage";
-import { WORKBENCH_COPY } from "../features/circuit/ui/copy-catalog";
 
 function isBefore(first: Node, second: Node): boolean {
   return Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
@@ -29,6 +28,8 @@ describe("CircuitWorkbenchPage layout", () => {
     const primaryLayout = await screen.findByTestId("workbench-primary-layout");
     const canvasPanel = await screen.findByTestId("circuit-canvas-panel");
     const canvasToolbar = await screen.findByTestId("canvas-workbench-toolbar");
+    const canvasToolbarTop = await screen.findByTestId("canvas-workbench-topbar");
+    const canvasToolbarTimeline = await screen.findByTestId("canvas-workbench-timeline");
     const viewportShell = await screen.findByTestId("canvas-viewport-shell");
 
     expect(workbenchShell).toHaveClass("circuit-workbench-shell");
@@ -39,8 +40,10 @@ describe("CircuitWorkbenchPage layout", () => {
     expect(submitRail).toHaveStyle({ top: "12px" });
     expect(primaryLayout).toHaveClass("circuit-workbench-primary-layout");
     expect(canvasPanel).toContainElement(canvasToolbar);
+    expect(canvasToolbar).toContainElement(canvasToolbarTop);
+    expect(canvasToolbar).toContainElement(canvasToolbarTimeline);
     expect(canvasPanel).toContainElement(viewportShell);
-    expect(screen.getByRole("button", { name: WORKBENCH_COPY.toolbar.clearCircuit })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: WORKBENCH_COPY.toolbar.bellTemplate })).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-clear-circuit")).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-template-menu-trigger")).toBeInTheDocument();
   });
 });

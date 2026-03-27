@@ -244,10 +244,16 @@ describe("CircuitCanvas", () => {
     );
 
     const toolbar = screen.getByTestId("canvas-workbench-toolbar");
+    const toolbarTop = screen.getByTestId("canvas-workbench-topbar");
     const viewport = screen.getByTestId("canvas-viewport");
     const isBeforeViewport = Boolean(
       toolbar.compareDocumentPosition(viewport) & Node.DOCUMENT_POSITION_FOLLOWING,
     );
+
+    expect(toolbar).toContainElement(toolbarTop);
+    expect(screen.getByTestId("canvas-workbench-left")).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-workbench-center")).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-workbench-right")).toBeInTheDocument();
 
     const actionButtons = within(screen.getByTestId("canvas-workbench-actions")).getAllByRole("button");
     fireEvent.click(actionButtons[0]);
@@ -259,9 +265,11 @@ describe("CircuitCanvas", () => {
     fireEvent.click(qubitButtons[0]);
     fireEvent.click(qubitButtons[1]);
 
-    const templateButtons = within(screen.getByTestId("canvas-workbench-templates")).getAllByRole("button");
-    fireEvent.click(templateButtons[0]);
-    fireEvent.click(templateButtons[1]);
+    const templateMenu = screen.getByTestId("canvas-template-menu-trigger");
+    fireEvent.click(templateMenu);
+    fireEvent.click(screen.getByTestId("canvas-template-option-bell"));
+    fireEvent.click(templateMenu);
+    fireEvent.click(screen.getByTestId("canvas-template-option-superposition"));
 
     expect(isBeforeViewport).toBe(true);
     expect(screen.getByTestId("canvas-qubit-count")).toHaveTextContent("3");
@@ -313,7 +321,9 @@ describe("CircuitCanvas", () => {
     const zoomOutButton = screen.getByTestId("canvas-zoom-out");
     const zoomResetButton = screen.getByTestId("canvas-zoom-reset");
     const zoomPercent = screen.getByTestId("canvas-zoom-percent");
+    const zoomToolbar = screen.getByTestId("canvas-zoom-toolbar");
 
+    expect(zoomToolbar).toHaveClass("canvas-workbench-toolbar-cluster");
     expect(zoomPercent).toHaveTextContent("100%");
     fireEvent.click(zoomInButton);
     expect(zoomPercent).toHaveTextContent("110%");
@@ -349,6 +359,34 @@ describe("CircuitCanvas", () => {
 
     fireEvent.keyDown(window, { key: "0", ctrlKey: true });
     expect(zoomPercent).toHaveTextContent("100%");
+  });
+
+  it("renders time step control on a dedicated bottom row", () => {
+    const model: CircuitModel = { numQubits: 2, operations: [] };
+    const onCircuitChange = vi.fn();
+    const onSimulationStepChange = vi.fn();
+
+    render(
+      <CircuitCanvas
+        circuit={model}
+        onCircuitChange={onCircuitChange}
+        minLayers={2}
+        simulationStep={1}
+        totalSimulationSteps={4}
+        onSimulationStepChange={onSimulationStepChange}
+      />,
+    );
+
+    const toolbar = screen.getByTestId("canvas-workbench-toolbar");
+    const timeline = screen.getByTestId("canvas-workbench-timeline");
+    const slider = screen.getByTestId("canvas-time-step-slider");
+
+    expect(toolbar).toContainElement(timeline);
+    expect(timeline).toContainElement(slider);
+    expect(screen.getByTestId("canvas-time-step-value")).toHaveTextContent("1 / 4");
+
+    fireEvent.change(slider, { target: { value: "3" } });
+    expect(onSimulationStepChange).toHaveBeenCalledWith(3);
   });
 
   it("ignores zoom shortcuts when focus is in editable element", () => {
