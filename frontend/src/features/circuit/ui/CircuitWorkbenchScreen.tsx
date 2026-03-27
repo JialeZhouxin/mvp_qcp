@@ -19,6 +19,7 @@ import {
   getFutureOperationIdsAtSimulationStep,
   sliceCircuitBySimulationStep,
 } from "./workbench-time-step";
+import "./CircuitWorkbenchScreen.css";
 
 const SUBMIT_RAIL_TOP_OFFSET = 12;
 const SUBMIT_RAIL_Z_INDEX = 20;
@@ -42,20 +43,22 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
     historyState,
     canvasControls,
     resetVersion,
+    initialSimulationStep,
   } = useWorkbenchEditorState();
   const { showGuide, dismissGuide } = useWorkbenchGuideState();
+
+  const totalSimulationSteps = circuit.operations.length;
+  const previousTotalSimulationStepsRef = useRef(totalSimulationSteps);
+  const previousResetVersionRef = useRef(resetVersion);
+  const [simulationStep, setSimulationStep] = useState(initialSimulationStep);
 
   useWorkbenchDraftSync({
     circuit,
     qasm,
     displayMode,
+    simulationStep,
     resetVersion,
-    onRestore: replaceFromProject,
   });
-
-  const totalSimulationSteps = circuit.operations.length;
-  const previousTotalSimulationStepsRef = useRef(totalSimulationSteps);
-  const [simulationStep, setSimulationStep] = useState(totalSimulationSteps);
 
   useEffect(() => {
     setSimulationStep((currentStep) =>
@@ -67,6 +70,14 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
     );
     previousTotalSimulationStepsRef.current = totalSimulationSteps;
   }, [totalSimulationSteps]);
+
+  useEffect(() => {
+    if (previousResetVersionRef.current === resetVersion) {
+      return;
+    }
+    previousResetVersionRef.current = resetVersion;
+    setSimulationStep(totalSimulationSteps);
+  }, [resetVersion, totalSimulationSteps]);
 
   const previewCircuit = useMemo(
     () => sliceCircuitBySimulationStep(circuit, simulationStep),
@@ -83,6 +94,7 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
     probabilityView,
     probabilityDisplayView,
     epsilonText,
+    blochVectors,
   } = useWorkbenchSimulation({
     circuit: previewCircuit,
     displayMode,
@@ -117,7 +129,7 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
   } = useWorkbenchTaskSubmit({ circuit, parseError });
 
   return (
-    <main style={{ maxWidth: 1320, margin: "24px auto", display: "grid", gap: 16 }}>
+    <main data-testid="circuit-workbench-shell" className="circuit-workbench-shell">
       <WorkbenchGuide visible={showGuide} onDismiss={dismissGuide} />
 
       <section
@@ -144,17 +156,12 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
 
       <section
         data-testid="workbench-primary-layout"
-        style={{
-          display: "grid",
-          gap: 16,
-          alignItems: "start",
-          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 4fr) minmax(0, 1fr)",
-        }}
+        className="circuit-workbench-primary-layout"
       >
-        <div data-testid="workbench-gate-column" style={{ minWidth: 0 }}>
+        <div data-testid="workbench-gate-column" className="circuit-workbench-gate-column">
           <GatePalette />
         </div>
-        <div data-testid="workbench-canvas-column" style={{ minWidth: 0 }}>
+        <div data-testid="workbench-canvas-column" className="circuit-workbench-canvas-column">
           <CircuitCanvas
             circuit={circuit}
             onCircuitChange={pushCircuit}
@@ -167,7 +174,7 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
             futureOperationIds={futureOperationIds}
           />
         </div>
-        <div data-testid="workbench-qasm-column" style={{ display: "grid", gap: 12, minWidth: 0 }}>
+        <div data-testid="workbench-qasm-column" className="circuit-workbench-qasm-column">
           <QasmEditorPane
             value={qasm}
             onValueChange={setQasm}
@@ -185,6 +192,8 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
         epsilonText={epsilonText}
         probabilityView={probabilityView}
         probabilityDisplayView={probabilityDisplayView}
+        blochVectors={blochVectors}
+        numQubits={previewCircuit.numQubits}
         onDisplayModeChange={setDisplayMode}
       />
 

@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     queue_max_depth: int = 200
     circuit_exec_backend: str = "numpy"
     circuit_exec_pool_size: int = 1
+    circuit_exec_init_timeout_seconds: int = 180
     circuit_exec_timeout_seconds: int = 60
     circuit_exec_heartbeat_seconds: int = 10
     circuit_exec_heartbeat_ttl_seconds: int = 30

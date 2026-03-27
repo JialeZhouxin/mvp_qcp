@@ -1,5 +1,5 @@
 import type { CircuitModel } from "../model/types";
-import { simulateCircuit } from "./simulation-core";
+import { simulateCircuitAnalysis, type BlochVector } from "./simulation-core";
 
 export interface SimulationWorkerRequest {
   readonly requestId: string;
@@ -10,6 +10,7 @@ export interface SimulationWorkerResult {
   readonly type: "result";
   readonly requestId: string;
   readonly probabilities: Record<string, number>;
+  readonly blochVectors: readonly BlochVector[];
 }
 
 export interface SimulationWorkerError {
@@ -23,10 +24,12 @@ export type SimulationWorkerResponse = SimulationWorkerResult | SimulationWorker
 
 function executeRequest(request: SimulationWorkerRequest): SimulationWorkerResponse {
   try {
+    const analysis = simulateCircuitAnalysis(request.model);
     return {
       type: "result",
       requestId: request.requestId,
-      probabilities: simulateCircuit(request.model),
+      probabilities: analysis.probabilities,
+      blochVectors: analysis.blochVectors,
     };
   } catch (error) {
     return {

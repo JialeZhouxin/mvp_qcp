@@ -16,3 +16,16 @@ const canvasContextStub = new Proxy(
 Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
   value: () => canvasContextStub,
 });
+
+class ResizeObserverStub {
+  observe() {}
+
+  unobserve() {}
+
+  disconnect() {}
+}
+
+Object.defineProperty(globalThis, "ResizeObserver", {
+  value: ResizeObserverStub,
+  writable: true,
+});

@@ -10,6 +10,17 @@ import {
 type Complex = readonly [number, number];
 type Matrix2 = readonly [Complex, Complex, Complex, Complex];
 
+export interface BlochVector {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+}
+
+export interface SimulationAnalysis {
+  readonly probabilities: Record<string, number>;
+  readonly blochVectors: readonly BlochVector[];
+}
+
 function createStateVector(size: number): { real: Float64Array; imag: Float64Array } {
   const real = new Float64Array(size);
   const imag = new Float64Array(size);
@@ -202,7 +213,58 @@ function toBasisState(index: number, numQubits: number): string {
   return index.toString(2).padStart(numQubits, "0");
 }
 
-export function simulateCircuit(model: CircuitModel): Record<string, number> {
+function buildProbabilities(
+  real: Float64Array,
+  imag: Float64Array,
+  numQubits: number,
+): Record<string, number> {
+  const dimension = 1 << numQubits;
+  const probabilities: Record<string, number> = {};
+
+  for (let index = 0; index < dimension; index += 1) {
+    probabilities[toBasisState(index, numQubits)] = real[index] ** 2 + imag[index] ** 2;
+  }
+
+  return probabilities;
+}
+
+function buildBlochVectors(
+  real: Float64Array,
+  imag: Float64Array,
+  numQubits: number,
+): readonly BlochVector[] {
+  const dimension = 1 << numQubits;
+  const vectors: BlochVector[] = [];
+
+  for (let qubit = 0; qubit < numQubits; qubit += 1) {
+    const mask = 1 << qubit;
+    let x = 0;
+    let y = 0;
+    let z = 0;
+
+    for (let basis = 0; basis < dimension; basis += 1) {
+      if ((basis & mask) !== 0) {
+        continue;
+      }
+
+      const paired = basis | mask;
+      const alphaReal = real[basis];
+      const alphaImag = imag[basis];
+      const betaReal = real[paired];
+      const betaImag = imag[paired];
+
+      x += 2 * (alphaReal * betaReal + alphaImag * betaImag);
+      y += 2 * (alphaReal * betaImag - alphaImag * betaReal);
+      z += alphaReal ** 2 + alphaImag ** 2 - betaReal ** 2 - betaImag ** 2;
+    }
+
+    vectors.push({ x, y, z });
+  }
+
+  return vectors;
+}
+
+export function simulateCircuitAnalysis(model: CircuitModel): SimulationAnalysis {
   if (model.numQubits < 1 || model.numQubits > 10) {
     throw new Error(`numQubits must be between 1 and 10, got ${model.numQubits}`);
   }
@@ -214,10 +276,12 @@ export function simulateCircuit(model: CircuitModel): Record<string, number> {
     applyOperation(real, imag, model.numQubits, operation);
   }
 
-  const probabilities: Record<string, number> = {};
-  for (let index = 0; index < dimension; index += 1) {
-    const probability = real[index] ** 2 + imag[index] ** 2;
-    probabilities[toBasisState(index, model.numQubits)] = probability;
-  }
-  return probabilities;
+  return {
+    probabilities: buildProbabilities(real, imag, model.numQubits),
+    blochVectors: buildBlochVectors(real, imag, model.numQubits),
+  };
+}
+
+export function simulateCircuit(model: CircuitModel): Record<string, number> {
+  return simulateCircuitAnalysis(model).probabilities;
 }

@@ -68,4 +68,46 @@ describe("CircuitWorkbenchPage time step preview", () => {
 
     expect(screen.getByTestId("canvas-time-step-value")).toHaveTextContent("0 / 4");
   });
+
+  it("hydrates draft state on first render without falling back to the default template", async () => {
+    const schedule = vi.fn(async (model: { operations: readonly { id: string }[] }) => ({
+      requestId: `sim-${model.operations.length}`,
+      probabilities: { "0": 1, "1": 0 },
+    }));
+
+    window.localStorage.setItem(
+      "qcp.workbench.draft.v1",
+      JSON.stringify({
+        version: 1,
+        circuit: {
+          numQubits: 1,
+          operations: [{ id: "draft-1", gate: "h", targets: [0], layer: 0 }],
+        },
+        qasm: "OPENQASM 3;\nqubit[1] q;\nh q[0];",
+        displayMode: "FILTERED",
+        simulationStep: 0,
+        updatedAt: Date.now(),
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <CircuitWorkbenchPage scheduler={{ schedule }} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId("canvas-time-step-slider")).toHaveValue("0");
+    expect(screen.getByTestId("canvas-time-step-value")).toHaveTextContent("0 / 1");
+
+    await waitFor(() => {
+      expect(schedule).toHaveBeenCalled();
+    });
+
+    expect(schedule.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        numQubits: 1,
+        operations: [],
+      }),
+    );
+  });
 });

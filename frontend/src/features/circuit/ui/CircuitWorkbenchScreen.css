@@ -1,0 +1,42 @@
+.circuit-workbench-shell {
+  display: grid;
+  gap: 16px;
+  width: calc(100% - 32px);
+  margin: 24px 16px;
+  box-sizing: border-box;
+}
+
+.circuit-workbench-primary-layout {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(320px, 380px);
+}
+
+.circuit-workbench-gate-column,
+.circuit-workbench-canvas-column,
+.circuit-workbench-qasm-column {
+  min-width: 0;
+}
+
+.circuit-workbench-qasm-column {
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 1439px) {
+  .circuit-workbench-primary-layout {
+    grid-template-columns: minmax(208px, 240px) minmax(0, 1fr) minmax(300px, 340px);
+  }
+}
+
+@media (max-width: 1279px) {
+  .circuit-workbench-shell {
+    width: calc(100% - 24px);
+    margin: 20px 12px;
+  }
+
+  .circuit-workbench-primary-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

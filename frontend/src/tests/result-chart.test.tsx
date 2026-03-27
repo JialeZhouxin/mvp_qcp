@@ -64,6 +64,25 @@ describe("buildResultChartOption", () => {
 
     expect(option.series[0].barMaxWidth).toBeUndefined();
   });
+
+  it("builds a dark themed option for the circuit workbench", () => {
+    const option = buildResultChartOption({
+      chartData: CHART_DATA,
+      compact: true,
+      showTitle: false,
+      title: "ignored",
+      valueDigits: 3,
+      showBarValueLabel: true,
+      formatState: (state) => state,
+      adaptiveBarWidth: false,
+      theme: "dark",
+    });
+
+    expect(option.xAxis.axisLabel.color).toBe("#cbd5e1");
+    expect(option.yAxis.splitLine.lineStyle.color).toContain("148, 163, 184");
+    expect(option.series[0].itemStyle.color).toBe("#38bdf8");
+    expect(option.tooltip.backgroundColor).toContain("8, 15, 28");
+  });
 });
 
 describe("resolveBarMaxWidth", () => {

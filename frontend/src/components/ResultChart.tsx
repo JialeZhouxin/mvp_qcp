@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import ReactECharts from "echarts-for-react";
 
 export type ResultChartSortMode = "BASIS" | "PROB_DESC";
+export type ResultChartTheme = "light" | "dark";
 
 interface ResultChartProps {
   readonly probabilities: Record<string, number>;
@@ -14,6 +15,7 @@ interface ResultChartProps {
   readonly showTitle?: boolean;
   readonly height?: number;
   readonly adaptiveBarWidth?: boolean;
+  readonly theme?: ResultChartTheme;
 }
 
 export interface ResultChartEntry {
@@ -31,6 +33,7 @@ export interface BuildResultChartOptionArgs {
   readonly showBarValueLabel: boolean;
   readonly formatState: (state: string) => string;
   readonly adaptiveBarWidth: boolean;
+  readonly theme?: ResultChartTheme;
 }
 
 const DEFAULT_VALUE_DIGITS = 4;
@@ -89,6 +92,7 @@ export function buildResultChartOption({
   showBarValueLabel,
   formatState,
   adaptiveBarWidth,
+  theme = "light",
 }: BuildResultChartOptionArgs) {
   const barMaxWidth = resolveBarMaxWidth({
     compact,
@@ -96,13 +100,34 @@ export function buildResultChartOption({
     adaptiveBarWidth,
   });
 
+  const palette =
+    theme === "dark"
+      ? {
+          titleColor: "#e2e8f0",
+          axisColor: "#cbd5e1",
+          splitLineColor: "rgba(148, 163, 184, 0.2)",
+          axisLineColor: "rgba(148, 163, 184, 0.26)",
+          barColor: "#38bdf8",
+          tooltipBackground: "rgba(8, 15, 28, 0.96)",
+          tooltipBorder: "#164e63",
+        }
+      : {
+          titleColor: "#111827",
+          axisColor: "#4b5563",
+          splitLineColor: "#e5e7eb",
+          axisLineColor: "#d1d5db",
+          barColor: "#1677ff",
+          tooltipBackground: "rgba(255, 255, 255, 0.96)",
+          tooltipBorder: "#d1d5db",
+        };
+
   return {
     title: showTitle
       ? {
           text: title,
           left: "center",
           top: 2,
-          textStyle: { fontSize: compact ? 13 : 15, fontWeight: 600 },
+          textStyle: { fontSize: compact ? 13 : 15, fontWeight: 600, color: palette.titleColor },
         }
       : undefined,
     grid: {
@@ -114,6 +139,11 @@ export function buildResultChartOption({
     },
     tooltip: {
       trigger: "item",
+      backgroundColor: palette.tooltipBackground,
+      borderColor: palette.tooltipBorder,
+      textStyle: {
+        color: palette.titleColor,
+      },
       formatter: (param: { data?: { state?: string; probability?: number } }) => {
         const state = param.data?.state ?? "";
         const probability = param.data?.probability ?? 0;
@@ -126,7 +156,9 @@ export function buildResultChartOption({
       axisLabel: {
         fontSize: compact ? 11 : 12,
         margin: compact ? 8 : 12,
+        color: palette.axisColor,
       },
+      axisLine: { lineStyle: { color: palette.axisLineColor } },
       axisTick: { alignWithLabel: true },
     },
     yAxis: {
@@ -135,10 +167,12 @@ export function buildResultChartOption({
       max: 1,
       axisLabel: {
         fontSize: compact ? 11 : 12,
+        color: palette.axisColor,
       },
+      axisLine: { lineStyle: { color: palette.axisLineColor } },
       splitLine: {
         lineStyle: {
-          color: "#e5e7eb",
+          color: palette.splitLineColor,
         },
       },
     },
@@ -151,13 +185,14 @@ export function buildResultChartOption({
           state: entry.state,
           stateLabel: entry.stateLabel,
         })),
-        itemStyle: { color: "#1677ff" },
+        itemStyle: { color: palette.barColor },
         barMaxWidth,
         label: {
           show: showBarValueLabel,
           position: "top",
           formatter: (param: { value?: number }) => Number(param.value ?? 0).toFixed(valueDigits),
           fontSize: compact ? 10 : 11,
+          color: palette.titleColor,
         },
       },
     ],
@@ -175,6 +210,7 @@ function ResultChart({
   showTitle = true,
   height,
   adaptiveBarWidth = false,
+  theme = "light",
 }: ResultChartProps) {
   const formatState = (state: string) => (stateLabelFormatter ? stateLabelFormatter(state) : state);
   const chartHeight = height ?? (compact ? COMPACT_CHART_HEIGHT : DEFAULT_CHART_HEIGHT);
@@ -212,6 +248,7 @@ function ResultChart({
     showBarValueLabel,
     formatState,
     adaptiveBarWidth,
+    theme,
   });
 
   return <ReactECharts option={option} style={{ height: chartHeight }} />;

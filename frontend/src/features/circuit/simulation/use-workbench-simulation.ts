@@ -12,13 +12,14 @@ import {
   type ProbabilityFilterResult,
 } from "./probability-filter";
 import { SimulationScheduleError, createSimulationScheduler } from "./scheduler";
+import type { BlochVector } from "./simulation-core";
 
 export type SimulationViewState = "IDLE" | "RUNNING" | "READY" | "ERROR";
 
 export interface SimulationSchedulerLike {
   readonly schedule: (
     model: CircuitModel,
-  ) => Promise<{ requestId: string; probabilities: Record<string, number> }>;
+  ) => Promise<{ requestId: string; probabilities: Record<string, number>; blochVectors?: readonly BlochVector[] }>;
 }
 
 interface UseWorkbenchSimulationParams {
@@ -46,6 +47,7 @@ export function useWorkbenchSimulation({
   const [simulationState, setSimulationState] = useState<SimulationViewState>("IDLE");
   const [simError, setSimError] = useState<string | null>(null);
   const [probabilityView, setProbabilityView] = useState<ProbabilityFilterResult | null>(null);
+  const [blochVectors, setBlochVectors] = useState<readonly BlochVector[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +61,7 @@ export function useWorkbenchSimulation({
         }
         setSimError(`${WORKBENCH_COPY.simulation.validationFailedPrefix}${validation.error.message}`);
         setProbabilityView(null);
+        setBlochVectors(null);
         setSimulationState("ERROR");
         return;
       }
@@ -70,6 +73,7 @@ export function useWorkbenchSimulation({
         }
         setSimError(simGuardMessage);
         setProbabilityView(null);
+        setBlochVectors(null);
         setSimulationState("ERROR");
         return;
       }
@@ -81,6 +85,7 @@ export function useWorkbenchSimulation({
         }
         setSimError(toComplexityErrorMessage(complexity.message));
         setProbabilityView(null);
+        setBlochVectors(null);
         setSimulationState("ERROR");
         return;
       }
@@ -91,6 +96,7 @@ export function useWorkbenchSimulation({
           return;
         }
         setProbabilityView(filterProbabilities(circuit.numQubits, response.probabilities));
+        setBlochVectors(response.blochVectors ?? null);
         setSimError(null);
         setSimulationState("READY");
       } catch (error) {
@@ -103,6 +109,7 @@ export function useWorkbenchSimulation({
         const message = error instanceof Error ? error.message : String(error);
         setSimError(`${WORKBENCH_COPY.simulation.simulationFailedPrefix}${message}`);
         setProbabilityView(null);
+        setBlochVectors(null);
         setSimulationState("ERROR");
       }
     };
@@ -124,6 +131,6 @@ export function useWorkbenchSimulation({
     probabilityView,
     probabilityDisplayView,
     epsilonText,
+    blochVectors,
   };
 }
-

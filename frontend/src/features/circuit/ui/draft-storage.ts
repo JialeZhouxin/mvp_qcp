@@ -9,6 +9,7 @@ export interface WorkbenchDraftPayload {
   readonly circuit: CircuitModel;
   readonly qasm: string;
   readonly displayMode: ProbabilityDisplayMode;
+  readonly simulationStep?: number;
   readonly updatedAt: number;
 }
 
@@ -98,6 +99,16 @@ function parseDisplayMode(value: unknown): ProbabilityDisplayMode | null {
   return null;
 }
 
+function parseSimulationStep(value: unknown): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    return undefined;
+  }
+  return value;
+}
+
 export function saveWorkbenchDraft(payload: WorkbenchDraftPayload): void {
   if (!hasWindow()) {
     return;
@@ -137,6 +148,7 @@ export function loadWorkbenchDraft(): WorkbenchDraftPayload | null {
       circuit,
       qasm: parsed.qasm,
       displayMode,
+      simulationStep: parseSimulationStep(parsed.simulationStep),
       updatedAt: parsed.updatedAt,
     };
   } catch (error) {

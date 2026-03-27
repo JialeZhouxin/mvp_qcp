@@ -1,5 +1,6 @@
 import type { CircuitModel } from "../model/types";
 import { runSimulationRequest } from "./simulation-client";
+import type { BlochVector } from "./simulation-core";
 import type { SimulationWorkerResponse } from "./simulation-worker";
 
 export type SimulationScheduleErrorCode =
@@ -19,6 +20,7 @@ export class SimulationScheduleError extends Error {
 export interface ScheduledSimulationResult {
   readonly requestId: string;
   readonly probabilities: Record<string, number>;
+  readonly blochVectors: readonly BlochVector[];
 }
 
 type SimulationRunner = (
@@ -116,6 +118,7 @@ export function createSimulationScheduler(options: SchedulerOptions = {}) {
           resolve({
             requestId: response.requestId,
             probabilities: response.probabilities,
+            blochVectors: response.blochVectors,
           });
         } catch (error) {
           reject(toExecutionError(error));
@@ -127,4 +130,3 @@ export function createSimulationScheduler(options: SchedulerOptions = {}) {
 
   return { schedule };
 }
-

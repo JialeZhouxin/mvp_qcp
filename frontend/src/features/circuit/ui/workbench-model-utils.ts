@@ -7,6 +7,7 @@ import { loadCircuitTemplate } from "../model/templates";
 import type { CircuitModel } from "../model/types";
 import type { ProbabilityDisplayMode } from "../simulation/probability-filter";
 import { toQasm3 } from "../qasm/qasm-bridge";
+import type { WorkbenchDraftPayload } from "./draft-storage";
 
 const DEFAULT_TEMPLATE_ID = "bell";
 
@@ -14,15 +15,39 @@ export interface InitialWorkbenchState {
   readonly circuit: CircuitModel;
   readonly qasm: string;
   readonly displayMode: ProbabilityDisplayMode;
+  readonly simulationStep: number;
 }
 
 export function createDefaultCircuit(): CircuitModel {
   return loadCircuitTemplate(DEFAULT_TEMPLATE_ID);
 }
 
-export function buildInitialState(defaultMode: ProbabilityDisplayMode): InitialWorkbenchState {
+function clampInitialSimulationStep(circuit: CircuitModel, simulationStep: number | undefined): number {
+  if (simulationStep === undefined) {
+    return circuit.operations.length;
+  }
+  return Math.max(0, Math.min(simulationStep, circuit.operations.length));
+}
+
+export function buildInitialState(
+  defaultMode: ProbabilityDisplayMode,
+  draft?: WorkbenchDraftPayload | null,
+): InitialWorkbenchState {
+  if (draft) {
+    return {
+      circuit: draft.circuit,
+      qasm: draft.qasm,
+      displayMode: draft.displayMode,
+      simulationStep: clampInitialSimulationStep(draft.circuit, draft.simulationStep),
+    };
+  }
   const defaultCircuit = createDefaultCircuit();
-  return { circuit: defaultCircuit, qasm: toQasm3(defaultCircuit), displayMode: defaultMode };
+  return {
+    circuit: defaultCircuit,
+    qasm: toQasm3(defaultCircuit),
+    displayMode: defaultMode,
+    simulationStep: defaultCircuit.operations.length,
+  };
 }
 
 export function areCircuitsEquivalent(left: CircuitModel, right: CircuitModel): boolean {

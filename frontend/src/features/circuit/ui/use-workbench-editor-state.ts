@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { EDITOR_MAX_QUBITS } from "../model/constants";
 import {
@@ -14,6 +14,7 @@ import { toQasm3 } from "../qasm/qasm-bridge";
 import type { QasmParseError } from "../qasm/qasm-errors";
 import type { ProbabilityDisplayMode } from "../simulation/probability-filter";
 import { useWorkbenchCanvasControls } from "./use-workbench-canvas-controls";
+import { loadWorkbenchDraft } from "./draft-storage";
 import {
   areCircuitsEquivalent,
   buildInitialState,
@@ -30,7 +31,7 @@ export interface WorkbenchProjectPayload {
 }
 
 export function useWorkbenchEditorState() {
-  const initialState = useMemo(() => buildInitialState(DEFAULT_DISPLAY_MODE), []);
+  const [initialState] = useState(() => buildInitialState(DEFAULT_DISPLAY_MODE, loadWorkbenchDraft()));
   const [history, setHistory] = useState<EditorHistoryState<CircuitModel>>(() =>
     createHistoryState(initialState.circuit),
   );
@@ -109,5 +110,6 @@ export function useWorkbenchEditorState() {
     },
     actions,
     resetVersion,
+    initialSimulationStep: initialState.simulationStep,
   };
 }

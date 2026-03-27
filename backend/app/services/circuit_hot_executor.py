@@ -62,7 +62,7 @@ class _CircuitHotWorker:
         self._process = process
         self._parent_connection = parent_connection
 
-        if not parent_connection.poll(settings.circuit_exec_timeout_seconds):
+        if not parent_connection.poll(settings.circuit_exec_init_timeout_seconds):
             self.close()
             raise CircuitHotExecutorError("CIRCUIT_EXECUTOR_INIT_TIMEOUT", "circuit executor warmup timed out")
 
