@@ -2,22 +2,46 @@
 
 ## Purpose
 
-`execution-service` is a minimal remote execution stub for the `remote` execution backend.
-It exists as a separate HTTP service boundary so the worker no longer has to assume direct
-ownership of the execution environment.
+`execution-service` is the internal execution boundary for **code tasks**.
+
+It is not the path for graphical circuit tasks.
+
+Current responsibility:
+
+- receive code execution requests from backend/worker
+- dispatch execution through the configured execution backend
+- return normalized success or error payloads
+
+## Current runtime role
+
+In the current Docker Compose stack:
+
+- `worker` uses `EXECUTION_BACKEND=remote`
+- `execution-service` uses `EXECUTION_BACKEND=docker`
+
+That means the effective chain is:
+
+```text
+worker -> execution-service -> Docker runner
+```
 
 ## Endpoints
 
 ### `GET /health`
 
-Response:
+Response shape:
 
 ```json
 {
   "status": "ok",
-  "backend": "remote"
+  "backend": "docker"
 }
 ```
+
+Notes:
+
+- `backend` reflects the real execution backend
+- it must not be treated as a fixed `"remote"` marker
 
 ### `POST /execute`
 
@@ -43,42 +67,31 @@ Success response:
 }
 ```
 
-Validation failure:
+Error response shape:
 
 ```json
 {
-  "detail": {
-    "error": {
-      "code": "SANDBOX_VALIDATION_ERROR",
-      "message": "import not allowed: os"
-    }
+  "error": {
+    "code": "EXECUTION_TIMEOUT",
+    "message": "execution timed out"
   }
 }
 ```
 
-Execution failure:
+## Error mapping
 
-```json
-{
-  "detail": {
-    "error": {
-      "code": "SANDBOX_EXECUTION_ERROR",
-      "message": "boom"
-    }
-  }
-}
-```
+Current contract expectations:
 
-## Status Codes
+- request validation errors -> `400`
+- execution failure / execution timeout -> `422`
+- infrastructure or runtime backend failures -> `500`
 
-1. `200`: execution succeeded
-2. `400`: request passed schema validation but code failed sandbox validation
-3. `422`: code executed but failed inside the sandbox or timed out
-4. `500`: unexpected runner-side error
+## Scope boundary
 
-## Current Scope
+This contract is for internal service-to-service communication only.
 
-1. Reuses the existing in-process sandbox runtime
-2. Does not yet provide authentication
-3. Does not yet isolate runtime resources as a separate deployed service
-4. Exists to establish a stable HTTP contract for later remote execution rollout
+It does not define:
+
+- public frontend API behavior
+- graphical circuit submit contract
+- project persistence contract
