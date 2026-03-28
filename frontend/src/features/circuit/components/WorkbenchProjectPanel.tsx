@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 
 import type { ProjectItem } from "../../../api/projects";
 
@@ -27,7 +27,14 @@ function WorkbenchProjectPanel({
   const circuitProjects = projects.filter((project) => project.entry_type === "circuit");
 
   return (
-    <section style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+    <section
+      style={{
+        border: "1px solid var(--border-subtle)",
+        borderRadius: 12,
+        padding: 12,
+        background: "var(--surface-panel)",
+      }}
+    >
       <h3 style={{ marginTop: 0 }}>项目面板</h3>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <input
@@ -50,18 +57,24 @@ function WorkbenchProjectPanel({
           刷新列表
         </button>
       </div>
-      {error ? <p style={{ color: "#cf1322", margin: "4px 0" }}>{error}</p> : null}
-      {success ? <p style={{ color: "#389e0d", margin: "4px 0" }}>{success}</p> : null}
+      {error ? <p style={{ color: "var(--accent-danger)", margin: "4px 0" }}>{error}</p> : null}
+      {success ? <p style={{ color: "var(--accent-success)", margin: "4px 0" }}>{success}</p> : null}
       <div style={{ display: "grid", gap: 6, maxHeight: 180, overflow: "auto" }}>
         {circuitProjects.map((project) => (
           <button
             type="button"
             key={project.id}
             onClick={() => onLoad(project.id)}
-            style={{ textAlign: "left", border: "1px solid #ddd", borderRadius: 6, background: "#fff", padding: 8 }}
+            style={{
+              textAlign: "left",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: 8,
+              background: "var(--surface-panel-muted)",
+              padding: 8,
+            }}
           >
             <div>{project.name}</div>
-            <div style={{ fontSize: 12, color: "#666" }}>更新时间：{project.updated_at}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>更新时间：{project.updated_at}</div>
           </button>
         ))}
       </div>

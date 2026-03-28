@@ -12,26 +12,26 @@ interface GateMatrixTooltipProps {
 }
 
 const GATE_DESCRIPTIONS: Readonly<Record<GateName, string>> = Object.freeze({
-  i: "保持量子状态不变。",
+  i: "保持量子态不变。",
   x: "对量子比特执行比特翻转。",
-  y: "同时引入比特翻转和相位变化。",
-  z: "对量子态执行相位翻转。",
-  h: "将量子比特变为叠加态。",
-  s: "施加四分之一周期相位。",
-  sdg: "施加 S 门的逆相位。",
-  t: "施加八分之一周期相位。",
-  tdg: "施加 T 门的逆相位。",
-  rx: "绕 X 轴执行旋转。",
-  ry: "绕 Y 轴执行旋转。",
-  rz: "绕 Z 轴执行旋转。",
-  u: "执行通用单比特旋转。",
-  p: "施加可调相位偏移。",
-  cx: "控制位为 1 时翻转目标位。",
+  y: "同时引入翻转与相位变化。",
+  z: "对 |1> 分量施加相位翻转。",
+  h: "将基态变换到叠加态。",
+  s: "施加 pi/2 的相位旋转。",
+  sdg: "施加 S 门的逆相位旋转。",
+  t: "施加 pi/4 的相位旋转。",
+  tdg: "施加 T 门的逆相位旋转。",
+  rx: "绕 X 轴按给定角度旋转。",
+  ry: "绕 Y 轴按给定角度旋转。",
+  rz: "绕 Z 轴按给定角度旋转。",
+  u: "通用单比特旋转门。",
+  p: "按给定角度施加相位。",
+  cx: "控制位为 1 时执行 X 门。",
   cp: "控制位为 1 时施加相位。",
-  cz: "控制位为 1 时施加 Z 相位翻转。",
-  ccx: "两个控制位同时满足时翻转目标位。",
+  cz: "控制位为 1 时执行 Z 门。",
+  ccx: "双控制位为 1 时执行 X 门。",
   swap: "交换两个量子比特的状态。",
-  m: "将量子态投影到测量结果。",
+  m: "对量子比特执行测量。",
 });
 
 function renderMatrixLatex(latex: string): string {
@@ -61,9 +61,9 @@ function GateMatrixTooltip({ gate, accentColor }: GateMatrixTooltipProps) {
         pointerEvents: "none",
         width: "max-content",
         maxWidth: "min(420px, calc(100vw - 32px))",
-        border: "1px solid #dbe5f0",
+        border: "1px solid var(--border-subtle)",
         borderRadius: 8,
-        background: "#fff",
+        background: "var(--surface-panel)",
         boxShadow: "0 6px 18px rgba(15, 23, 42, 0.12)",
         padding: "8px 10px",
       }}
@@ -79,17 +79,17 @@ function GateMatrixTooltip({ gate, accentColor }: GateMatrixTooltipProps) {
       >
         {item.label} 门
       </strong>
-      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.4, color: "#1f2937" }}>
+      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.4, color: "var(--text-primary)" }}>
         {GATE_DESCRIPTIONS[gate]}
       </p>
-      <p style={{ margin: "2px 0 0 0", fontSize: 11, lineHeight: 1.35, color: "#475569" }}>
+      <p style={{ margin: "2px 0 0 0", fontSize: 11, lineHeight: 1.35, color: "var(--text-secondary)" }}>
         作用于 {qubitCount} 个量子比特。
       </p>
       <div
         data-testid={`gate-matrix-formula-${gate}`}
         style={{
           marginTop: 6,
-          color: "#0f172a",
+          color: "var(--text-primary)",
           fontSize: 11,
           lineHeight: 1.2,
           overflowX: "auto",

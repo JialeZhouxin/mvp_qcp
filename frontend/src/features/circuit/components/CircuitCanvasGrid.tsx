@@ -99,8 +99,8 @@ function CircuitCanvasGrid({
                         width: 220,
                         padding: 8,
                         borderRadius: 6,
-                        border: "1px solid #d9e2ec",
-                        background: "#fff",
+                        border: "1px solid var(--border-subtle)",
+                        background: "var(--surface-panel)",
                         boxShadow: "0 6px 18px rgba(15, 23, 42, 0.12)",
                       }}
                       onClick={(event) => event.stopPropagation()}

@@ -6,6 +6,11 @@
   box-sizing: border-box;
 }
 
+.circuit-workbench-submit-rail {
+  background: var(--surface-page);
+  border-radius: 12px;
+}
+
 .circuit-workbench-primary-layout {
   display: grid;
   gap: 16px;

@@ -25,7 +25,12 @@ function WorkbenchSubmitPanel({
 
   return (
     <section
-      style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}
+      style={{
+        border: "1px solid var(--border-subtle)",
+        borderRadius: 12,
+        padding: 12,
+        background: "var(--surface-panel)",
+      }}
       data-testid="workbench-submit-panel"
     >
       <div
@@ -58,16 +63,15 @@ function WorkbenchSubmitPanel({
       </div>
 
       {deduplicated ? (
-        <p style={{ margin: "8px 0 0 0", color: "#1677ff" }}>
+        <p style={{ margin: "8px 0 0 0", color: "var(--accent-primary)" }}>
           {WORKBENCH_COPY.submitPanel.deduplicatedHint}
         </p>
       ) : null}
       {submitError ? (
-        <p style={{ margin: "8px 0 0 0", color: "#cf1322" }}>{submitError}</p>
+        <p style={{ margin: "8px 0 0 0", color: "var(--accent-danger)" }}>{submitError}</p>
       ) : null}
     </section>
   );
 }
 
 export default WorkbenchSubmitPanel;
-

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { toErrorMessage } from "../../api/errors";
 import { getProjectDetail, getProjectList, saveProject, type ProjectItem } from "../../api/projects";
@@ -23,7 +23,7 @@ export function useCodeProjects({ code, taskId, onProjectLoaded }: UseCodeProjec
       const response = await getProjectList(50, 0);
       setProjects(response.projects);
     } catch (nextError) {
-      setProjectError(toErrorMessage(nextError, "加载项目列表失败"));
+      setProjectError(toErrorMessage(nextError, "\u52A0\u8F7D\u9879\u76EE\u5217\u8868\u5931\u8D25"));
     } finally {
       setProjectLoading(false);
     }
@@ -36,7 +36,7 @@ export function useCodeProjects({ code, taskId, onProjectLoaded }: UseCodeProjec
   const saveCurrentProject = async (name: string) => {
     const normalizedName = name.trim();
     if (!normalizedName) {
-      setProjectError("项目名称不能为空");
+      setProjectError("\u9879\u76EE\u540D\u79F0\u4E0D\u80FD\u4E3A\u7A7A");
       return;
     }
     setProjectSaving(true);
@@ -48,10 +48,10 @@ export function useCodeProjects({ code, taskId, onProjectLoaded }: UseCodeProjec
         payload: { code },
         last_task_id: taskId,
       });
-      setProjectSuccess("项目保存成功");
+      setProjectSuccess("\u9879\u76EE\u4FDD\u5B58\u6210\u529F");
       await loadProjects();
     } catch (nextError) {
-      setProjectError(toErrorMessage(nextError, "保存项目失败"));
+      setProjectError(toErrorMessage(nextError, "\u4FDD\u5B58\u9879\u76EE\u5931\u8D25"));
     } finally {
       setProjectSaving(false);
     }
@@ -64,12 +64,12 @@ export function useCodeProjects({ code, taskId, onProjectLoaded }: UseCodeProjec
       const detail = await getProjectDetail(projectId);
       const loadedCode = detail.payload.code;
       if (typeof loadedCode !== "string") {
-        throw new Error("项目内容缺少 code 字段");
+        throw new Error("\u9879\u76EE\u5185\u5BB9\u7F3A\u5C11 code \u5B57\u6BB5");
       }
       onProjectLoaded(loadedCode);
-      setProjectSuccess(`已加载项目：${detail.name}`);
+      setProjectSuccess(`\u5DF2\u52A0\u8F7D\u9879\u76EE\uFF1A${detail.name}`);
     } catch (nextError) {
-      setProjectError(toErrorMessage(nextError, "加载项目失败"));
+      setProjectError(toErrorMessage(nextError, "\u52A0\u8F7D\u9879\u76EE\u5931\u8D25"));
     }
   };
 

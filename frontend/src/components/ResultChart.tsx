@@ -1,8 +1,20 @@
 import { useMemo } from "react";
 import ReactECharts from "echarts-for-react";
 
+import { useTasksTheme } from "../theme/AppTheme";
+
 export type ResultChartSortMode = "BASIS" | "PROB_DESC";
 export type ResultChartTheme = "light" | "dark";
+
+export interface ResultChartPalette {
+  readonly titleColor: string;
+  readonly axisColor: string;
+  readonly splitLineColor: string;
+  readonly axisLineColor: string;
+  readonly barColor: string;
+  readonly tooltipBackground: string;
+  readonly tooltipBorder: string;
+}
 
 interface ResultChartProps {
   readonly probabilities: Record<string, number>;
@@ -16,6 +28,7 @@ interface ResultChartProps {
   readonly height?: number;
   readonly adaptiveBarWidth?: boolean;
   readonly theme?: ResultChartTheme;
+  readonly palette?: ResultChartPalette;
 }
 
 export interface ResultChartEntry {
@@ -34,6 +47,7 @@ export interface BuildResultChartOptionArgs {
   readonly formatState: (state: string) => string;
   readonly adaptiveBarWidth: boolean;
   readonly theme?: ResultChartTheme;
+  readonly palette?: ResultChartPalette;
 }
 
 const DEFAULT_VALUE_DIGITS = 4;
@@ -66,7 +80,33 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-export function resolveBarMaxWidth({ compact, barCount, adaptiveBarWidth }: ResolveBarMaxWidthArgs): number | undefined {
+function getDefaultChartPalette(theme: ResultChartTheme): ResultChartPalette {
+  return theme === "dark"
+    ? {
+        titleColor: "#e2e8f0",
+        axisColor: "#cbd5e1",
+        splitLineColor: "rgba(148, 163, 184, 0.2)",
+        axisLineColor: "rgba(148, 163, 184, 0.26)",
+        barColor: "#38bdf8",
+        tooltipBackground: "rgba(8, 15, 28, 0.96)",
+        tooltipBorder: "#164e63",
+      }
+    : {
+        titleColor: "#111827",
+        axisColor: "#4b5563",
+        splitLineColor: "#e5e7eb",
+        axisLineColor: "#d1d5db",
+        barColor: "#1677ff",
+        tooltipBackground: "rgba(255, 255, 255, 0.96)",
+        tooltipBorder: "#d1d5db",
+      };
+}
+
+export function resolveBarMaxWidth({
+  compact,
+  barCount,
+  adaptiveBarWidth,
+}: ResolveBarMaxWidthArgs): number | undefined {
   if (!adaptiveBarWidth) {
     return compact ? FIXED_BAR_MAX_WIDTH_COMPACT : FIXED_BAR_MAX_WIDTH_REGULAR;
   }
@@ -93,33 +133,13 @@ export function buildResultChartOption({
   formatState,
   adaptiveBarWidth,
   theme = "light",
+  palette = getDefaultChartPalette(theme),
 }: BuildResultChartOptionArgs) {
   const barMaxWidth = resolveBarMaxWidth({
     compact,
     barCount: chartData.length,
     adaptiveBarWidth,
   });
-
-  const palette =
-    theme === "dark"
-      ? {
-          titleColor: "#e2e8f0",
-          axisColor: "#cbd5e1",
-          splitLineColor: "rgba(148, 163, 184, 0.2)",
-          axisLineColor: "rgba(148, 163, 184, 0.26)",
-          barColor: "#38bdf8",
-          tooltipBackground: "rgba(8, 15, 28, 0.96)",
-          tooltipBorder: "#164e63",
-        }
-      : {
-          titleColor: "#111827",
-          axisColor: "#4b5563",
-          splitLineColor: "#e5e7eb",
-          axisLineColor: "#d1d5db",
-          barColor: "#1677ff",
-          tooltipBackground: "rgba(255, 255, 255, 0.96)",
-          tooltipBorder: "#d1d5db",
-        };
 
   return {
     title: showTitle
@@ -201,7 +221,7 @@ export function buildResultChartOption({
 
 function ResultChart({
   probabilities,
-  title = "量子测量概率分布",
+  title = "测量概率分布",
   sortMode = "BASIS",
   stateLabelFormatter,
   valueDigits = DEFAULT_VALUE_DIGITS,
@@ -210,8 +230,22 @@ function ResultChart({
   showTitle = true,
   height,
   adaptiveBarWidth = false,
-  theme = "light",
+  theme,
+  palette,
 }: ResultChartProps) {
+  const { mode: tasksThemeMode, palette: tasksPalette } = useTasksTheme();
+  const effectiveTheme = theme ?? tasksThemeMode;
+  const effectivePalette =
+    palette ??
+    ({
+      titleColor: tasksPalette.textPrimary,
+      axisColor: tasksPalette.chartAxis,
+      splitLineColor: tasksPalette.chartGrid,
+      axisLineColor: tasksPalette.borderStrong,
+      barColor: tasksPalette.accentPrimary,
+      tooltipBackground: tasksThemeMode === "light" ? "rgba(255, 255, 255, 0.96)" : "rgba(8, 15, 28, 0.96)",
+      tooltipBorder: tasksPalette.borderStrong,
+    } satisfies ResultChartPalette);
   const formatState = (state: string) => (stateLabelFormatter ? stateLabelFormatter(state) : state);
   const chartHeight = height ?? (compact ? COMPACT_CHART_HEIGHT : DEFAULT_CHART_HEIGHT);
 
@@ -248,7 +282,8 @@ function ResultChart({
     showBarValueLabel,
     formatState,
     adaptiveBarWidth,
-    theme,
+    theme: effectiveTheme,
+    palette: effectivePalette,
   });
 
   return <ReactECharts option={option} style={{ height: chartHeight }} />;

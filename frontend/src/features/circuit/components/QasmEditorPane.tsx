@@ -1,6 +1,8 @@
-﻿import Editor from "@monaco-editor/react";
+import Editor from "@monaco-editor/react";
 import { useEffect, useRef } from "react";
 
+import { useTasksTheme } from "../../../theme/AppTheme";
+import { ensureTasksMonacoThemes, resolveTasksMonacoTheme } from "../../../theme/editor-theme";
 import type { CircuitModel } from "../model/types";
 import type { QasmParseError } from "../qasm/qasm-errors";
 import { fromQasm3, toQasm3 } from "../qasm/qasm-bridge";
@@ -34,6 +36,7 @@ function QasmEditorPane({
   onParseError,
   debounceMs = DEFAULT_DEBOUNCE_MS,
 }: QasmEditorPaneProps) {
+  const { mode } = useTasksTheme();
   const onValidQasmChangeRef = useRef(onValidQasmChange);
   const onParseErrorRef = useRef(onParseError);
   const lastSyncedSignatureRef = useRef<string | null>(null);
@@ -107,19 +110,25 @@ function QasmEditorPane({
   return (
     <section
       data-testid="qasm-editor-panel"
-      style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}
+      style={{ border: "1px solid var(--border-subtle)", padding: 12, borderRadius: 12, background: "var(--surface-panel)" }}
     >
-      <h3 style={{ marginTop: 0 }}>OpenQASM 3</h3>
+      <h3 style={{ marginTop: 0, color: "var(--text-primary)" }}>OpenQASM 3</h3>
       <div
         data-testid="qasm-editor-input"
-        style={{ border: "1px solid #d9d9d9", borderRadius: 6, overflow: "hidden" }}
+        style={{
+          border: "1px solid var(--border-subtle)",
+          borderRadius: 10,
+          overflow: "hidden",
+          background: "var(--editor-bg)",
+        }}
       >
         <Editor
           height={`${QASM_EDITOR_HEIGHT}px`}
           language={QASM_LANGUAGE_ID}
           path="workbench-qasm.openqasm"
           value={value}
-          theme="vs"
+          theme={resolveTasksMonacoTheme(mode)}
+          beforeMount={ensureTasksMonacoThemes}
           options={{
             minimap: { enabled: false },
             fontSize: 14,
@@ -137,5 +146,3 @@ function QasmEditorPane({
 }
 
 export default QasmEditorPane;
-
-

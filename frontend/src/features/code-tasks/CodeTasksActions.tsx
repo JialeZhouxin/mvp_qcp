@@ -1,4 +1,4 @@
-﻿interface CodeTasksActionsProps {
+interface CodeTasksActionsProps {
   readonly taskId: number | null;
   readonly autoPolling: boolean;
   readonly onAutoPollingChange: (checked: boolean) => void;
@@ -16,10 +16,10 @@ function CodeTasksActions({
   return (
     <section style={{ marginTop: 16, display: "flex", gap: 8, alignItems: "center" }}>
       <button type="button" onClick={onRefreshStatus} disabled={!taskId}>
-        刷新任务状态
+        {"\u5237\u65B0\u4EFB\u52A1\u72B6\u6001"}
       </button>
       <button type="button" onClick={onLoadResult} disabled={!taskId}>
-        加载任务结果
+        {"\u52A0\u8F7D\u4EFB\u52A1\u7ED3\u679C"}
       </button>
       <label>
         <input
@@ -27,7 +27,7 @@ function CodeTasksActions({
           checked={autoPolling}
           onChange={(event) => onAutoPollingChange(event.target.checked)}
         />
-        自动轮询
+        {"\u81EA\u52A8\u8F6E\u8BE2"}
       </label>
     </section>
   );

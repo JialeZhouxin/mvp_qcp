@@ -240,11 +240,11 @@ export function GateLabel({ operation, qubit }: { operation: Operation; qubit: n
 
 export function MessageBlock({ message }: { message: LocalizedMessage }) {
   return (
-    <div data-testid="canvas-message" style={{ marginBottom: 8, color: "#cf1322" }}>
+    <div data-testid="canvas-message" style={{ marginBottom: 8, color: "var(--accent-danger)" }}>
       <strong>{message.title}</strong>
       <p style={{ margin: "4px 0 0 0" }}>{message.detail}</p>
       {message.suggestion ? (
-        <p style={{ margin: "4px 0 0 0", color: "#595959" }}>
+        <p style={{ margin: "4px 0 0 0", color: "var(--text-secondary)" }}>
           {WORKBENCH_COPY.canvas.suggestion}: {message.suggestion}
         </p>
       ) : null}

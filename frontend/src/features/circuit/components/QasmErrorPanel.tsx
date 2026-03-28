@@ -14,16 +14,20 @@ function QasmErrorPanel({ error }: QasmErrorPanelProps) {
   const localized = toQasmErrorMessage(error);
   return (
     <section
-      style={{ border: "1px solid #ffccc7", background: "#fff2f0", padding: 12, borderRadius: 8 }}
+      style={{
+        border: "1px solid color-mix(in srgb, var(--border-subtle) 45%, var(--accent-danger))",
+        background: "color-mix(in srgb, var(--surface-panel) 84%, var(--accent-danger))",
+        padding: 12,
+        borderRadius: 8,
+      }}
     >
-      <strong style={{ color: "#cf1322" }}>{localized.title}</strong>
+      <strong style={{ color: "var(--accent-danger)" }}>{localized.title}</strong>
       <p style={{ margin: "6px 0 0 0" }}>{localized.detail}</p>
-      <p style={{ margin: "6px 0 0 0", color: "#8c8c8c" }}>
-        {WORKBENCH_COPY.qasmErrorPanel.code}: {error.code}，{WORKBENCH_COPY.qasmErrorPanel.column}:{" "}
-        {error.column}
+      <p style={{ margin: "6px 0 0 0", color: "var(--text-muted)" }}>
+        {WORKBENCH_COPY.qasmErrorPanel.code}: {error.code} · 列: {error.column}
       </p>
       {localized.suggestion ? (
-        <p data-testid="qasm-fix-suggestion" style={{ margin: "6px 0 0 0", color: "#595959" }}>
+        <p data-testid="qasm-fix-suggestion" style={{ margin: "6px 0 0 0", color: "var(--text-secondary)" }}>
           {WORKBENCH_COPY.qasmErrorPanel.suggestion}: {localized.suggestion}
         </p>
       ) : null}
@@ -33,4 +37,3 @@ function QasmErrorPanel({ error }: QasmErrorPanelProps) {
 }
 
 export default QasmErrorPanel;
-

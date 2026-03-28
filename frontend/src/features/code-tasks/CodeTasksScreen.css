@@ -1,0 +1,20 @@
+.code-tasks-screen {
+  max-width: 980px;
+  margin: 24px auto;
+  display: grid;
+  gap: 16px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.code-tasks-screen__form {
+  display: grid;
+  gap: 12px;
+}
+
+.code-tasks-screen__submit {
+  justify-self: start;
+}
+
+.code-tasks-screen__project-section {
+  margin-top: 4px;
+}

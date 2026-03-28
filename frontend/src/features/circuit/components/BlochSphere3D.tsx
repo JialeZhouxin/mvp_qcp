@@ -4,6 +4,8 @@ import type { CSSProperties } from "react";
 import { useMemo } from "react";
 import * as THREE from "three";
 
+import { useTasksTheme } from "../../../theme/AppTheme";
+
 type BlochSphereCoordinateProps =
   | {
       readonly coordinateMode: "spherical";
@@ -26,19 +28,25 @@ interface SceneVector {
   readonly bloch: readonly [number, number, number];
 }
 
-const LABEL_STYLE: CSSProperties = {
-  padding: "4px 8px",
-  borderRadius: 999,
-  border: "1px solid rgba(148, 163, 184, 0.45)",
-  background: "rgba(8, 15, 28, 0.88)",
-  color: "#e2e8f0",
-  fontSize: 12,
-  fontWeight: 600,
-  letterSpacing: "0.02em",
-  whiteSpace: "nowrap",
-  boxShadow: "0 8px 18px rgba(8, 15, 28, 0.38)",
-  pointerEvents: "none",
-};
+function buildLabelStyle(
+  borderColor: string,
+  background: string,
+  color: string,
+): CSSProperties {
+  return {
+    padding: "4px 8px",
+    borderRadius: 999,
+    border: `1px solid ${borderColor}`,
+    background,
+    color,
+    fontSize: 12,
+    fontWeight: 600,
+    letterSpacing: "0.02em",
+    whiteSpace: "nowrap",
+    boxShadow: "0 8px 18px rgba(8, 15, 28, 0.18)",
+    pointerEvents: "none",
+  };
+}
 
 function buildCirclePoints(plane: "xy" | "xz" | "yz", radius = 1, segments = 96) {
   const points: [number, number, number][] = [];
@@ -92,13 +100,15 @@ function toSceneVector(props: BlochSphereCoordinateProps): SceneVector {
 function SceneLabel({
   position,
   text,
+  style,
 }: {
   readonly position: readonly [number, number, number];
   readonly text: string;
+  readonly style: CSSProperties;
 }) {
   return (
     <Html position={[position[0], position[1], position[2]]} center>
-      <span style={LABEL_STYLE}>{text}</span>
+      <span style={style}>{text}</span>
     </Html>
   );
 }
@@ -126,7 +136,11 @@ function StateVectorArrow({
   const shaftPosition: [number, number, number] =
     length <= 1e-6
       ? [0, 0, 0]
-      : [direction.x * (shaftLength / 2), direction.y * (shaftLength / 2), direction.z * (shaftLength / 2)];
+      : [
+          direction.x * (shaftLength / 2),
+          direction.y * (shaftLength / 2),
+          direction.z * (shaftLength / 2),
+        ];
   const headPosition: [number, number, number] =
     length <= 1e-6
       ? [0, 0, 0]
@@ -163,33 +177,56 @@ function StateVectorArrow({
 }
 
 function BlochScene({ accentColor, ...props }: BlochSphere3DProps) {
+  const { palette } = useTasksTheme();
+  const labelStyle = useMemo(
+    () => buildLabelStyle(palette.blochLabelBorder, palette.blochLabelBackground, palette.blochLabelText),
+    [palette.blochLabelBackground, palette.blochLabelBorder, palette.blochLabelText],
+  );
   const sceneVector = toSceneVector(props);
 
   return (
     <>
-      <color attach="background" args={["#07111f"]} />
+      <color attach="background" args={[palette.blochSceneBackground]} />
       <ambientLight intensity={0.55} />
-      <pointLight position={[2.2, 2.4, 2.6]} intensity={2.1} color="#e2e8f0" />
+      <pointLight position={[2.2, 2.4, 2.6]} intensity={1.9} color="#f8fafc" />
 
       <mesh>
         <sphereGeometry args={[1, 32, 32]} />
-        <meshBasicMaterial color="#d1d5db" wireframe transparent opacity={0.3} />
+        <meshBasicMaterial color={palette.blochWireframe} wireframe transparent opacity={0.3} />
       </mesh>
 
-      <Line points={buildCirclePoints("xy")} color="#94a3b8" transparent opacity={0.55} lineWidth={1.1} />
-      <Line points={buildCirclePoints("xz")} color="#94a3b8" transparent opacity={0.45} lineWidth={1} />
-      <Line points={buildCirclePoints("yz")} color="#94a3b8" transparent opacity={0.45} lineWidth={1} />
+      <Line points={buildCirclePoints("xy")} color={palette.blochRing} transparent opacity={0.55} lineWidth={1.1} />
+      <Line points={buildCirclePoints("xz")} color={palette.blochRing} transparent opacity={0.45} lineWidth={1} />
+      <Line points={buildCirclePoints("yz")} color={palette.blochRing} transparent opacity={0.45} lineWidth={1} />
 
-      <Line points={[[-1.15, 0, 0], [1.15, 0, 0]]} color="#cbd5e1" transparent opacity={0.6} lineWidth={1.2} />
-      <Line points={[[0, -1.15, 0], [0, 1.15, 0]]} color="#cbd5e1" transparent opacity={0.6} lineWidth={1.2} />
-      <Line points={[[0, 0, -1.15], [0, 0, 1.15]]} color="#cbd5e1" transparent opacity={0.6} lineWidth={1.2} />
+      <Line
+        points={[[-1.15, 0, 0], [1.15, 0, 0]]}
+        color={palette.blochAxis}
+        transparent
+        opacity={0.6}
+        lineWidth={1.2}
+      />
+      <Line
+        points={[[0, -1.15, 0], [0, 1.15, 0]]}
+        color={palette.blochAxis}
+        transparent
+        opacity={0.6}
+        lineWidth={1.2}
+      />
+      <Line
+        points={[[0, 0, -1.15], [0, 0, 1.15]]}
+        color={palette.blochAxis}
+        transparent
+        opacity={0.6}
+        lineWidth={1.2}
+      />
 
-      <SceneLabel position={[0, 1.22, 0]} text={"|0⟩"} />
-      <SceneLabel position={[0, -1.22, 0]} text={"|1⟩"} />
-      <SceneLabel position={[0, 0, 1.22]} text={"|+⟩"} />
-      <SceneLabel position={[0, 0, -1.22]} text={"|-⟩"} />
-      <SceneLabel position={[1.22, 0, 0]} text={"|i⟩"} />
-      <SceneLabel position={[-1.22, 0, 0]} text={"|-i⟩"} />
+      <SceneLabel position={[0, 1.22, 0]} text={"|0\u27E9"} style={labelStyle} />
+      <SceneLabel position={[0, -1.22, 0]} text={"|1\u27E9"} style={labelStyle} />
+      <SceneLabel position={[0, 0, 1.22]} text={"|+\u27E9"} style={labelStyle} />
+      <SceneLabel position={[0, 0, -1.22]} text={"|-\u27E9"} style={labelStyle} />
+      <SceneLabel position={[1.22, 0, 0]} text={"|i\u27E9"} style={labelStyle} />
+      <SceneLabel position={[-1.22, 0, 0]} text={"|-i\u27E9"} style={labelStyle} />
 
       <StateVectorArrow endpoint={sceneVector.scene} color={accentColor ?? "#06b6d4"} />
 

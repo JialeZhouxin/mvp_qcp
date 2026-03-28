@@ -1,4 +1,5 @@
-﻿import { FormEvent, useState } from "react";
+import type { FormEvent } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuthSession } from "../../auth/session";
@@ -10,6 +11,7 @@ import CodeTasksStatusPanel from "./CodeTasksStatusPanel";
 import CodeProjectPanel from "./components/CodeProjectPanel";
 import { useCodeProjects } from "./useCodeProjects";
 import { useCodeTaskRun } from "./useCodeTaskRun";
+import "./CodeTasksScreen.css";
 
 const SAMPLE_CODE = `from qibo import Circuit, gates
 
@@ -70,13 +72,13 @@ function CodeTasksScreen() {
   };
 
   return (
-    <main style={{ maxWidth: 980, margin: "24px auto", fontFamily: "Segoe UI, sans-serif" }}>
+    <main className="code-tasks-screen">
       <CodeTasksHeader onLogout={handleLogout} />
 
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12 }}>
+      <form onSubmit={handleSubmit} className="code-tasks-screen__form">
         <CodeEditor value={code} onChange={setCode} />
-        <button type="submit" disabled={loading}>
-          {loading ? "提交中..." : "提交代码任务"}
+        <button className="code-tasks-screen__submit" type="submit" disabled={loading}>
+          {loading ? "\u63D0\u4EA4\u4E2D..." : "\u63D0\u4EA4\u4EE3\u7801\u4EFB\u52A1"}
         </button>
       </form>
 
@@ -88,7 +90,7 @@ function CodeTasksScreen() {
         onLoadResult={() => void loadResult()}
       />
 
-      <section style={{ marginTop: 16 }}>
+      <section className="code-tasks-screen__project-section">
         <CodeProjectPanel
           projects={projects}
           loading={projectLoading}

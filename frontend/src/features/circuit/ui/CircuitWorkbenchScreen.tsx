@@ -134,12 +134,11 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
 
       <section
         data-testid="workbench-submit-rail"
+        className="circuit-workbench-submit-rail"
         style={{
           position: "sticky",
           top: SUBMIT_RAIL_TOP_OFFSET,
           zIndex: SUBMIT_RAIL_Z_INDEX,
-          background: "#f5f7fb",
-          borderRadius: 8,
         }}
       >
         <WorkbenchSubmitPanel

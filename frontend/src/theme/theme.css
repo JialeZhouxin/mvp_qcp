@@ -1,0 +1,116 @@
+.tasks-theme-scope[data-theme="light"] {
+  --surface-page: #f5f7fb;
+  --surface-panel: #ffffff;
+  --surface-panel-muted: #f8fbff;
+  --surface-panel-elevated: #ffffff;
+  --border-subtle: #d9e2ec;
+  --border-strong: #bcccdc;
+  --text-primary: #102a43;
+  --text-secondary: #486581;
+  --text-muted: #7b8794;
+  --accent-primary: #0b5fff;
+  --accent-info: #0ea5e9;
+  --accent-danger: #cf1322;
+  --accent-success: #2f855a;
+  --focus-ring: rgba(11, 95, 255, 0.35);
+  --editor-bg: #ffffff;
+  --editor-line-highlight: #eef4ff;
+  --chart-axis: #4b5563;
+  --chart-grid: rgba(148, 163, 184, 0.24);
+  --bloch-scene-bg: #f4f8fc;
+  --bloch-label-bg: rgba(255, 255, 255, 0.94);
+  --bloch-label-border: rgba(148, 163, 184, 0.45);
+  --bloch-label-text: #102a43;
+  --bloch-wireframe: rgba(100, 116, 139, 0.34);
+  --bloch-axis: rgba(71, 85, 105, 0.62);
+  --bloch-ring: rgba(100, 116, 139, 0.5);
+}
+
+.tasks-theme-scope[data-theme="dark"] {
+  --surface-page: #0f172a;
+  --surface-panel: #111b2f;
+  --surface-panel-muted: #152238;
+  --surface-panel-elevated: #1a2940;
+  --border-subtle: #24364d;
+  --border-strong: #385170;
+  --text-primary: #e2e8f0;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --accent-primary: #60a5fa;
+  --accent-info: #38bdf8;
+  --accent-danger: #f87171;
+  --accent-success: #4ade80;
+  --focus-ring: rgba(96, 165, 250, 0.45);
+  --editor-bg: #0f172a;
+  --editor-line-highlight: #162238;
+  --chart-axis: #cbd5e1;
+  --chart-grid: rgba(148, 163, 184, 0.2);
+  --bloch-scene-bg: #07111f;
+  --bloch-label-bg: rgba(8, 15, 28, 0.88);
+  --bloch-label-border: rgba(148, 163, 184, 0.45);
+  --bloch-label-text: #e2e8f0;
+  --bloch-wireframe: rgba(209, 213, 219, 0.3);
+  --bloch-axis: rgba(203, 213, 225, 0.6);
+  --bloch-ring: rgba(148, 163, 184, 0.5);
+}
+
+.tasks-theme-scope {
+  min-height: 100vh;
+  background: var(--surface-page);
+  color: var(--text-primary);
+}
+
+.tasks-theme-panel {
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--surface-panel);
+}
+
+.tasks-theme-panel--muted {
+  background: var(--surface-panel-muted);
+}
+
+.tasks-theme-title {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.tasks-theme-subtle {
+  color: var(--text-secondary);
+}
+
+.tasks-theme-muted {
+  color: var(--text-muted);
+}
+
+.tasks-theme-error {
+  color: var(--accent-danger);
+}
+
+.tasks-theme-success {
+  color: var(--accent-success);
+}
+
+.tasks-theme-warning-callout {
+  border: 1px solid color-mix(in srgb, var(--accent-info) 22%, var(--border-subtle));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-panel-muted) 88%, var(--accent-info));
+}
+
+.tasks-theme-codeblock {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-panel-muted);
+}
+
+.tasks-theme-scope a {
+  color: var(--accent-primary);
+}
+
+.tasks-theme-scope button:focus-visible,
+.tasks-theme-scope input:focus-visible,
+.tasks-theme-scope select:focus-visible,
+.tasks-theme-scope textarea:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

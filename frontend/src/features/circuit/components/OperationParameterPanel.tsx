@@ -26,7 +26,7 @@ function OperationParameterPanel({
   testId,
 }: OperationParameterPanelProps) {
   if (!isParameterizedGate(operation.gate)) {
-    return <p style={{ margin: "8px 0 0 0", color: "#666" }}>Current gate has no editable parameters.</p>;
+    return <p style={{ margin: "8px 0 0 0", color: "var(--text-muted)" }}>Current gate has no editable parameters.</p>;
   }
 
   const labels = PARAMETER_LABELS[operation.gate];
@@ -58,7 +58,7 @@ function OperationParameterPanel({
                 onChange={(event) => onParamChange(index, event.currentTarget.valueAsNumber)}
                 style={{
                   border: isError
-                    ? "1px solid #cf1322"
+                    ? "1px solid var(--accent-danger)"
                     : isWarning
                       ? "1px solid #d48806"
                       : undefined,
@@ -85,7 +85,7 @@ function OperationParameterPanel({
               </div>
             ) : null}
             {isError && fieldFeedback?.message ? (
-              <small data-testid={`param-error-${index}`} style={{ color: "#cf1322" }}>
+              <small data-testid={`param-error-${index}`} style={{ color: "var(--accent-danger)" }}>
                 {fieldFeedback.message}
               </small>
             ) : null}

@@ -147,7 +147,12 @@ function CircuitCanvas({
   return (
     <section
       data-testid="circuit-canvas-panel"
-      style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}
+      style={{
+        border: "1px solid var(--border-subtle)",
+        padding: 12,
+        borderRadius: 12,
+        background: "var(--surface-panel)",
+      }}
     >
       <h3 style={{ marginTop: 0 }}>{"\u7535\u8def\u753b\u5e03"}</h3>
       {interactionMessage ? <MessageBlock message={interactionMessage} /> : null}
@@ -220,7 +225,13 @@ function CircuitCanvas({
       {selectedOperation ? (
         <section
           data-testid="operation-params-panel"
-          style={{ marginTop: 12, padding: 10, borderRadius: 6, border: "1px solid #eee" }}
+          style={{
+            marginTop: 12,
+            padding: 10,
+            borderRadius: 10,
+            border: "1px solid var(--border-subtle)",
+            background: "var(--surface-panel-muted)",
+          }}
         >
           <h4 style={{ margin: "0 0 8px 0" }}>
             {"\u9009\u4e2d\u95e8: "} {selectedOperation.gate.toUpperCase()} (layer{" "}

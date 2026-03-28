@@ -126,7 +126,6 @@ function WorkbenchResultPanel({
                 height={320}
                 showTitle={false}
                 adaptiveBarWidth
-                theme="dark"
               />
             ) : (
               <p className="workbench-result-panel__chart-empty">
