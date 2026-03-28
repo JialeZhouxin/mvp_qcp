@@ -9,6 +9,24 @@ import {
 
 type Complex = readonly [number, number];
 type Matrix2 = readonly [Complex, Complex, Complex, Complex];
+type Matrix4 = readonly [
+  Complex,
+  Complex,
+  Complex,
+  Complex,
+  Complex,
+  Complex,
+  Complex,
+  Complex,
+  Complex,
+  Complex,
+  Complex,
+  Complex,
+  Complex,
+  Complex,
+  Complex,
+  Complex,
+];
 
 export interface BlochVector {
   readonly x: number;
@@ -80,6 +98,96 @@ function applySingleQubitMatrix(
   }
 }
 
+function isControlActive(basis: number, controls: readonly number[]): boolean {
+  return controls.every((control) => (basis & (1 << control)) !== 0);
+}
+
+function applyControlledSingleQubitMatrix(
+  real: Float64Array,
+  imag: Float64Array,
+  numQubits: number,
+  controls: readonly number[],
+  target: number,
+  matrix: Matrix2,
+): void {
+  const dimension = 1 << numQubits;
+  const mask = 1 << target;
+
+  for (let basis = 0; basis < dimension; basis += 1) {
+    if ((basis & mask) !== 0 || !isControlActive(basis, controls)) {
+      continue;
+    }
+
+    const paired = basis | mask;
+    const a0r = real[basis];
+    const a0i = imag[basis];
+    const a1r = real[paired];
+    const a1i = imag[paired];
+
+    const [m00r, m00i] = matrix[0];
+    const [m01r, m01i] = matrix[1];
+    const [m10r, m10i] = matrix[2];
+    const [m11r, m11i] = matrix[3];
+
+    const [leftMul0r, leftMul0i] = complexMul(m00r, m00i, a0r, a0i);
+    const [leftMul1r, leftMul1i] = complexMul(m01r, m01i, a1r, a1i);
+    const [rightMul0r, rightMul0i] = complexMul(m10r, m10i, a0r, a0i);
+    const [rightMul1r, rightMul1i] = complexMul(m11r, m11i, a1r, a1i);
+
+    const [next0r, next0i] = complexAdd(leftMul0r, leftMul0i, leftMul1r, leftMul1i);
+    const [next1r, next1i] = complexAdd(rightMul0r, rightMul0i, rightMul1r, rightMul1i);
+    real[basis] = next0r;
+    imag[basis] = next0i;
+    real[paired] = next1r;
+    imag[paired] = next1i;
+  }
+}
+
+function applyTwoQubitMatrix(
+  real: Float64Array,
+  imag: Float64Array,
+  numQubits: number,
+  firstTarget: number,
+  secondTarget: number,
+  matrix: Matrix4,
+  controls: readonly number[] = [],
+): void {
+  const dimension = 1 << numQubits;
+  const firstMask = 1 << firstTarget;
+  const secondMask = 1 << secondTarget;
+
+  for (let basis = 0; basis < dimension; basis += 1) {
+    if ((basis & firstMask) !== 0 || (basis & secondMask) !== 0 || !isControlActive(basis, controls)) {
+      continue;
+    }
+
+    const indices = [
+      basis,
+      basis | secondMask,
+      basis | firstMask,
+      basis | firstMask | secondMask,
+    ];
+    const state: Complex[] = indices.map((index) => [real[index], imag[index]]);
+
+    for (let row = 0; row < 4; row += 1) {
+      let nextReal = 0;
+      let nextImag = 0;
+      for (let column = 0; column < 4; column += 1) {
+        const [mulReal, mulImag] = complexMul(
+          matrix[row * 4 + column][0],
+          matrix[row * 4 + column][1],
+          state[column][0],
+          state[column][1],
+        );
+        nextReal += mulReal;
+        nextImag += mulImag;
+      }
+      real[indices[row]] = nextReal;
+      imag[indices[row]] = nextImag;
+    }
+  }
+}
+
 function matrixForFixedGate(gate: Operation["gate"]): Matrix2 | null {
   const sqrt2 = Math.sqrt(2);
   switch (gate) {
@@ -93,6 +201,10 @@ function matrixForFixedGate(gate: Operation["gate"]): Matrix2 | null {
       return [[1, 0], [0, 0], [0, 0], [-1, 0]];
     case "h":
       return [[1 / sqrt2, 0], [1 / sqrt2, 0], [1 / sqrt2, 0], [-1 / sqrt2, 0]];
+    case "sx":
+      return [[0.5, 0.5], [0.5, -0.5], [0.5, -0.5], [0.5, 0.5]];
+    case "sy":
+      return [[1 / sqrt2, 0], [-1 / sqrt2, 0], [1 / sqrt2, 0], [1 / sqrt2, 0]];
     case "s":
       return [[1, 0], [0, 0], [0, 0], [0, 1]];
     case "sdg":
@@ -110,7 +222,7 @@ function matrixForFixedGate(gate: Operation["gate"]): Matrix2 | null {
   }
 }
 
-function matrixForParamGate(operation: Operation): Matrix2 {
+function matrixForSingleQubitParamGate(operation: Operation): Matrix2 {
   switch (operation.gate) {
     case "rx": {
       const theta = operation.params?.[0] ?? 0;
@@ -160,7 +272,49 @@ function matrixForGate(operation: Operation): Matrix2 {
   if (fixed) {
     return fixed;
   }
-  return matrixForParamGate(operation);
+  return matrixForSingleQubitParamGate(operation);
+}
+
+function matrixForTwoQubitGate(operation: Operation): Matrix4 {
+  const theta = operation.params?.[0] ?? 0;
+  const c = Math.cos(theta / 2);
+  const s = Math.sin(theta / 2);
+
+  switch (operation.gate) {
+    case "rxx":
+      return [
+        [c, 0], [0, 0], [0, 0], [0, -s],
+        [0, 0], [c, 0], [0, -s], [0, 0],
+        [0, 0], [0, -s], [c, 0], [0, 0],
+        [0, -s], [0, 0], [0, 0], [c, 0],
+      ];
+    case "ryy":
+      return [
+        [c, 0], [0, 0], [0, 0], [0, s],
+        [0, 0], [c, 0], [0, -s], [0, 0],
+        [0, 0], [0, -s], [c, 0], [0, 0],
+        [0, s], [0, 0], [0, 0], [c, 0],
+      ];
+    case "rzz": {
+      const negative = -theta / 2;
+      const positive = theta / 2;
+      return [
+        [Math.cos(negative), Math.sin(negative)], [0, 0], [0, 0], [0, 0],
+        [0, 0], [Math.cos(positive), Math.sin(positive)], [0, 0], [0, 0],
+        [0, 0], [0, 0], [Math.cos(positive), Math.sin(positive)], [0, 0],
+        [0, 0], [0, 0], [0, 0], [Math.cos(negative), Math.sin(negative)],
+      ];
+    }
+    case "rzx":
+      return [
+        [c, 0], [0, -s], [0, 0], [0, 0],
+        [0, -s], [c, 0], [0, 0], [0, 0],
+        [0, 0], [0, 0], [c, 0], [0, s],
+        [0, 0], [0, 0], [0, s], [c, 0],
+      ];
+    default:
+      throw new Error(`unsupported two-qubit gate ${operation.gate}`);
+  }
 }
 
 function applyOperation(
@@ -204,6 +358,56 @@ function applyOperation(
   }
   if (operation.gate === "swap") {
     applySwap(real, imag, numQubits, operation.targets[0], operation.targets[1]);
+    return;
+  }
+  if (operation.gate === "cy" || operation.gate === "ch" || operation.gate === "ccz") {
+    const targetMatrix = matrixForFixedGate(
+      operation.gate === "cy" ? "y" : operation.gate === "ch" ? "h" : "z",
+    );
+    if (!targetMatrix) {
+      throw new Error(`unsupported controlled gate ${operation.gate}`);
+    }
+    applyControlledSingleQubitMatrix(
+      real,
+      imag,
+      numQubits,
+      operation.controls ?? [],
+      operation.targets[0],
+      targetMatrix,
+    );
+    return;
+  }
+  if (operation.gate === "cswap") {
+    applyTwoQubitMatrix(
+      real,
+      imag,
+      numQubits,
+      operation.targets[0],
+      operation.targets[1],
+      [
+        [1, 0], [0, 0], [0, 0], [0, 0],
+        [0, 0], [0, 0], [1, 0], [0, 0],
+        [0, 0], [1, 0], [0, 0], [0, 0],
+        [0, 0], [0, 0], [0, 0], [1, 0],
+      ],
+      operation.controls ?? [],
+    );
+    return;
+  }
+  if (
+    operation.gate === "rxx" ||
+    operation.gate === "ryy" ||
+    operation.gate === "rzz" ||
+    operation.gate === "rzx"
+  ) {
+    applyTwoQubitMatrix(
+      real,
+      imag,
+      numQubits,
+      operation.targets[0],
+      operation.targets[1],
+      matrixForTwoQubitGate(operation),
+    );
     return;
   }
   applySingleQubitMatrix(real, imag, numQubits, operation.targets[0], matrixForGate(operation));

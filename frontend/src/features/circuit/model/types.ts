@@ -4,6 +4,8 @@ export type GateName =
   | "y"
   | "z"
   | "h"
+  | "sx"
+  | "sy"
   | "s"
   | "sdg"
   | "t"
@@ -14,10 +16,18 @@ export type GateName =
   | "u"
   | "p"
   | "cx"
+  | "cy"
+  | "ch"
   | "cp"
   | "cz"
   | "ccx"
+  | "ccz"
   | "swap"
+  | "cswap"
+  | "rxx"
+  | "ryy"
+  | "rzz"
+  | "rzx"
   | "m";
 
 export interface Operation {

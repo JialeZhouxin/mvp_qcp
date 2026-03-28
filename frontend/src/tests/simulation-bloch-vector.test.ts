@@ -37,4 +37,40 @@ describe("simulateCircuitAnalysis Bloch vectors", () => {
       expect(vector.z).toBeCloseTo(0, 6);
     }
   });
+
+  it("supports sx and sy as expected single-qubit rotations", () => {
+    const sx = simulateCircuitAnalysis({
+      numQubits: 1,
+      operations: [{ id: "sx-0", gate: "sx", targets: [0], layer: 0 }],
+    });
+    expect(sx.blochVectors[0]?.x ?? 0).toBeCloseTo(0, 6);
+    expect(sx.blochVectors[0]?.y ?? 0).toBeCloseTo(-1, 6);
+    expect(sx.blochVectors[0]?.z ?? 0).toBeCloseTo(0, 6);
+
+    const sy = simulateCircuitAnalysis({
+      numQubits: 1,
+      operations: [{ id: "sy-0", gate: "sy", targets: [0], layer: 0 }],
+    });
+    expect(sy.blochVectors[0]?.x ?? 0).toBeCloseTo(1, 6);
+    expect(sy.blochVectors[0]?.y ?? 0).toBeCloseTo(0, 6);
+    expect(sy.blochVectors[0]?.z ?? 0).toBeCloseTo(0, 6);
+  });
+
+  it("supports rxx and cswap in the local simulator", () => {
+    const rxx = simulateCircuitAnalysis({
+      numQubits: 2,
+      operations: [{ id: "rxx-0", gate: "rxx", targets: [0, 1], params: [Math.PI], layer: 0 }],
+    });
+    expect(rxx.probabilities["11"]).toBeCloseTo(1, 6);
+
+    const cswap = simulateCircuitAnalysis({
+      numQubits: 3,
+      operations: [
+        { id: "x-0", gate: "x", targets: [0], layer: 0 },
+        { id: "x-2", gate: "x", targets: [2], layer: 1 },
+        { id: "cswap-0", gate: "cswap", controls: [0], targets: [1, 2], layer: 2 },
+      ],
+    });
+    expect(cswap.probabilities["011"]).toBeCloseTo(1, 6);
+  });
 });

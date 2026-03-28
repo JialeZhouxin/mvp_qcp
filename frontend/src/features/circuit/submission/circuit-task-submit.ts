@@ -48,7 +48,24 @@ function normalizeOperation(operation: Operation): CircuitTaskOperationPayload {
   switch (operation.gate) {
     case "swap":
       return { gate: operation.gate, targets: requireTargets(operation, 2) };
+    case "rxx":
+    case "ryy":
+    case "rzz":
+    case "rzx":
+      return {
+        gate: operation.gate,
+        targets: requireTargets(operation, 2),
+        params: requireParams(operation, 1),
+      };
+    case "cswap":
+      return {
+        gate: operation.gate,
+        targets: requireTargets(operation, 2),
+        controls: requireControls(operation, 1),
+      };
     case "cx":
+    case "cy":
+    case "ch":
     case "cp":
     case "cz":
       return {
@@ -58,6 +75,7 @@ function normalizeOperation(operation: Operation): CircuitTaskOperationPayload {
         ...(operation.gate === "cp" ? { params: requireParams(operation, 1) } : {}),
       };
     case "ccx":
+    case "ccz":
       return {
         gate: operation.gate,
         targets: requireTargets(operation, 1),
@@ -83,6 +101,8 @@ function normalizeOperation(operation: Operation): CircuitTaskOperationPayload {
     case "y":
     case "z":
     case "h":
+    case "sx":
+    case "sy":
     case "s":
     case "sdg":
     case "t":

@@ -1,7 +1,17 @@
 ﻿import { getGateCatalog, getGateCatalogItem } from "../gates/gate-catalog";
 import type { GateName, Operation } from "../model/types";
 
-export type ParameterizedGate = "rx" | "ry" | "rz" | "u" | "p" | "cp";
+export type ParameterizedGate =
+  | "rx"
+  | "ry"
+  | "rz"
+  | "u"
+  | "p"
+  | "cp"
+  | "rxx"
+  | "ryy"
+  | "rzz"
+  | "rzx";
 
 export interface PendingPlacement {
   readonly gate: GateName;
@@ -36,6 +46,10 @@ export const PARAMETER_LABELS: Readonly<Record<ParameterizedGate, readonly strin
   u: ["theta", "phi", "lambda"],
   p: ["lambda"],
   cp: ["lambda"],
+  rxx: ["theta"],
+  ryy: ["theta"],
+  rzz: ["theta"],
+  rzx: ["theta"],
 };
 
 export function isSupportedGate(value: string): value is GateName {
@@ -43,11 +57,30 @@ export function isSupportedGate(value: string): value is GateName {
 }
 
 export function isParameterizedGate(gate: GateName): gate is ParameterizedGate {
-  return gate === "rx" || gate === "ry" || gate === "rz" || gate === "u" || gate === "p" || gate === "cp";
+  return (
+    gate === "rx" ||
+    gate === "ry" ||
+    gate === "rz" ||
+    gate === "u" ||
+    gate === "p" ||
+    gate === "cp" ||
+    gate === "rxx" ||
+    gate === "ryy" ||
+    gate === "rzz" ||
+    gate === "rzx"
+  );
 }
 
 export function getDefaultParams(gate: GateName): readonly number[] | undefined {
-  if (gate === "rx" || gate === "ry" || gate === "rz") {
+  if (
+    gate === "rx" ||
+    gate === "ry" ||
+    gate === "rz" ||
+    gate === "rxx" ||
+    gate === "ryy" ||
+    gate === "rzz" ||
+    gate === "rzx"
+  ) {
     return [0];
   }
   if (gate === "u") {

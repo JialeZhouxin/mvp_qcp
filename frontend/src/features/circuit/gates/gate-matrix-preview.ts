@@ -20,6 +20,12 @@ const MATRIX_PREVIEWS: Readonly<Record<GateName, GateMatrixPreview>> = Object.fr
   h: {
     latex: String.raw`\frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}`,
   },
+  sx: {
+    latex: String.raw`\frac{1}{2}\begin{bmatrix} 1+i & 1-i \\ 1-i & 1+i \end{bmatrix}`,
+  },
+  sy: {
+    latex: String.raw`\frac{1}{\sqrt{2}}\begin{bmatrix} 1 & -1 \\ 1 & 1 \end{bmatrix}`,
+  },
   s: {
     latex: String.raw`\begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix}`,
   },
@@ -50,6 +56,12 @@ const MATRIX_PREVIEWS: Readonly<Record<GateName, GateMatrixPreview>> = Object.fr
   cx: {
     latex: String.raw`\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}`,
   },
+  cy: {
+    latex: String.raw`\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & -i \\ 0 & 0 & i & 0 \end{bmatrix}`,
+  },
+  ch: {
+    latex: String.raw`\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\ 0 & 0 & \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}} \end{bmatrix}`,
+  },
   cp: {
     latex: String.raw`\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & e^{i\lambda} \end{bmatrix}`,
   },
@@ -59,8 +71,26 @@ const MATRIX_PREVIEWS: Readonly<Record<GateName, GateMatrixPreview>> = Object.fr
   ccx: {
     latex: String.raw`\begin{bmatrix} 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\ 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \end{bmatrix}`,
   },
+  ccz: {
+    latex: String.raw`\operatorname{diag}(1,1,1,1,1,1,1,-1)`,
+  },
   swap: {
     latex: String.raw`\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix}`,
+  },
+  cswap: {
+    latex: String.raw`\begin{bmatrix} 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \end{bmatrix}`,
+  },
+  rxx: {
+    latex: String.raw`e^{-i(\theta/2)(X \otimes X)}`,
+  },
+  ryy: {
+    latex: String.raw`e^{-i(\theta/2)(Y \otimes Y)}`,
+  },
+  rzz: {
+    latex: String.raw`e^{-i(\theta/2)(Z \otimes Z)}`,
+  },
+  rzx: {
+    latex: String.raw`e^{-i(\theta/2)(Z \otimes X)}`,
   },
   m: {
     latex: String.raw`P(0)=\begin{bmatrix} 1 & 0 \\ 0 & 0 \end{bmatrix}\quad P(1)=\begin{bmatrix} 0 & 0 \\ 0 & 1 \end{bmatrix}`,

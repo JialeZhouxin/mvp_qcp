@@ -90,4 +90,48 @@ u1(pi/2) q[0];
 
     expect(() => toQasm3(model)).toThrowError("gate cp expects 1 control");
   });
+
+  it("serializes and parses sx/cy/ch/cswap directly while decomposing advanced gates", () => {
+    const model: CircuitModel = {
+      numQubits: 3,
+      operations: [
+        { id: "1", gate: "sx", targets: [0], layer: 0 },
+        { id: "2", gate: "cy", controls: [0], targets: [1], layer: 1 },
+        { id: "3", gate: "ch", controls: [1], targets: [2], layer: 2 },
+        { id: "4", gate: "cswap", controls: [0], targets: [1, 2], layer: 3 },
+        { id: "5", gate: "sy", targets: [0], layer: 4 },
+        { id: "6", gate: "ccz", controls: [0, 1], targets: [2], layer: 5 },
+        { id: "7", gate: "rxx", targets: [0, 1], params: [Math.PI / 7], layer: 6 },
+        { id: "8", gate: "ryy", targets: [1, 2], params: [Math.PI / 8], layer: 7 },
+        { id: "9", gate: "rzz", targets: [0, 2], params: [Math.PI / 9], layer: 8 },
+        { id: "10", gate: "rzx", targets: [2, 1], params: [Math.PI / 10], layer: 9 },
+      ],
+    };
+
+    const qasm = toQasm3(model);
+
+    expect(qasm).toContain("sx q[0];");
+    expect(qasm).toContain("cy q[0], q[1];");
+    expect(qasm).toContain("ch q[1], q[2];");
+    expect(qasm).toContain("cswap q[0], q[1], q[2];");
+    expect(qasm).toContain(`ry(${Number((Math.PI / 2).toFixed(12)).toString()}) q[0];`);
+    expect(qasm).toContain("ccx q[0], q[1], q[2];");
+    expect(qasm).toContain(`rz(${Number((Math.PI / 7).toFixed(12)).toString()}) q[1];`);
+    expect(qasm).toContain(`rz(${Number((Math.PI / 8).toFixed(12)).toString()}) q[2];`);
+    expect(qasm).toContain(`rz(${Number((Math.PI / 9).toFixed(12)).toString()}) q[2];`);
+    expect(qasm).toContain(`rz(${Number((Math.PI / 10).toFixed(12)).toString()}) q[1];`);
+
+    const parsed = fromQasm3(qasm);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) {
+      return;
+    }
+    expect(parsed.model.operations.some((operation) => operation.gate === "sx")).toBe(true);
+    expect(parsed.model.operations.some((operation) => operation.gate === "cy")).toBe(true);
+    expect(parsed.model.operations.some((operation) => operation.gate === "ch")).toBe(true);
+    expect(parsed.model.operations.some((operation) => operation.gate === "cswap")).toBe(true);
+    expect(parsed.model.operations.some((operation) => operation.gate === "sy")).toBe(false);
+    expect(parsed.model.operations.some((operation) => operation.gate === "ccz")).toBe(false);
+    expect(parsed.model.operations.some((operation) => operation.gate === "rxx")).toBe(false);
+  });
 });

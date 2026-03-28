@@ -10,10 +10,10 @@ class CircuitPayloadValidationError(ValueError):
         self.message = message
 
 
-_SINGLE_QUBIT_GATES = {"i", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "m"}
-_PARAMETERIZED_GATES = {"rx", "ry", "rz", "u", "p"}
-_CONTROLLED_GATES = {"cx", "cp", "cz"}
-_MULTI_QUBIT_GATES = {"swap", "ccx"}
+_SINGLE_QUBIT_GATES = {"i", "x", "y", "z", "h", "sx", "sy", "s", "sdg", "t", "tdg", "m"}
+_PARAMETERIZED_GATES = {"rx", "ry", "rz", "u", "p", "rxx", "ryy", "rzz", "rzx"}
+_CONTROLLED_GATES = {"cx", "cy", "ch", "cp", "cz"}
+_MULTI_QUBIT_GATES = {"swap", "cswap", "ccx", "ccz"}
 _SUPPORTED_GATES = _SINGLE_QUBIT_GATES | _PARAMETERIZED_GATES | _CONTROLLED_GATES | _MULTI_QUBIT_GATES
 
 
@@ -70,7 +70,7 @@ def _normalize_operation(operation: dict[str, Any], num_qubits: int) -> dict[str
 
     normalized: dict[str, Any] = {"gate": gate}
 
-    if gate == "swap":
+    if gate in {"swap", "rxx", "ryy", "rzz", "rzx", "cswap"}:
         targets = _require_int_list(operation.get("targets"), "targets", expected_count=2)
     else:
         targets = _require_int_list(operation.get("targets"), "targets", expected_count=1)
@@ -81,12 +81,16 @@ def _normalize_operation(operation: dict[str, Any], num_qubits: int) -> dict[str
         controls = _require_int_list(operation.get("controls"), "controls", expected_count=1)
         _validate_qubit_range(num_qubits, controls, "controls")
         normalized["controls"] = controls
-    elif gate == "ccx":
+    elif gate == "cswap":
+        controls = _require_int_list(operation.get("controls"), "controls", expected_count=1)
+        _validate_qubit_range(num_qubits, controls, "controls")
+        normalized["controls"] = controls
+    elif gate in {"ccx", "ccz"}:
         controls = _require_int_list(operation.get("controls"), "controls", expected_count=2)
         _validate_qubit_range(num_qubits, controls, "controls")
         normalized["controls"] = controls
 
-    if gate in {"rx", "ry", "rz", "p", "cp"}:
+    if gate in {"rx", "ry", "rz", "p", "cp", "rxx", "ryy", "rzz", "rzx"}:
         normalized["params"] = _require_float_list(operation.get("params"), expected_count=1)
     elif gate == "u":
         normalized["params"] = _require_float_list(operation.get("params"), expected_count=3)

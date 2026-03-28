@@ -145,6 +145,32 @@ describe("CircuitCanvas", () => {
     expect(screen.queryByText("CX")).not.toBeInTheDocument();
   });
 
+  it("renders newly added controlled and multi-target gates with symbolic styles", () => {
+    const model: CircuitModel = {
+      numQubits: 4,
+      operations: [
+        { id: "op-sx", gate: "sx", targets: [0], layer: 0 },
+        { id: "op-cy", gate: "cy", controls: [0], targets: [1], layer: 1 },
+        { id: "op-ch", gate: "ch", controls: [1], targets: [2], layer: 2 },
+        { id: "op-ccz", gate: "ccz", controls: [0, 1], targets: [3], layer: 3 },
+        { id: "op-cswap", gate: "cswap", controls: [0], targets: [2, 3], layer: 4 },
+        { id: "op-rxx", gate: "rxx", targets: [1, 2], params: [0.75], layer: 5 },
+      ],
+    };
+
+    render(<CircuitCanvas circuit={model} onCircuitChange={vi.fn()} minLayers={6} />);
+
+    expect(screen.getByText("SX")).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-cell-1-1").querySelector(".canvas-gate-box--symbol-target-y")).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-cell-2-2").querySelector(".canvas-gate-box--symbol-target-h")).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-cell-3-3").querySelector(".canvas-gate-box--symbol-target-z")).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-cell-2-4").querySelector(".canvas-gate-box--symbol-swap")).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-cell-3-4").querySelector(".canvas-gate-box--symbol-swap")).toBeInTheDocument();
+    expect(within(screen.getByTestId("canvas-cell-1-5")).getByTitle("RXX(0.75) q1 <-> q2")).toHaveClass(
+      "canvas-gate-box--multi",
+    );
+  });
+
   it("renders one row-level wire for each qubit row", () => {
     const model: CircuitModel = {
       numQubits: 3,

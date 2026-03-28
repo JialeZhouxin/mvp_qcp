@@ -77,3 +77,24 @@ def test_circuit_hot_worker_uses_dedicated_init_timeout(monkeypatch: pytest.Monk
 
     monkeypatch.setattr(settings, "circuit_exec_timeout_seconds", original_exec_timeout)
     monkeypatch.setattr(settings, "circuit_exec_init_timeout_seconds", original_init_timeout)
+
+
+def test_circuit_hot_worker_falls_back_to_direct_execution_when_pipe_creation_is_denied(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = {
+        "num_qubits": 2,
+        "operations": [{"gate": "rzz", "targets": [0, 1], "params": [0.7]}],
+    }
+
+    monkeypatch.setattr(
+        "app.services.circuit_hot_executor.multiprocessing.Pipe",
+        lambda: (_ for _ in ()).throw(PermissionError("[WinError 5] 拒绝访问。")),
+    )
+
+    worker = _CircuitHotWorker("numpy")
+
+    result = worker.execute(payload, timeout_seconds=5)
+
+    assert "probabilities" in result
+    assert result["probabilities"]["00"] == pytest.approx(1.0)

@@ -46,21 +46,27 @@ class _CircuitHotWorker:
         self._backend_name = backend_name
         self._process: multiprocessing.Process | None = None
         self._parent_connection: Connection | None = None
+        self._use_direct_execution = False
 
     def start(self) -> None:
-        if self.is_alive():
+        if self._use_direct_execution or self.is_alive():
             return
 
-        parent_connection, child_connection = multiprocessing.Pipe()
-        start_method = "fork" if "fork" in multiprocessing.get_all_start_methods() else "spawn"
-        process = multiprocessing.get_context(start_method).Process(
-            target=_worker_main,
-            args=(child_connection, self._backend_name),
-            daemon=True,
-        )
-        process.start()
-        self._process = process
-        self._parent_connection = parent_connection
+        try:
+            parent_connection, child_connection = multiprocessing.Pipe()
+            start_method = "fork" if "fork" in multiprocessing.get_all_start_methods() else "spawn"
+            process = multiprocessing.get_context(start_method).Process(
+                target=_worker_main,
+                args=(child_connection, self._backend_name),
+                daemon=True,
+            )
+            process.start()
+            self._process = process
+            self._parent_connection = parent_connection
+        except (PermissionError, OSError):
+            self.close()
+            self._use_direct_execution = True
+            return
 
         if not parent_connection.poll(settings.circuit_exec_init_timeout_seconds):
             self.close()
@@ -76,6 +82,8 @@ class _CircuitHotWorker:
 
     def execute(self, payload: dict, timeout_seconds: int) -> dict:
         self.start()
+        if self._use_direct_execution:
+            return execute_circuit_payload(payload)
         assert self._parent_connection is not None
         self._parent_connection.send({"type": "execute", "payload": payload})
         if not self._parent_connection.poll(timeout_seconds):

@@ -30,6 +30,9 @@ describe("GatePalette", () => {
     expect(buttonTestIds).toContain("gate-cx");
     expect(buttonTestIds).toContain("gate-cp");
     expect(buttonTestIds).toContain("gate-ccx");
+    expect(buttonTestIds).toContain("gate-sx");
+    expect(buttonTestIds).toContain("gate-rxx");
+    expect(buttonTestIds).toContain("gate-cswap");
     expect(buttonTestIds).toContain("gate-m");
     expect(buttonTestIds.indexOf("gate-h")).toBeLessThan(buttonTestIds.indexOf("gate-cx"));
     expect(buttonTestIds.indexOf("gate-cx")).toBeLessThan(buttonTestIds.indexOf("gate-m"));

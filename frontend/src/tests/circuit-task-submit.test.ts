@@ -99,4 +99,34 @@ describe("circuit task submit utility", () => {
     expect(keyA1).toBe(keyA2);
     expect(keyA1).not.toBe(keyB);
   });
+
+  it("builds deterministic payloads for newly supported gates", () => {
+    const model: CircuitModel = {
+      numQubits: 3,
+      operations: [
+        { id: "1", gate: "sx", targets: [0], layer: 0 },
+        { id: "2", gate: "sy", targets: [1], layer: 1 },
+        { id: "3", gate: "cy", controls: [0], targets: [1], layer: 2 },
+        { id: "4", gate: "ch", controls: [1], targets: [2], layer: 3 },
+        { id: "5", gate: "cswap", controls: [0], targets: [1, 2], layer: 4 },
+        { id: "6", gate: "ccz", controls: [0, 1], targets: [2], layer: 5 },
+        { id: "7", gate: "rxx", targets: [0, 1], params: [0.25], layer: 6 },
+        { id: "8", gate: "rzx", targets: [2, 1], params: [0.5], layer: 7 },
+      ],
+    };
+
+    expect(buildCircuitTaskPayload(model)).toEqual({
+      num_qubits: 3,
+      operations: [
+        { gate: "sx", targets: [0] },
+        { gate: "sy", targets: [1] },
+        { gate: "cy", targets: [1], controls: [0] },
+        { gate: "ch", targets: [2], controls: [1] },
+        { gate: "cswap", targets: [1, 2], controls: [0] },
+        { gate: "ccz", targets: [2], controls: [0, 1] },
+        { gate: "rxx", targets: [0, 1], params: [0.25] },
+        { gate: "rzx", targets: [2, 1], params: [0.5] },
+      ],
+    });
+  });
 });

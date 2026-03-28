@@ -19,7 +19,7 @@ function formatGateParams(operation: Operation): string {
 }
 
 function formatGateText(operation: Operation): string {
-  const gate = operation.gate.toUpperCase();
+  const gate = operation.gate === "sy" ? "√Y" : operation.gate.toUpperCase();
   if (!isParameterizedGate(operation.gate)) {
     return gate;
   }
@@ -28,7 +28,7 @@ function formatGateText(operation: Operation): string {
 }
 
 function getGateLabelLines(operation: Operation): readonly string[] {
-  const gate = operation.gate.toUpperCase();
+  const gate = operation.gate === "sy" ? "√Y" : operation.gate.toUpperCase();
   if (!isParameterizedGate(operation.gate)) {
     return [gate];
   }
@@ -63,6 +63,9 @@ function getControlText(operation: Operation): string {
 function getOperationDetailLabel(operation: Operation): string {
   const shortLabel = formatGateText(operation);
   if (operation.controls && operation.controls.length > 0) {
+    if (operation.targets.length === 2) {
+      return `${shortLabel} ${getControlText(operation)} -> q${operation.targets[0]} <-> q${operation.targets[1]}`;
+    }
     return `${shortLabel} ${getControlText(operation)} -> t${operation.targets[0]}`;
   }
   if (operation.targets.length === 2) {
@@ -83,7 +86,7 @@ function getSymbolRole(operation: Operation, qubit: number) {
     };
   }
 
-  if (operation.gate === "swap" && isTarget) {
+  if ((operation.gate === "swap" || operation.gate === "cswap") && isTarget) {
     return {
       label: "\u00d7",
       className: "canvas-gate-box--symbol-swap",
@@ -103,7 +106,23 @@ function getSymbolRole(operation: Operation, qubit: number) {
     };
   }
 
-  if (operation.gate === "cz") {
+  if (operation.gate === "cy") {
+    return {
+      label: "[Y]",
+      className: "canvas-gate-box--symbol-target-y",
+      roleText: "target [Y]",
+    };
+  }
+
+  if (operation.gate === "ch") {
+    return {
+      label: "[H]",
+      className: "canvas-gate-box--symbol-target-h",
+      roleText: "target [H]",
+    };
+  }
+
+  if (operation.gate === "cz" || operation.gate === "ccz") {
     return {
       label: "[Z]",
       className: "canvas-gate-box--symbol-target-z",
@@ -129,10 +148,21 @@ export function isMultiQubitOperation(operation: Operation): boolean {
 }
 
 export function estimateGateBodyWidthPx(operation: Operation): number {
-  if (operation.gate === "cx" || operation.gate === "ccx" || operation.gate === "swap") {
+  if (
+    operation.gate === "cx" ||
+    operation.gate === "ccx" ||
+    operation.gate === "swap" ||
+    operation.gate === "cswap"
+  ) {
     return SINGLE_GATE_BODY_WIDTH_PX;
   }
-  if (operation.gate === "cz" || operation.gate === "cp") {
+  if (
+    operation.gate === "cy" ||
+    operation.gate === "ch" ||
+    operation.gate === "cz" ||
+    operation.gate === "cp" ||
+    operation.gate === "ccz"
+  ) {
     return SYMBOLIC_RECT_GATE_BODY_WIDTH_PX;
   }
   if (isParameterizedGate(operation.gate)) {

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Any
 
 
@@ -55,8 +56,17 @@ def build_qibo_circuit_from_payload(payload: dict[str, Any], Circuit: Any, gates
         if gate == "swap":
             circuit.add(gates.SWAP(targets[0], targets[1]))
             continue
+        if gate == "cswap":
+            circuit.add(gates.SWAP(targets[0], targets[1]).controlled_by(controls[0]))
+            continue
         if gate == "cx":
             circuit.add(_build_cnot(gates, controls[0], targets[0]))
+            continue
+        if gate == "cy":
+            circuit.add(gates.Y(targets[0]).controlled_by(controls[0]))
+            continue
+        if gate == "ch":
+            circuit.add(gates.H(targets[0]).controlled_by(controls[0]))
             continue
         if gate == "cz":
             circuit.add(gates.CZ(controls[0], targets[0]))
@@ -88,6 +98,9 @@ def build_qibo_circuit_from_payload(payload: dict[str, Any], Circuit: Any, gates
             circuit.add(gates.TDG(second_control))
             circuit.add(_build_cnot(gates, first_control, second_control))
             continue
+        if gate == "ccz":
+            circuit.add(gates.CCZ(controls[0], controls[1], targets[0]))
+            continue
         if gate == "p":
             circuit.add(_build_rz(gates, targets[0], params[0]))
             continue
@@ -101,6 +114,13 @@ def build_qibo_circuit_from_payload(payload: dict[str, Any], Circuit: Any, gates
             gate_factory = getattr(gates, gate.upper())
             circuit.add(gate_factory(targets[0], theta=params[0]))
             continue
+        if gate in {"rxx", "ryy", "rzz", "rzx"}:
+            gate_factory = getattr(gates, gate.upper())
+            circuit.add(gate_factory(targets[0], targets[1], theta=params[0]))
+            continue
+        if gate == "sy":
+            circuit.add(gates.RY(targets[0], theta=math.pi / 2))
+            continue
 
         gate_name = {
             "i": "I",
@@ -108,6 +128,7 @@ def build_qibo_circuit_from_payload(payload: dict[str, Any], Circuit: Any, gates
             "y": "Y",
             "z": "Z",
             "h": "H",
+            "sx": "SX",
             "s": "S",
             "sdg": "SDG",
             "t": "T",

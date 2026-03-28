@@ -74,6 +74,30 @@ ccx q[0], q[1], q[2];
     });
   });
 
+  it("parses sx/cy/ch/cswap statements into supported operations", () => {
+    const source = `
+OPENQASM 3;
+include "stdgates.inc";
+qubit[3] q;
+sx q[0];
+cy q[0], q[1];
+ch q[1], q[2];
+cswap q[0], q[1], q[2];
+`;
+    const result = parseQasm3(source);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.model.operations).toEqual([
+      { id: "op-1", gate: "sx", targets: [0], layer: 0 },
+      { id: "op-2", gate: "cy", controls: [0], targets: [1], layer: 1 },
+      { id: "op-3", gate: "ch", controls: [1], targets: [2], layer: 2 },
+      { id: "op-4", gate: "cswap", controls: [0], targets: [1, 2], layer: 3 },
+    ]);
+  });
+
   it("fails when statement misses semicolon", () => {
     const source = `
 OPENQASM 3

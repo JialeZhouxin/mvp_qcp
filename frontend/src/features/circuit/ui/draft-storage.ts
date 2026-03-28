@@ -24,6 +24,8 @@ function isGateName(value: unknown): value is GateName {
     value === "y" ||
     value === "z" ||
     value === "h" ||
+    value === "sx" ||
+    value === "sy" ||
     value === "s" ||
     value === "sdg" ||
     value === "t" ||
@@ -32,9 +34,20 @@ function isGateName(value: unknown): value is GateName {
     value === "ry" ||
     value === "rz" ||
     value === "u" ||
+    value === "p" ||
     value === "cx" ||
+    value === "cy" ||
+    value === "ch" ||
+    value === "cp" ||
     value === "cz" ||
+    value === "ccx" ||
+    value === "ccz" ||
     value === "swap" ||
+    value === "cswap" ||
+    value === "rxx" ||
+    value === "ryy" ||
+    value === "rzz" ||
+    value === "rzx" ||
     value === "m"
   );
 }

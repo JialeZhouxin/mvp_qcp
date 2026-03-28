@@ -13,6 +13,7 @@ import "./WorkbenchControls.css";
 const CATEGORY_ORDER: readonly GateCategory[] = [
   "single",
   "controlled",
+  "entangling",
   "measurement",
 ];
 
@@ -31,6 +32,7 @@ function groupByCategory(
   const grouped: Record<GateCategory, GateCatalogItem[]> = {
     single: [],
     controlled: [],
+    entangling: [],
     measurement: [],
   };
   for (const item of items) {
