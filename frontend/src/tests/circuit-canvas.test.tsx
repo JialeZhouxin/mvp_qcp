@@ -199,6 +199,8 @@ describe("CircuitCanvas", () => {
     const swapTitle = "SWAP q0 <-> q2 (swap endpoint)";
     const cpTargetCell = screen.getByTestId("canvas-cell-1-5");
     const cpControlCell = screen.getByTestId("canvas-cell-3-5");
+    const cxConnectorLine = screen.getByTestId("canvas-connector-line-op-cx");
+    const ccxConnectorLine = screen.getByTestId("canvas-connector-line-op-ccx");
 
     expect(singleGate.closest(".canvas-gate-box")).toHaveClass("canvas-gate-box--single");
     expect(measurementGate.closest(".canvas-gate-box")).toHaveClass("canvas-gate-box--measurement");
@@ -216,6 +218,8 @@ describe("CircuitCanvas", () => {
       "canvas-gate-box--symbol-target-p",
     );
     expect(cpControlCell.querySelector(".canvas-gate-box--symbol-control")).toBeInTheDocument();
+    expect(cxConnectorLine).toBeInTheDocument();
+    expect(ccxConnectorLine).toBeInTheDocument();
 
     expect(screen.getByTestId("canvas-cell-1-2")).toHaveClass("canvas-cell--connector-middle");
     expect(screen.getByTestId("canvas-cell-1-4")).toHaveClass("canvas-cell--connector-middle");
@@ -228,6 +232,31 @@ describe("CircuitCanvas", () => {
       expect.stringContaining("CX c0 -> t1"),
     );
     expect(screen.queryByText("CX")).not.toBeInTheDocument();
+
+    fireEvent.click(cxTargetCell);
+    expect(screen.getByTestId("canvas-connector-line-op-cx")).toHaveClass(
+      "canvas-connector-line--selected",
+    );
+  });
+
+  it("marks connector lines as future for future operations", () => {
+    const model: CircuitModel = {
+      numQubits: 3,
+      operations: [{ id: "op-cx", gate: "cx", controls: [0], targets: [2], layer: 1 }],
+    };
+
+    render(
+      <CircuitCanvas
+        circuit={model}
+        onCircuitChange={vi.fn()}
+        minLayers={2}
+        futureOperationIds={["op-cx"]}
+      />,
+    );
+
+    expect(screen.getByTestId("canvas-connector-line-op-cx")).toHaveClass(
+      "canvas-connector-line--future",
+    );
   });
 
   it("renders newly added controlled and multi-target gates with symbolic styles", () => {

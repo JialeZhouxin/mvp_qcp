@@ -234,10 +234,34 @@
   --canvas-wire-empty: color-mix(in srgb, var(--border-strong) 82%, var(--text-secondary));
   --canvas-wire-connector: var(--text-secondary);
   --canvas-wire-connector-selected: var(--accent-info);
+  position: relative;
   display: grid;
   gap: var(--canvas-gap);
   width: max-content;
   padding: var(--canvas-gap);
+}
+
+.canvas-connector-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
+}
+
+.canvas-connector-line {
+  stroke: var(--canvas-wire-connector);
+  stroke-width: calc(2px * var(--canvas-scale));
+  stroke-linecap: round;
+  shape-rendering: geometricPrecision;
+}
+
+.canvas-connector-line--selected {
+  stroke: var(--canvas-wire-connector-selected);
+}
+
+.canvas-connector-line--future {
+  opacity: 0.42;
 }
 
 .canvas-row {
@@ -299,32 +323,23 @@
 }
 
 .canvas-cell--connector::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  border-left: calc(2px * var(--canvas-scale)) solid var(--canvas-wire-connector);
-  z-index: 1;
-  pointer-events: none;
+  content: none;
 }
 
 .canvas-cell--connector-start::after {
-  top: 50%;
-  bottom: calc(var(--canvas-gap) / -2);
+  content: none;
 }
 
 .canvas-cell--connector-middle::after {
-  top: calc(var(--canvas-gap) / -2);
-  bottom: calc(var(--canvas-gap) / -2);
+  content: none;
 }
 
 .canvas-cell--connector-end::after {
-  top: calc(var(--canvas-gap) / -2);
-  bottom: 50%;
+  content: none;
 }
 
 .canvas-cell--connector-selected::after {
-  border-left-color: var(--canvas-wire-connector-selected);
+  content: none;
 }
 
 .canvas-cell--occupied {

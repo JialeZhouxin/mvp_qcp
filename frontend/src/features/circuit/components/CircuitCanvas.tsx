@@ -202,6 +202,7 @@ function CircuitCanvas({
         layerIndexes={layerIndexes}
         layerCellWidths={layerCellWidths}
         selectedOperationId={selectedOperationId}
+        futureOperationIds={futureOperationIds}
         activeParameterValues={activeParameterValues}
         parameterFeedback={parameterFeedback}
         getCellClassName={getCellClassName}

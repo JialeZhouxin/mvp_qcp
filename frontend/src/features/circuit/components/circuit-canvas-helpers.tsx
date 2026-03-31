@@ -53,6 +53,13 @@ function getTouchedQubits(operation: Operation): readonly number[] {
   return [...operation.targets, ...(operation.controls ?? [])];
 }
 
+export interface ConnectorSpan {
+  readonly operationId: string;
+  readonly layer: number;
+  readonly minQubit: number;
+  readonly maxQubit: number;
+}
+
 function getControlText(operation: Operation): string {
   if (!operation.controls || operation.controls.length === 0) {
     return "";
@@ -208,6 +215,25 @@ export function findConnectorOperationAtCell(
     }
     return getConnectorSegment(operation, qubit) !== null;
   });
+}
+
+export function toConnectorSpan(operation: Operation): ConnectorSpan | null {
+  const touched = getTouchedQubits(operation);
+  if (touched.length < 2) {
+    return null;
+  }
+  return {
+    operationId: operation.id,
+    layer: operation.layer,
+    minQubit: Math.min(...touched),
+    maxQubit: Math.max(...touched),
+  };
+}
+
+export function buildConnectorSpans(operations: readonly Operation[]): readonly ConnectorSpan[] {
+  return operations
+    .map(toConnectorSpan)
+    .filter((span): span is ConnectorSpan => span !== null);
 }
 
 export function computeLayerCount(circuit: CircuitModel, minLayers: number): number {

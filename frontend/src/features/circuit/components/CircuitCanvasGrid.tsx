@@ -1,7 +1,16 @@
-﻿import type { DragEvent, MouseEvent } from "react";
+import {
+  type DragEvent,
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type { Operation } from "../model/types";
-import { findOperationAtCell, GateLabel } from "./circuit-canvas-helpers";
+import { buildConnectorSpans, findOperationAtCell, GateLabel } from "./circuit-canvas-helpers";
 import { isParameterizedGate } from "./canvas-gate-utils";
 import OperationParameterPanel from "./OperationParameterPanel";
 import type { ParameterValidationResult } from "./parameter-validation";
@@ -11,6 +20,17 @@ function isInlineAnchorCell(operation: Operation, qubit: number): boolean {
   return qubit === Math.min(...touchedQubits);
 }
 
+interface ConnectorLine {
+  readonly operationId: string;
+  readonly x: number;
+  readonly y1: number;
+  readonly y2: number;
+  readonly selected: boolean;
+  readonly future: boolean;
+}
+
+const EMPTY_OPERATION_IDS: readonly string[] = [];
+
 export interface CircuitCanvasGridProps {
   readonly circuit: {
     readonly operations: readonly Operation[];
@@ -19,6 +39,7 @@ export interface CircuitCanvasGridProps {
   readonly layerIndexes: readonly number[];
   readonly layerCellWidths: readonly number[];
   readonly selectedOperationId: string | null;
+  readonly futureOperationIds?: readonly string[];
   readonly activeParameterValues: readonly number[];
   readonly parameterFeedback: Readonly<Record<number, ParameterValidationResult>>;
   readonly getCellClassName: (operation: Operation | undefined, qubit: number, layer: number) => string;
@@ -38,6 +59,7 @@ function CircuitCanvasGrid({
   layerIndexes,
   layerCellWidths,
   selectedOperationId,
+  futureOperationIds,
   activeParameterValues,
   parameterFeedback,
   getCellClassName,
@@ -50,8 +72,115 @@ function CircuitCanvasGrid({
   onParamChange,
   onNormalizeParam,
 }: CircuitCanvasGridProps) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const cellRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 });
+  const [connectorLines, setConnectorLines] = useState<readonly ConnectorLine[]>([]);
+
+  const connectorSpans = useMemo(() => buildConnectorSpans(circuit.operations), [circuit.operations]);
+  const resolvedFutureOperationIds = futureOperationIds ?? EMPTY_OPERATION_IDS;
+  const futureOperationSet = useMemo(
+    () => new Set(resolvedFutureOperationIds),
+    [resolvedFutureOperationIds],
+  );
+
+  const setCellRef = useCallback((qubit: number, layer: number, element: HTMLDivElement | null) => {
+    const key = `${qubit}-${layer}`;
+    if (element) {
+      cellRefs.current.set(key, element);
+      return;
+    }
+    cellRefs.current.delete(key);
+  }, []);
+
+  const recomputeConnectorLines = useCallback(() => {
+    const grid = gridRef.current;
+    if (!grid) {
+      return;
+    }
+
+    const gridRect = grid.getBoundingClientRect();
+    const nextLines = connectorSpans
+      .map((span) => {
+        const startCell = cellRefs.current.get(`${span.minQubit}-${span.layer}`);
+        const endCell = cellRefs.current.get(`${span.maxQubit}-${span.layer}`);
+        if (!startCell || !endCell) {
+          return null;
+        }
+
+        const startRect = startCell.getBoundingClientRect();
+        const endRect = endCell.getBoundingClientRect();
+
+        return {
+          operationId: span.operationId,
+          x: startRect.left + startRect.width / 2 - gridRect.left,
+          y1: startRect.top + startRect.height / 2 - gridRect.top,
+          y2: endRect.top + endRect.height / 2 - gridRect.top,
+          selected: selectedOperationId === span.operationId,
+          future: futureOperationSet.has(span.operationId),
+        };
+      })
+      .filter((line): line is ConnectorLine => line !== null);
+
+    setOverlaySize({
+      width: Math.max(0, grid.clientWidth),
+      height: Math.max(0, grid.clientHeight),
+    });
+    setConnectorLines(nextLines);
+  }, [connectorSpans, futureOperationSet, selectedOperationId]);
+
+  useLayoutEffect(() => {
+    recomputeConnectorLines();
+  }, [recomputeConnectorLines, qubits, layerIndexes, layerCellWidths]);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid || typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      recomputeConnectorLines();
+    });
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, [recomputeConnectorLines]);
+
+  useEffect(() => {
+    const onResize = () => {
+      recomputeConnectorLines();
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [recomputeConnectorLines]);
+
   return (
-    <div className="canvas-grid">
+    <div className="canvas-grid" ref={gridRef}>
+      <svg
+        className="canvas-connector-overlay"
+        data-testid="canvas-connector-overlay"
+        width={overlaySize.width}
+        height={overlaySize.height}
+        viewBox={`0 0 ${Math.max(1, overlaySize.width)} ${Math.max(1, overlaySize.height)}`}
+        aria-hidden="true"
+      >
+        {connectorLines.map((line) => (
+          <line
+            key={`connector-line-${line.operationId}`}
+            data-testid={`canvas-connector-line-${line.operationId}`}
+            className={[
+              "canvas-connector-line",
+              line.selected ? "canvas-connector-line--selected" : "",
+              line.future ? "canvas-connector-line--future" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            x1={line.x}
+            y1={line.y1}
+            x2={line.x}
+            y2={line.y2}
+          />
+        ))}
+      </svg>
       {qubits.map((qubit) => (
         <div key={qubit} className="canvas-row" data-testid={`canvas-row-${qubit}`}>
           <strong className="canvas-row-label">q{qubit}</strong>
@@ -77,6 +206,7 @@ function CircuitCanvasGrid({
                   style={{
                     "--canvas-cell-width": `${layerCellWidths[layer] ?? 40}px`,
                   }}
+                  ref={(element) => setCellRef(qubit, layer, element)}
                   tabIndex={operation ? 0 : undefined}
                   data-testid={`canvas-cell-${qubit}-${layer}`}
                 >
