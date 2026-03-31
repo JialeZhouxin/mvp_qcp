@@ -111,6 +111,83 @@ describe("useWorkbenchEditorState", () => {
     expect(result.current.qasm).not.toEqual(projectQasm);
   });
 
+  it("keeps simulation step in sync with undo/redo when currently following the end", () => {
+    const { result } = renderHook(() => useWorkbenchEditorState());
+    const getEditorState = () =>
+      result.current as typeof result.current & {
+        simulationStep: number;
+      };
+    const initialLength = result.current.circuit.operations.length;
+
+    act(() => {
+      result.current.pushCircuit({
+        numQubits: result.current.circuit.numQubits,
+        operations: [
+          ...result.current.circuit.operations,
+          { id: "op-undo-redo-follow", gate: "x", targets: [0], layer: initialLength },
+        ],
+      });
+    });
+
+    expect(getEditorState().circuit.operations).toHaveLength(initialLength + 1);
+    expect(getEditorState().simulationStep).toBe(initialLength + 1);
+
+    act(() => {
+      result.current.historyState.onUndo();
+    });
+
+    expect(getEditorState().circuit.operations).toHaveLength(initialLength);
+    expect(getEditorState().simulationStep).toBe(initialLength);
+
+    act(() => {
+      result.current.historyState.onRedo();
+    });
+
+    expect(getEditorState().circuit.operations).toHaveLength(initialLength + 1);
+    expect(getEditorState().simulationStep).toBe(initialLength + 1);
+  });
+
+  it("does not jump simulation step on undo/redo when not at the end", () => {
+    const { result } = renderHook(() => useWorkbenchEditorState());
+    const getEditorState = () =>
+      result.current as typeof result.current & {
+        simulationStep: number;
+        setSimulationStep: (step: number) => void;
+      };
+    const initialLength = result.current.circuit.operations.length;
+
+    act(() => {
+      getEditorState().setSimulationStep(2);
+    });
+
+    act(() => {
+      result.current.pushCircuit({
+        numQubits: result.current.circuit.numQubits,
+        operations: [
+          ...result.current.circuit.operations,
+          { id: "op-undo-redo-not-follow", gate: "x", targets: [0], layer: initialLength },
+        ],
+      });
+    });
+
+    expect(getEditorState().circuit.operations).toHaveLength(initialLength + 1);
+    expect(getEditorState().simulationStep).toBe(2);
+
+    act(() => {
+      result.current.historyState.onUndo();
+    });
+
+    expect(getEditorState().circuit.operations).toHaveLength(initialLength);
+    expect(getEditorState().simulationStep).toBe(2);
+
+    act(() => {
+      result.current.historyState.onRedo();
+    });
+
+    expect(getEditorState().circuit.operations).toHaveLength(initialLength + 1);
+    expect(getEditorState().simulationStep).toBe(2);
+  });
+
   it("blocks qubit decrease when higher qubits are still referenced", () => {
     const { result } = renderHook(() => useWorkbenchEditorState());
 

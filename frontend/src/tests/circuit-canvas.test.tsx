@@ -487,6 +487,33 @@ describe("CircuitCanvas", () => {
     });
   });
 
+  it("keeps timeline value in sync after undo and redo from toolbar", async () => {
+    render(<WorkbenchCanvasHarness />);
+
+    expect(screen.getByTestId("canvas-time-step-value")).toHaveTextContent("4 / 4");
+
+    fireEvent.drop(screen.getByTestId("canvas-cell-0-4"), {
+      dataTransfer: createGateDragData("m"),
+    });
+
+    const { waitFor } = await import("@testing-library/react");
+    await waitFor(() => {
+      expect(screen.getByTestId("canvas-time-step-value")).toHaveTextContent("5 / 5");
+    });
+
+    fireEvent.click(screen.getByTestId("canvas-undo"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("canvas-time-step-value")).toHaveTextContent("4 / 4");
+    });
+
+    fireEvent.click(screen.getByTestId("canvas-redo"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("canvas-time-step-value")).toHaveTextContent("5 / 5");
+    });
+  });
+
   it("does not jump to the end when adding a gate from the canvas away from the current step", async () => {
     render(<WorkbenchCanvasHarness />);
 

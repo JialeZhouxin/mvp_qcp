@@ -61,11 +61,27 @@ export function useWorkbenchEditorState() {
     setHistory((previous) => createNextHistoryState(previous, next));
   };
 
+  const applyHistoryTransition = (
+    transition: (state: EditorHistoryState<CircuitModel>) => EditorHistoryState<CircuitModel>,
+  ) => {
+    setHistory((previous) => {
+      const next = transition(previous);
+      setSimulationStep((currentStep) =>
+        clampSimulationStepOnCircuitChange(
+          currentStep,
+          previous.present.operations.length,
+          next.present.operations.length,
+        ),
+      );
+      return next;
+    });
+  };
+
   const historyState = {
     canUndo: canUndoHistory(history),
     canRedo: canRedoHistory(history),
-    onUndo: () => setHistory((previous) => undoHistoryState(previous)),
-    onRedo: () => setHistory((previous) => redoHistoryState(previous)),
+    onUndo: () => applyHistoryTransition(undoHistoryState),
+    onRedo: () => applyHistoryTransition(redoHistoryState),
   };
 
   const resetWorkbenchState = () => {
