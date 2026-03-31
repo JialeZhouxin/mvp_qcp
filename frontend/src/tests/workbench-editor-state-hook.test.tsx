@@ -15,6 +15,55 @@ describe("useWorkbenchEditorState", () => {
     window.localStorage.clear();
   });
 
+  it("keeps following the end when circuit growth happens at the current end", () => {
+    const { result } = renderHook(() => useWorkbenchEditorState());
+    const getEditorState = () =>
+      result.current as typeof result.current & {
+        simulationStep: number;
+      };
+    const nextOperations = [
+      ...result.current.circuit.operations,
+      { id: "op-growth", gate: "x", targets: [0], layer: 4 },
+    ] as const;
+
+    expect(getEditorState().simulationStep).toBe(result.current.circuit.operations.length);
+
+    act(() => {
+      result.current.pushCircuit({
+        numQubits: result.current.circuit.numQubits,
+        operations: [...nextOperations],
+      });
+    });
+
+    expect(getEditorState().simulationStep).toBe(nextOperations.length);
+  });
+
+  it("does not jump to the end when circuit growth happens away from the current step", () => {
+    const { result } = renderHook(() => useWorkbenchEditorState());
+    const getEditorState = () =>
+      result.current as typeof result.current & {
+        simulationStep: number;
+        setSimulationStep: (step: number) => void;
+      };
+    const nextOperations = [
+      ...result.current.circuit.operations,
+      { id: "op-growth", gate: "x", targets: [0], layer: 4 },
+    ] as const;
+
+    act(() => {
+      getEditorState().setSimulationStep(2);
+    });
+
+    act(() => {
+      result.current.pushCircuit({
+        numQubits: result.current.circuit.numQubits,
+        operations: [...nextOperations],
+      });
+    });
+
+    expect(getEditorState().simulationStep).toBe(2);
+  });
+
   it("supports undo, redo, reset, and restoring project state", () => {
     const { result } = renderHook(() => useWorkbenchEditorState());
     const initialCircuit = result.current.circuit;
@@ -100,6 +149,6 @@ describe("useWorkbenchEditorState", () => {
     expect(result.current.displayMode).toBe("ALL");
     expect(result.current.qasm).toContain("qubit[2] q;");
     expect(result.current.qasm).toContain("x q[1];");
-    expect(result.current.initialSimulationStep).toBe(0);
+    expect(result.current.simulationStep).toBe(0);
   });
 });

@@ -2,9 +2,12 @@
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { useEffect } from "react";
 
 import CircuitCanvas from "../features/circuit/components/CircuitCanvas";
 import type { CircuitModel } from "../features/circuit/model/types";
+import { useWorkbenchEditorState } from "../features/circuit/ui/use-workbench-editor-state";
+import { getFutureOperationIdsAtSimulationStep } from "../features/circuit/ui/workbench-time-step";
 
 const GATE_DRAG_MIME = "application/x-qcp-gate";
 
@@ -13,7 +16,42 @@ const createGateDragData = (gate: string) => ({
   getData: (type: string) => (type === GATE_DRAG_MIME ? gate : ""),
 });
 
+function WorkbenchCanvasHarness() {
+  const {
+    circuit,
+    historyState,
+    canvasControls,
+    pushCircuit,
+    simulationStep,
+    setSimulationStep,
+  } = useWorkbenchEditorState();
+  const futureOperationIds = getFutureOperationIdsAtSimulationStep(circuit, simulationStep);
+
+  useEffect(() => {
+    window.localStorage.clear();
+  }, []);
+
+  return (
+    <CircuitCanvas
+      circuit={circuit}
+      onCircuitChange={pushCircuit}
+      minLayers={8}
+      onUndo={historyState.onUndo}
+      onRedo={historyState.onRedo}
+      controls={canvasControls}
+      simulationStep={simulationStep}
+      totalSimulationSteps={circuit.operations.length}
+      onSimulationStepChange={setSimulationStep}
+      futureOperationIds={futureOperationIds}
+    />
+  );
+}
+
 describe("CircuitCanvas", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it("adds gate when dropped into cell", () => {
     const model: CircuitModel = { numQubits: 1, operations: [] };
     const onCircuitChange = vi.fn();
@@ -433,6 +471,40 @@ describe("CircuitCanvas", () => {
     expect(onSimulationStepChange).toHaveBeenCalledWith(3);
   });
 
+  it("keeps following the end when adding a gate from the canvas at the current end", async () => {
+    render(<WorkbenchCanvasHarness />);
+
+    expect(screen.getByTestId("canvas-time-step-value")).toHaveTextContent("4 / 4");
+
+    fireEvent.drop(screen.getByTestId("canvas-cell-0-4"), {
+      dataTransfer: createGateDragData("m"),
+    });
+
+    const { waitFor } = await import("@testing-library/react");
+    await waitFor(() => {
+      expect(screen.getByTestId("canvas-time-step-value")).toHaveTextContent("5 / 5");
+      expect(screen.getByTestId("canvas-cell-0-4")).not.toHaveClass("canvas-cell--preview-future");
+    });
+  });
+
+  it("does not jump to the end when adding a gate from the canvas away from the current step", async () => {
+    render(<WorkbenchCanvasHarness />);
+
+    fireEvent.change(screen.getByTestId("canvas-time-step-slider"), {
+      target: { value: "2" },
+    });
+    expect(screen.getByTestId("canvas-time-step-value")).toHaveTextContent("2 / 4");
+
+    fireEvent.drop(screen.getByTestId("canvas-cell-0-4"), {
+      dataTransfer: createGateDragData("m"),
+    });
+
+    const { waitFor } = await import("@testing-library/react");
+    await waitFor(() => {
+      expect(screen.getByTestId("canvas-time-step-value")).toHaveTextContent("2 / 5");
+    });
+  });
+
   it("ignores zoom shortcuts when focus is in editable element", () => {
     const model: CircuitModel = { numQubits: 2, operations: [] };
     const onCircuitChange = vi.fn();
@@ -708,5 +780,3 @@ describe("CircuitCanvas", () => {
     expect(within(inlinePanel).getByTestId("param-error-0")).toBeInTheDocument();
   });
 });
-
-

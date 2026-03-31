@@ -4,6 +4,10 @@ import { MemoryRouter } from "react-router-dom";
 import CircuitWorkbenchPage from "../pages/CircuitWorkbenchPage";
 
 describe("CircuitWorkbenchPage time step preview", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it("renders a time step slider in the canvas toolbar and resubmits truncated circuits while dimming future gates", async () => {
     const schedule = vi.fn(async (model: { numQubits: number; operations: readonly { id: string }[] }) => ({
       requestId: `sim-${model.operations.length}`,

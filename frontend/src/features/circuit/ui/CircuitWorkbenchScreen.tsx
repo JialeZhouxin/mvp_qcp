@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 
 import CircuitCanvas from "../components/CircuitCanvas";
 import GatePalette from "../components/GatePalette";
@@ -15,7 +15,6 @@ import { useWorkbenchEditorState } from "./use-workbench-editor-state";
 import { useWorkbenchGuideState } from "./use-workbench-guide-state";
 import { useWorkbenchProjects } from "./use-workbench-projects";
 import {
-  clampSimulationStepOnCircuitChange,
   getFutureOperationIdsAtSimulationStep,
   sliceCircuitBySimulationStep,
 } from "./workbench-time-step";
@@ -43,14 +42,12 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
     historyState,
     canvasControls,
     resetVersion,
-    initialSimulationStep,
+    simulationStep,
+    setSimulationStep,
   } = useWorkbenchEditorState();
   const { showGuide, dismissGuide } = useWorkbenchGuideState();
 
   const totalSimulationSteps = circuit.operations.length;
-  const previousTotalSimulationStepsRef = useRef(totalSimulationSteps);
-  const previousResetVersionRef = useRef(resetVersion);
-  const [simulationStep, setSimulationStep] = useState(initialSimulationStep);
 
   useWorkbenchDraftSync({
     circuit,
@@ -59,25 +56,6 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
     simulationStep,
     resetVersion,
   });
-
-  useEffect(() => {
-    setSimulationStep((currentStep) =>
-      clampSimulationStepOnCircuitChange(
-        currentStep,
-        previousTotalSimulationStepsRef.current,
-        totalSimulationSteps,
-      ),
-    );
-    previousTotalSimulationStepsRef.current = totalSimulationSteps;
-  }, [totalSimulationSteps]);
-
-  useEffect(() => {
-    if (previousResetVersionRef.current === resetVersion) {
-      return;
-    }
-    previousResetVersionRef.current = resetVersion;
-    setSimulationStep(totalSimulationSteps);
-  }, [resetVersion, totalSimulationSteps]);
 
   const previewCircuit = useMemo(
     () => sliceCircuitBySimulationStep(circuit, simulationStep),

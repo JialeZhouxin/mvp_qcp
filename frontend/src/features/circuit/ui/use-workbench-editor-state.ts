@@ -21,6 +21,7 @@ import {
   createDefaultCircuit,
   createNextHistoryState,
 } from "./workbench-model-utils";
+import { clampSimulationStepOnCircuitChange } from "./workbench-time-step";
 
 const DEFAULT_DISPLAY_MODE: ProbabilityDisplayMode = "FILTERED";
 
@@ -39,6 +40,7 @@ export function useWorkbenchEditorState() {
   const [displayMode, setDisplayMode] = useState<ProbabilityDisplayMode>(initialState.displayMode);
   const [parseError, setParseError] = useState<QasmParseError | null>(null);
   const [resetVersion, setResetVersion] = useState(0);
+  const [simulationStep, setSimulationStep] = useState(initialState.simulationStep);
 
   const circuit = history.present;
 
@@ -49,6 +51,13 @@ export function useWorkbenchEditorState() {
   }, [circuit]);
 
   const pushCircuit = (next: CircuitModel) => {
+    setSimulationStep((currentStep) =>
+      clampSimulationStepOnCircuitChange(
+        currentStep,
+        circuit.operations.length,
+        next.operations.length,
+      ),
+    );
     setHistory((previous) => createNextHistoryState(previous, next));
   };
 
@@ -65,6 +74,7 @@ export function useWorkbenchEditorState() {
     setQasm(toQasm3(fallback));
     setDisplayMode(DEFAULT_DISPLAY_MODE);
     setParseError(null);
+    setSimulationStep(fallback.operations.length);
     setResetVersion((previous) => previous + 1);
   };
 
@@ -80,6 +90,13 @@ export function useWorkbenchEditorState() {
 
   const replaceFromProject = (payload: WorkbenchProjectPayload) => {
     clearQubitMessage();
+    setSimulationStep((currentStep) =>
+      clampSimulationStepOnCircuitChange(
+        currentStep,
+        circuit.operations.length,
+        payload.circuit.operations.length,
+      ),
+    );
     setHistory(createHistoryState(payload.circuit));
     setQasm(payload.qasm);
     setDisplayMode(payload.displayMode);
@@ -110,6 +127,7 @@ export function useWorkbenchEditorState() {
     },
     actions,
     resetVersion,
-    initialSimulationStep: initialState.simulationStep,
+    simulationStep,
+    setSimulationStep,
   };
 }
