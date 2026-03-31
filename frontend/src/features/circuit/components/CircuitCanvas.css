@@ -207,10 +207,6 @@
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   background-color: var(--surface-panel-muted);
-  background-image:
-    linear-gradient(var(--chart-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--chart-grid) 1px, transparent 1px);
-  background-size: 24px 24px;
 }
 
 .canvas-viewport--pan-ready {
