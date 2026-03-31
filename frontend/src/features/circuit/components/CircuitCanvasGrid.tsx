@@ -80,11 +80,7 @@ function CircuitCanvasGrid({
                   tabIndex={operation ? 0 : undefined}
                   data-testid={`canvas-cell-${qubit}-${layer}`}
                 >
-                  {operation ? (
-                    <GateLabel operation={operation} qubit={qubit} />
-                  ) : (
-                    <span className="canvas-empty-placeholder">-</span>
-                  )}
+                  {operation ? <GateLabel operation={operation} qubit={qubit} /> : null}
                   {operation &&
                   isSelectedOperation &&
                   isParameterizedGate(operation.gate) &&
