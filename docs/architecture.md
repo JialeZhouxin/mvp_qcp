@@ -2,15 +2,15 @@
 
 ## 摘要
 
-QCP MVP 当前已经形成一条完整的内部研发/演示闭环：
+QCP MVP 当前已经形成一套可运行的开发与演示闭环：
 
-- 前端提供图形化工作台、代码任务页、任务中心
-- 后端负责鉴权、项目管理、任务入队、状态查询
-- Redis + Celery 承担异步任务执行
-- PostgreSQL 作为业务真相源
-- 代码任务与图形电路任务使用两条不同的执行路径
+- 前端提供图形化量子电路工作台、代码任务页、任务中心和项目保存
+- 后端负责认证、项目管理、任务入队、状态查询和结果读写
+- PostgreSQL 是业务真相源
+- Redis + Celery 承担异步执行调度
+- 代码任务和图形化量子电路任务走两条不同的执行链路
 
-本文件只描述**当前仓库真实实现**，不描述未来目标态。
+本文档只描述仓库当前真实实现，不描述目标态或规划态。
 
 ## 物理拓扑
 
@@ -28,56 +28,62 @@ frontend(5173)
             -> qibo hot executor
 ```
 
-服务说明：
+## 服务职责
 
-- `frontend`
-  - React + Vite 开发服务器
-  - 通过 `VITE_API_BASE_URL` 访问后端
-- `backend`
-  - FastAPI 主 API
-  - 负责登录、任务提交、任务状态、项目保存/读取
-- `postgres`
-  - 业务数据库
-  - 用户、租户、任务、项目、幂等记录都在这里
-- `redis`
-  - Celery broker / backend
-- `worker`
-  - 处理代码任务队列 `qcp-default`
-- `circuit-worker`
-  - 处理图形电路任务队列 `qcp-circuit`
-  - 维护常驻热进程，启动时预热 `qibo`
-- `execution-service`
-  - 代码任务执行服务
-  - 默认走 Docker 隔离执行
+### frontend
 
-## 核心业务入口
+- React + Vite 开发服务
+- 图形化量子电路编辑、QASM 编辑、本地模拟、结果可视化
+- 代码任务提交、任务中心、项目管理
 
-前端当前有三个主要任务入口：
+### backend
+
+- FastAPI 主 API
+- 用户认证、任务创建、任务查询、项目保存与读取
+- 把不同类型任务路由到不同队列
+
+### postgres
+
+- 业务真相源
+- 保存用户、租户、任务、项目、幂等等业务数据
+
+### redis
+
+- Celery broker / backend
+- 图形化任务执行器的心跳协调用途
+
+### worker
+
+- 消费 `qcp-default`
+- 负责代码任务
+- 调用 `execution-service` 执行隔离代码
+
+### circuit-worker
+
+- 消费 `qcp-circuit`
+- 负责图形化量子电路任务
+- 维护常驻热执行器并预热 `qibo`
+
+### execution-service
+
+- 只服务于代码任务执行
+- 当前默认使用 Docker runner 进行隔离执行
+
+## 任务入口
+
+当前前端主要任务入口为：
 
 - `/tasks/circuit`
-  - 图形化量子电路工作台
-  - 支持门库拖拽、电路画布、OpenQASM 编辑、本地模拟、时间步预览、项目保存
+  - 图形化量子编程工作台
+  - 支持画布拖拽、QASM 编辑、本地模拟、时间步预览、项目保存与任务提交
 - `/tasks/code`
-  - 代码任务提交页
-  - 直接提交 Python 量子脚本
+  - Python 代码任务提交
 - `/tasks/center`
-  - 任务中心
-  - 查看任务历史、筛选、详情与结果
+  - 查看任务历史、详情、结果和状态
 
-## 逻辑执行链路
+## 两条执行链路
 
-### 1. 认证与租户
-
-- 用户通过 `POST /api/auth/register` 注册
-- 注册时自动创建并绑定独立租户
-- 登录通过 `POST /api/auth/login`
-- 后续接口使用 `Authorization: Bearer <token>`
-
-当前多租户已经落到数据模型层，但产品形态仍偏“单用户单租户”。
-
-### 2. 代码任务
-
-代码任务链路为：
+### 代码任务链路
 
 ```text
 frontend/code page
@@ -87,43 +93,80 @@ frontend/code page
   -> execution-service
   -> Docker runner 执行用户代码
   -> 结果回写 PostgreSQL
-  -> 前端轮询或查看任务中心
+  -> 前端轮询或在任务中心查看
 ```
 
 特点：
 
-- 这条链路优先安全隔离
-- 单任务固定开销较高
-- 适合任意 Python 代码提交
+- 以隔离执行为优先
+- 固定开销比图形化任务更高
+- 适合直接提交 Python 量子脚本
 
-### 3. 图形电路任务
-
-图形电路链路为：
+### 图形化量子电路任务链路
 
 ```text
 frontend/circuit workbench
   -> POST /api/tasks/circuit/submit
   -> backend 写入 circuit task
   -> Celery circuit-worker 消费 qcp-circuit
-  -> 常驻 qibo 热进程执行
+  -> qibo hot executor 执行
   -> 结果回写 PostgreSQL
-  -> 前端查看任务状态或任务中心
+  -> 前端查看任务状态或任务中心结果
 ```
 
 特点：
 
 - 后端接收结构化电路 payload，而不是前端生成的 Python 脚本
-- `circuit-worker` 启动时会预热 qibo
-- 这条链路用于消除图形电路提交时的高冷启动延迟
+- `circuit-worker` 启动时预热 `qibo`
+- 目标是降低图形化电路提交时的冷启动成本
 
-### 4. 工作台本地模拟
+## 图形化工作台能力边界
 
-图形化工作台的下方面板还存在一条浏览器本地模拟链路：
+图形化工作台当前包含三部分能力：
 
-- 电路修改后，由前端 Web Worker 本地模拟
-- 产生概率直方图和 Bloch 球数据
-- 这条链路只用于**前端即时预览**
-- 它不是后端真实任务执行结果
+### 1. 画布编辑
+
+- 门库拖拽
+- 参数编辑
+- 多比特门放置
+- 项目保存与恢复
+
+### 2. QASM 读写
+
+- 支持画布和 QASM 之间同步转换
+- 标准门可直接序列化/反序列化
+- 部分高级门在导出时会分解成标准门序列
+
+### 3. 浏览器本地模拟
+
+- 用于即时预览，不等于后端正式任务结果
+- 当前可展示：
+  - 概率分布
+  - Bloch 球结果
+  - 时间步预览
+
+## 当前图形化门集
+
+当前工作台支持以下门类：
+
+- 基础单比特门：
+  - `I`、`X`、`Y`、`Z`、`H`、`S`、`SDG`、`T`、`TDG`
+- 参数单比特门：
+  - `RX`、`RY`、`RZ`、`U`、`P`
+- 新增单比特门：
+  - `SX`、`√Y`
+- 受控与纠缠门：
+  - `CX`、`CY`、`CZ`、`CH`、`CP`、`CCX`、`CCZ`、`CSWAP`、`SWAP`
+- 多量子旋转门：
+  - `RXX`、`RYY`、`RZZ`、`RZX`
+- 测量门：
+  - `M`
+
+说明：
+
+- UI 展示为 `√Y`，内部按 `SY` 语义处理
+- `SX`、`CY`、`CH`、`CSWAP` 可直接进入标准 QASM 路径
+- `√Y`、`CCZ`、`RXX`、`RYY`、`RZZ`、`RZX` 在导出 QASM 时会按等价门序列分解
 
 ## 数据边界
 
@@ -135,26 +178,31 @@ frontend/circuit workbench
 - `project`
 - `idempotencyrecord`
 
-约束事实：
+当前事实：
 
-- 业务查询已经按 `tenant_id + user_id` 双边界收口
-- Alembic 是当前 schema 演进方式
-- 运行时不再通过 `create_all()` 自动建表
+- 业务查询已经按 `tenant_id + user_id` 收口
+- Alembic 是唯一 schema 演进方式
+- 运行时不再依赖 `create_all()` 自动建表
+
+## 当前运行事实
+
+- `backend` 与 `execution-service` 使用 `uvicorn --reload`
+- `worker` 与 `circuit-worker` 是 Celery worker，不会自动热更新导入代码
+- 只要后端执行逻辑、门映射或 payload 校验发生变化，就需要重启对应 worker
+- 图形化门支持已经扩展到高级门，但如果 `circuit-worker` 未重启，仍可能继续运行旧代码并报 `unsupported gate`
 
 ## 已知限制
 
-以下限制是当前事实，不应被文档包装成已解决：
+- 当前 `docker-compose.yml` 仍是开发/演示型编排，不是生产加固方案
+- Redis 仍为单点
+- `execution-service` 的内部鉴权、任务回收等风险仍有待继续加固
+- 图形化工作台同时存在本地模拟结果和后端真实执行结果，阅读结果时必须区分来源
 
-- 当前 `docker-compose.yml` 仍是开发/演示型编排，不是生产 hardened 栈
-- Redis 仍是单点
-- `execution-service` 的内部鉴权、Redis 韧性、任务僵尸回收等 P0/P1 风险尚未全部消化
-- 图形电路本地模拟与后端执行链路存在“两套结果来源”，理解时需要区分
+## 不应再作为现状事实引用的旧说法
 
-## 哪些文档不要再当现状参考
+以下说法在当前仓库中已经不成立：
 
-以下内容已经不适合作为当前事实参考：
-
-- 把当前任务系统写成 `RQ`
-- 把当前主数据库写成默认 `SQLite`
-- 把图形电路任务仍写成前端生成脚本后统一走代码执行链路
-- 把 `execution-service` 的健康状态写成固定 `remote`
+- 使用 `RQ` 作为任务队列
+- 使用 `SQLite` 作为默认主数据库
+- 图形化电路统一转成 Python 脚本后再走代码执行链路
+- `execution-service` 健康状态固定等于 `remote`

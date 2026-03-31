@@ -1,55 +1,71 @@
 # 文档索引
 
-本目录只保留少量**当前事实文档**作为唯一事实源，其余日期型文档视为历史记录。
+`docs/` 目录只保留两类内容：
 
-## 当前事实文档
+- 当前事实文档：描述仓库当前真实实现、真实运行方式和真实限制
+- 历史设计文档：保留设计过程、方案权衡和阶段性记录，不作为当前实现事实源
 
-### 1. 架构说明
+如果你只想快速判断“系统现在是什么、怎么跑、出问题先看哪里”，按下面顺序阅读即可。
+
+## 推荐阅读顺序
+
+1. [architecture.md](architecture.md)
+   当前系统边界、服务拓扑、两条执行链路、前后端职责划分。
+2. [usage-guide.md](usage-guide.md)
+   面向开发和演示的日常使用入口，包括图形化编程、代码任务、任务中心和项目保存。
+3. [docker-deployment.md](docker-deployment.md)
+   本地 Docker Compose 启动、验证、排障和服务重启规则。
+4. [data-flow.md](data-flow.md)
+   认证、任务提交、任务执行、结果展示和项目保存的数据流。
+5. [execution-service-contract.md](execution-service-contract.md)
+   仅面向内部服务通信，描述代码任务执行服务的 HTTP 契约。
+
+## 当前重点事实
+
+- 当前任务系统分成两条执行链路：
+  - 代码任务：`worker -> execution-service -> Docker runner`
+  - 图形化量子电路任务：`circuit-worker -> qibo hot executor`
+- 图形化工作台同时存在两类结果来源：
+  - 浏览器本地模拟，用于即时预览概率分布和 Bloch 球
+  - 后端真实任务执行结果，用于提交后的正式结果
+- 图形化工作台已支持基础门、受控门、参数门，以及新增的高级门：
+  - `SX`、`√Y`
+  - `CY`、`CH`、`CSWAP`、`CCZ`
+  - `RXX`、`RYY`、`RZZ`、`RZX`
+- `backend` 和 `execution-service` 在开发态使用 `uvicorn --reload`，会热更新代码。
+- `worker` 和 `circuit-worker` 是 Celery worker，不会自动热重载；后端执行逻辑变更后，必须重启对应 worker 才会加载新代码。
+
+## 目录说明
+
+### 当前事实文档
 
 - [architecture.md](architecture.md)
-
-说明当前系统的物理拓扑、逻辑链路、执行边界、已知限制和 MVP 现实状态。
-
-### 2. 使用说明
-
 - [usage-guide.md](usage-guide.md)
-
-面向内部研发团队，覆盖登录、图形化工作台、代码任务、任务中心、项目保存与常见操作路径。
-
-### 3. Docker 部署与运维
-
 - [docker-deployment.md](docker-deployment.md)
-
-只覆盖当前仓库真实存在的 `docker-compose.yml` 单机 Compose 栈，包括启动、验证、排障与已知陷阱。
-
-### 4. 数据流
-
 - [data-flow.md](data-flow.md)
-
-描述认证、代码任务、图形电路任务、项目保存和任务中心的当前数据流。
-
-### 5. 执行服务内部契约
-
 - [execution-service-contract.md](execution-service-contract.md)
 
-说明代码任务执行服务的当前内部 HTTP 契约与边界。
-
-## 历史记录
-
-以下文档保留为历史记录，不作为当前实现的事实来源：
+### 历史记录与风险记录
 
 - [architecture-review-2026-03-24.md](architecture-review-2026-03-24.md)
 - [backend-database-migration-2026-03-25.md](backend-database-migration-2026-03-25.md)
 - [p0-risk-register-2026-03-25.md](p0-risk-register-2026-03-25.md)
 - [work-summary-2026-03-10.md](work-summary-2026-03-10.md)
-- [plans/](plans/)
+
+### 方案与实施计划
+
+- [plans/README.md](plans/README.md)
 
 ## 已退役入口
 
-以下旧文档不再维护为活跃入口，只保留跳转说明：
+以下文件只保留跳转意义，不应再作为“当前状态说明”引用：
 
 - `project-status-and-usage.md`
 - `project-usage-guide.md`
 - `使用教程.md`
 
-如果你要了解当前仓库怎么运行、怎么排障、当前架构到底是什么，请只看本索引列出的四份核心文档。
+## 文档使用约定
+
+- 判断“现在系统怎么工作”，只看“当前事实文档”。
+- 判断“为什么这样设计过”，再看 `plans/` 和带日期的历史文档。
+- 如果文档内容和代码实现冲突，以代码实现为准，并优先修正本文档入口指向的事实文档。

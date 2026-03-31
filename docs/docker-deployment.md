@@ -1,16 +1,12 @@
-# Docker 部署文档
+# Docker 部署与运维说明
 
-## 摘要
+## 适用范围
 
-本文件只描述**当前仓库真实可运行**的单机 Docker Compose 栈：
+本文档只覆盖当前仓库真实存在的 `docker-compose.yml` 开发/演示栈，不覆盖生产部署。
 
-- 文件：`docker-compose.yml`
-- 用途：本地开发、内部联调、PoC 演示
-- 不包含：未来 `docker-compose.prod.yml`、Kubernetes、生产高可用拓扑
+## 当前 Compose 服务
 
-## 当前服务清单
-
-`docker-compose.yml` 当前包含以下服务：
+当前 Compose 栈包含：
 
 - `postgres`
 - `redis`
@@ -20,104 +16,90 @@
 - `execution-service`
 - `frontend`
 
-## 关键运行事实
+## 服务角色
 
-### 数据与队列
-
-- PostgreSQL：主业务数据库
-- Redis：Celery broker / backend
-
-### 执行路径
-
+- `backend`
+  - FastAPI 主 API
+  - 开发态使用 `uvicorn --reload`
 - `worker`
   - 消费 `qcp-default`
-  - 处理代码任务
+  - 负责代码任务
 - `circuit-worker`
   - 消费 `qcp-circuit`
-  - 处理图形电路任务
+  - 负责图形化量子电路任务
 - `execution-service`
-  - 代码任务执行服务
-  - 当前配置为 Docker 执行后端
+  - 只服务代码任务
+  - 开发态使用 `uvicorn --reload`
+- `frontend`
+  - Vite 开发服务
 
-### 当前限制
+## 重要运行事实
 
-当前 Compose 栈仍带开发特征：
+- `backend` 和 `execution-service` 会热更新
+- `worker` 和 `circuit-worker` 不会热更新
+- 只要后端任务执行逻辑、量子门映射、payload 校验规则发生变化，就必须重启对应 worker
 
-- `backend` 使用 `uvicorn --reload`
-- `execution-service` 使用 `uvicorn --reload`
-- `frontend` 使用 `npm run dev`
-- 并非生产 hardened 配置
+这条规则对图形化量子电路尤其重要：前端门库更新不代表后端 worker 已经加载新门支持。
 
-## 启动步骤
-
-### 1. 启动全部服务
+## 启动
 
 ```powershell
 cd "E:/02_Projects/quantuncloudplatform/mvp_qcp"
 docker compose up --build -d
 ```
 
-### 2. 查看服务状态
+## 基础验证
+
+### 查看服务状态
 
 ```powershell
 docker compose ps
 ```
 
-### 3. 执行健康检查
+### 运行健康检查
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker
 ```
 
-### 4. 执行深度检查
+### 运行深度检查
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker -Deep
 ```
 
-深度检查会验证：
-
-- 注册
-- 登录
-- 代码任务提交
-- 任务到达终态
-- 结果接口可读
-
-## 主要访问地址
+## 常用地址
 
 - 前端：`http://127.0.0.1:5173`
 - OpenAPI：`http://127.0.0.1:8000/docs`
-- 健康检查：`http://127.0.0.1:8000/api/health`
+- 后端健康检查：`http://127.0.0.1:8000/api/health`
 
-## 数据持久化
+## 重启规则
 
-当前 Compose 文件中使用的关键 volume：
+### 什么时候只需要重启 `backend`
 
-- `postgres-data`
-- `frontend-node-modules`
+- API 路由层逻辑变化，但不涉及 Celery worker 执行路径
 
-说明：
+### 什么时候需要重启 `worker`
 
-- `postgres-data` 保存数据库数据
-- `frontend-node-modules` 用于前端容器依赖缓存
+- 代码任务执行逻辑变化
+- `execution-service` 调用方式变化
+- 代码任务相关的 Celery 行为变化
 
-## 常用运维命令
+### 什么时候需要重启 `circuit-worker`
 
-### 停止服务
+- 图形化电路 payload 校验变化
+- 量子门支持集合变化
+- Qibo 门映射变化
+- 电路热执行器逻辑变化
+
+典型命令：
 
 ```powershell
-docker compose down
+docker compose restart circuit-worker
 ```
 
-### 停止并删除 volume
-
-```powershell
-docker compose down -v
-```
-
-这个操作会删除数据库 volume，执行前必须确认。
-
-### 查看日志
+## 日志查看
 
 ```powershell
 docker compose logs backend --tail=200
@@ -127,13 +109,11 @@ docker compose logs execution-service --tail=200
 docker compose logs frontend --tail=200
 ```
 
-## 常见问题
+## 常见排障
 
-### 1. 图形电路提交返回 `CIRCUIT_EXECUTOR_UNAVAILABLE`
+### 1. 图形化任务提交返回 `CIRCUIT_EXECUTOR_UNAVAILABLE`
 
-说明 `backend` 在提交前没有检测到 `circuit-worker` 心跳。
-
-优先排查：
+优先检查：
 
 ```powershell
 docker compose ps
@@ -141,36 +121,56 @@ docker compose logs circuit-worker --tail=200
 docker compose exec redis redis-cli EXISTS qcp:circuit:heartbeat
 ```
 
-如果心跳不存在，常见原因是：
+重点关注：
 
-- `circuit-worker` 没启动
-- 热执行器预热超时
+- `circuit-worker` 是否存活
+- 心跳键是否存在
+- 热执行器是否完成预热
 
-### 2. 前端新增依赖后容器里仍然找不到模块
+### 2. 新增门前端已出现，但提交任务报 `unsupported gate`
 
-常见原因是旧的 `frontend-node-modules` 卷还在复用。
+这通常表示：
 
-典型处理顺序：
+- 前端已经更新
+- 但 `circuit-worker` 还在运行旧代码
 
-1. 停掉前端相关容器
-2. 删除前端 `node_modules` 对应 volume
-3. `docker compose up -d --build frontend`
+处理方式：
 
-### 3. 某些容器 `docker compose down` 后仍卡住
+```powershell
+docker compose restart circuit-worker
+docker compose logs circuit-worker --tail=200
+```
 
-这更像 Docker 运行时状态问题，而不是应用逻辑问题。
+### 3. 任务中心看到 `RETRY_EXHAUSTED`
 
-处理顺序：
+这不是根因，而是最终状态。
+需要继续查 worker 日志中的真实异常，例如：
 
-1. `docker ps -a --filter "name=mvp_qcp"`
-2. `docker rm -f <卡住容器>`
-3. 再执行局部重建
+- `unsupported gate`
+- 执行器初始化失败
+- Qibo 执行异常
 
-### 4. 代码任务耗时明显高于电路任务
+### 4. 前端热更新异常或依赖状态错乱
 
-这是当前架构设计结果：
+优先检查 `frontend-node-modules` volume 是否异常。
+必要时可重建前端容器：
 
-- 代码任务走 `execution-service -> Docker`
-- 图形电路任务走 `circuit-worker` 热进程
+```powershell
+docker compose up -d --build frontend
+```
 
-二者不应按同一性能预期理解。
+## 停止与清理
+
+### 停止服务
+
+```powershell
+docker compose down
+```
+
+### 连同 volume 一起删除
+
+```powershell
+docker compose down -v
+```
+
+注意：这会清除数据库卷和前端依赖卷，属于破坏性操作，执行前应确认影响范围。

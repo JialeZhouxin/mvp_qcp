@@ -1,50 +1,40 @@
 # 使用说明
 
-## 摘要
+## 适用范围
 
-本说明面向内部研发团队，覆盖当前仓库最常用的操作路径：
+本文档面向当前仓库的开发、联调和演示使用，不描述生产部署。
 
-- 启动系统
-- 登录与获取任务界面
-- 使用图形化量子工作台
-- 提交代码任务
-- 查看任务中心与项目
+如果你先想知道系统结构，请先看 [architecture.md](architecture.md)。
+如果你要排查 Docker 运行问题，请看 [docker-deployment.md](docker-deployment.md)。
 
-如果你只关心 Docker 启动与排障，请看 [docker-deployment.md](docker-deployment.md)。
+## 快速启动
 
-## 环境准备
-
-### Docker 模式
-
-需要：
-
-- Docker Desktop / Docker Engine
-- 可用的 `docker compose`
-
-### 宿主机开发模式
-
-需要：
-
-- Python 3.11 + `uv`
-- Node.js + npm
-- 可用的 Redis
-
-宿主机模式使用：
+### Docker Compose 启动
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1"
+cd "E:/02_Projects/quantuncloudplatform/mvp_qcp"
+docker compose up --build -d
 ```
 
-该模式会让 API/worker 走 `EXECUTION_BACKEND=local`，主要用于本地开发联调。
+### 健康检查
 
-## 登录与入口
+```powershell
+powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker
+```
 
-系统启动后，主要入口如下：
+需要更完整的检查时：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker -Deep
+```
+
+## 常用访问地址
 
 - 前端：`http://127.0.0.1:5173`
 - OpenAPI：`http://127.0.0.1:8000/docs`
+- 后端健康检查：`http://127.0.0.1:8000/api/health`
 
-前端主要页面：
+## 页面入口
 
 - `/login`
 - `/register`
@@ -52,75 +42,92 @@ powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1"
 - `/tasks/code`
 - `/tasks/center`
 
-推荐初次体验流程：
+## 日常使用路径
 
-1. 注册账号
-2. 登录
-3. 先进入 `/tasks/circuit` 验证图形化工作台
-4. 再进入 `/tasks/code` 提交简单代码任务
-5. 最后到 `/tasks/center` 查看历史和详情
+推荐操作顺序：
 
-## 图形化工作台
+1. 注册或登录
+2. 进入图形化编程或代码任务页
+3. 提交任务
+4. 到任务中心查看执行状态与结果
+5. 需要长期保留时保存项目
 
-### 当前能力
+## 图形化编程工作台
 
-工作台支持：
+图形化编程工作台支持以下能力：
 
-- 从门库拖拽量子门到画布
-- 通过 OpenQASM 与电路双向编辑
-- 浏览器内本地模拟
-- 时间步滑块预览
-- 结果区直方图与 Bloch 球
-- 项目保存与加载
+- 门库拖拽放置
+- 参数编辑
+- 电路画布编辑
+- OpenQASM 编辑与同步
+- 浏览器本地模拟
+- Bloch 球预览
+- 时间步结果预览
+- 项目保存
+- 后端正式任务提交
 
-### 提交流程
+### 当前支持的量子门
 
-图形化工作台提交时：
+- 基础单比特门：
+  - `I`、`X`、`Y`、`Z`、`H`、`S`、`SDG`、`T`、`TDG`
+- 参数门：
+  - `RX`、`RY`、`RZ`、`U`、`P`
+- 新增单比特门：
+  - `SX`、`√Y`
+- 受控/多比特门：
+  - `CX`、`CY`、`CZ`、`CH`、`CP`、`CCX`、`CCZ`、`CSWAP`、`SWAP`
+- 多量子旋转门：
+  - `RXX`、`RYY`、`RZZ`、`RZX`
+- 测量：
+  - `M`
 
-- 前端不会提交 Python 代码
-- 后端接收结构化电路 payload
-- 任务进入 `qcp-circuit` 队列
-- 由 `circuit-worker` 的热进程执行
+### 本地预览与正式结果的区别
 
-如果提交时看到：
+工作台里会同时看到两类结果：
 
-- `CIRCUIT_EXECUTOR_UNAVAILABLE`
+- 本地模拟结果
+  - 由前端浏览器直接计算
+  - 用于即时反馈、Bloch 球展示和时间步预览
+- 正式任务结果
+  - 由后端 `circuit-worker` 执行
+  - 以任务中心或提交结果为准
 
-通常说明：
+如果两者不一致，先检查是否看混了“本地预览”和“后端正式执行”。
 
-- `circuit-worker` 未启动
-- 或热执行器尚未完成预热
+### 高级门的使用说明
+
+- `SX`、`CY`、`CH`、`CSWAP` 可直接进入标准 QASM 路径
+- `√Y`、`CCZ`、`RXX`、`RYY`、`RZZ`、`RZX` 会在导出 QASM 时分解成等价标准门序列
+- 这类高级门在画布上保留高级语义，但经过 QASM 导出再导入后，可能表现为等价基础门线路
 
 ## 代码任务页
 
-代码任务页面向兼容路径，提交的是 Python 脚本。
+代码任务页用于直接提交 Python 量子脚本。
 
-典型最小脚本：
+典型流程：
 
-```python
-def main():
-    return {"counts": {"00": 2, "11": 2}}
-```
+1. 编写 Python 代码
+2. 提交到 `/api/tasks/submit`
+3. 后端入队到 `qcp-default`
+4. `worker` 调用 `execution-service`
+5. Docker runner 执行并写回结果
 
-代码任务会走：
+适合场景：
 
-- `POST /api/tasks/submit`
-- `worker`
-- `execution-service`
-- Docker 隔离执行
-
-因此相比图形电路任务，它的固定开销更大。
+- 直接验证 Python 代码执行
+- 演示隔离执行链路
+- 不依赖图形化电路编辑器的任务
 
 ## 任务中心
 
-任务中心用于查看：
+任务中心用于统一查看：
 
-- 任务历史
-- 状态筛选
-- 详情与结果
-- SSE 状态流
+- 任务状态
+- 执行详情
+- 结果数据
+- 失败原因
 
-当前任务终态包括：
+当前常见状态：
 
 - `SUCCESS`
 - `FAILURE`
@@ -129,70 +136,35 @@ def main():
 
 ## 项目保存
 
-当前支持保存项目。
+当前工作台支持项目保存与读取：
 
-相关能力：
-
-- 保存当前工作台电路项目
-- 列出项目
-- 读取项目内容
-
-项目保存接口在后端由 `projects` 路由承载，使用 Bearer Token 鉴权。
-
-## 常用脚本
-
-### 启动宿主机联调
-
-```powershell
-powershell -ExecutionPolicy Bypass -File "scripts/start-dev.ps1"
-```
-
-### 后端测试
-
-```powershell
-powershell -ExecutionPolicy Bypass -File "scripts/run-backend-tests.ps1"
-```
-
-### 健康检查
-
-```powershell
-powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1"
-```
-
-Docker 模式：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker
-```
-
-深度检查：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker -Deep
-```
+- 图形化工作台可保存当前电路草稿
+- 代码任务页可保存代码项目
+- 项目数据保存在 PostgreSQL
 
 ## 常见问题
 
-### 1. 图形电路任务返回 503
+### 1. 图形化任务提交后显示 `CIRCUIT_EXECUTOR_UNAVAILABLE`
 
 优先检查：
 
-- `circuit-worker` 是否运行
-- Redis 中是否有 `qcp:circuit:heartbeat`
-- `circuit-worker` 启动日志里是否出现 warmup timeout
+- `circuit-worker` 是否正常运行
+- Redis 心跳键是否存在
+- `qibo` 热执行器是否启动成功
 
-### 2. 前端新增依赖后仍报模块找不到
+### 2. 新增量子门前端已经能看到，但提交后仍然失败
 
-常见原因：
+高概率原因：
 
-- `frontend-node-modules` 命名卷仍挂着旧依赖
+- `circuit-worker` 仍在运行旧代码
+- Celery worker 不会自动热重载
 
 处理方式：
 
-- 停掉前端容器
-- 删除前端 `node_modules` 对应 volume
-- 重建前端容器
+- 重启 `circuit-worker`
+- 再次提交任务验证
 
-### 3. 任务长时间停在 `RUNNING`
+### 3. 出现“重试次数上限”
 
-当前仓库仍可能存在历史遗留的僵尸任务状态；这种情况需要结合 worker 日志和任务创建时间判断，不应默认视为正在执行。
+这通常不是前端问题，而是任务在 worker 侧连续失败后进入终态。
+需要到任务中心详情和 `circuit-worker` 日志里继续定位真实错误原因。

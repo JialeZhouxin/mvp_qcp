@@ -1,20 +1,17 @@
 # 数据流说明
 
-## 摘要
+## 目的
 
-当前仓库存在两条主要任务链路：
+本文档描述当前仓库中的真实数据流，重点说明：
 
-- 任意 Python 代码任务
-- 图形化量子电路任务
-
-此外还有两条辅助链路：
-
-- 浏览器本地模拟预览
+- 用户认证
+- 代码任务执行
+- 图形化量子电路任务执行
+- 本地模拟预览
 - 项目保存与读取
+- 任务中心结果展示
 
-本文件只描述当前真实实现，不描述历史实现和未来目标态。
-
-## 1. 认证链路
+## 1. 认证数据流
 
 ```text
 Frontend
@@ -25,13 +22,13 @@ Frontend
   -> protected APIs
 ```
 
-说明：
+当前事实：
 
-- 注册时自动创建租户
-- 登录后返回 Bearer Token
-- 后续任务、项目、任务中心接口都需要 token
+- 注册时会创建并绑定独立租户
+- 登录后前端使用 Bearer Token 访问受保护接口
+- 当前产品形态仍偏单用户单租户，但数据模型已具备租户边界
 
-## 2. 代码任务链路
+## 2. 代码任务数据流
 
 ```text
 /tasks/code
@@ -39,58 +36,79 @@ Frontend
   -> backend 创建 task
   -> Celery worker 消费 qcp-default
   -> execution-service
-  -> Docker runner 执行代码
+  -> Docker runner 执行用户代码
   -> result_json 回写 PostgreSQL
-  -> frontend 轮询 / 任务中心查看
+  -> frontend 在任务中心查看结果
 ```
 
-关键点：
+说明：
 
-- 代码任务面向任意 Python 脚本
-- 执行链路偏安全隔离
-- 固定启动成本较高
+- 这条链路用于直接执行 Python 代码
+- 结果以数据库持久化后的任务结果为准
+- `execution-service` 只属于这条链路
 
-## 3. 图形电路任务链路
+## 3. 图形化量子电路任务数据流
 
 ```text
 /tasks/circuit
-  -> 前端构造结构化 circuit payload
+  -> 前端构造 circuit payload
   -> POST /api/tasks/circuit/submit
   -> backend 创建 circuit task
   -> Celery circuit-worker 消费 qcp-circuit
-  -> qibo 常驻热进程执行
+  -> qibo hot executor 执行
   -> result_json 回写 PostgreSQL
-  -> frontend 查看状态 / 结果
+  -> frontend 在任务中心或工作台查看结果
 ```
 
-关键点：
+说明：
 
-- 不再提交 Python 脚本
-- 图形电路执行前需要 `circuit-worker` 心跳可用
-- 提交前若热执行器不可用，会直接返回 `CIRCUIT_EXECUTOR_UNAVAILABLE`
+- 后端接收的是结构化电路 payload，不是前端拼接的 Python 脚本
+- 图形化电路和代码任务使用不同队列、不同 worker、不同执行边界
+- 高级量子门的后端支持由 `circuit-worker` 当前加载的代码决定
 
-## 4. 工作台本地模拟链路
+## 4. 图形化工作台本地模拟流
 
 ```text
 CircuitCanvas / QASM Editor
   -> frontend simulation worker
-  -> 本地计算概率分布与 Bloch 向量
+  -> 本地概率分布
+  -> 本地 Bloch 球数据
   -> WorkbenchResultPanel
 ```
 
-这条链路仅用于前端即时反馈：
+说明：
 
-- 不依赖后端
-- 不写数据库
-- 不进入 Celery 队列
+- 这条链路完全发生在前端浏览器
+- 只服务即时反馈和预览
+- 不会进入 Celery，也不会写回数据库
 
-它的结果面板包括：
+因此图形化工作台里实际存在两套结果来源：
 
-- 测量直方图
-- Bloch 球
-- 时间步预览联动
+- 本地模拟结果
+- 后端正式任务结果
 
-## 5. 项目保存链路
+阅读结果时必须区分来源。
+
+## 5. QASM 数据流
+
+```text
+GatePalette / CircuitCanvas
+  <-> QASM bridge
+  <-> QASM Editor
+```
+
+当前事实：
+
+- 画布与 QASM 可双向同步
+- 标准门可直接走标准表示
+- 部分高级门导出为 QASM 时会做等价分解
+
+这意味着：
+
+- 高级门在画布上可以保持高级语义
+- 经过 QASM 导出再导入后，可能回到等价基础门线路
+
+## 6. 项目保存数据流
 
 ```text
 Workbench / Code page
@@ -100,12 +118,13 @@ Workbench / Code page
   -> GET /api/projects/{project_id}
 ```
 
-项目与任务不同：
+说明：
 
-- 项目是用户保存的编辑成果
-- 任务是一次执行记录
+- 项目保存是持久化业务数据，不是浏览器临时缓存
+- 图形化工作台和代码页都可使用项目保存
+- 访问受认证和租户边界约束
 
-## 6. 任务中心链路
+## 7. 任务中心数据流
 
 ```text
 Task Center
@@ -116,38 +135,38 @@ Task Center
   -> GET /api/tasks/stream
 ```
 
-任务中心用于：
+任务中心聚合展示：
 
-- 列表浏览
-- 状态筛选
-- 详情诊断
-- 实时状态观察
+- 任务状态
+- 任务详情
+- 执行结果
+- 失败信息
+- 实时更新
 
-## 7. 状态与结果
-
-当前主要任务终态：
+当前常见终态：
 
 - `SUCCESS`
 - `FAILURE`
 - `TIMEOUT`
 - `RETRY_EXHAUSTED`
 
-结果以标准化 `result_json` 回写数据库，再由前端读取和可视化。
+## 8. 关键边界
 
-## 8. 需要明确区分的两类结果
+### 代码任务与图形化任务边界
 
-理解当前平台时必须区分：
+- 代码任务走 `worker -> execution-service -> Docker`
+- 图形化任务走 `circuit-worker -> qibo hot executor`
 
-### 前端预览结果
+两条链路不要混为一谈。
 
-- 来源：浏览器本地模拟
-- 作用：即时反馈
-- 页面：工作台下方结果区
+### 前端预览与后端正式执行边界
 
-### 后端执行结果
+- 前端预览只负责即时反馈
+- 提交任务后的正式结果由后端执行链路产生
 
-- 来源：Celery + 执行链路
-- 作用：真实任务记录
-- 页面：任务中心 / 任务结果查看
+### 热更新边界
 
-二者在页面上都可能表现为“结果”，但来源不同，不能混淆。
+- API 服务可热更新
+- Celery worker 不会自动热更新
+
+因此后端逻辑改动后，数据流是否生效取决于对应 worker 是否重启。
