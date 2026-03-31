@@ -12,6 +12,7 @@ import {
   QASM_MARKER_OWNER,
   registerQasmLanguage,
 } from "../qasm/qasm-monaco";
+import "./QasmEditorPane.css";
 
 const DEFAULT_DEBOUNCE_MS = 200;
 const QASM_EDITOR_HEIGHT = 280;
@@ -108,20 +109,9 @@ function QasmEditorPane({
   }, [value, debounceMs]);
 
   return (
-    <section
-      data-testid="qasm-editor-panel"
-      style={{ border: "1px solid var(--border-subtle)", padding: 12, borderRadius: 12, background: "var(--surface-panel)" }}
-    >
-      <h3 style={{ marginTop: 0, color: "var(--text-primary)" }}>OpenQASM 3</h3>
-      <div
-        data-testid="qasm-editor-input"
-        style={{
-          border: "1px solid var(--border-subtle)",
-          borderRadius: 10,
-          overflow: "hidden",
-          background: "var(--editor-bg)",
-        }}
-      >
+    <section data-testid="qasm-editor-panel" className="qasm-editor-panel">
+      <h3 className="qasm-editor-panel__title">OpenQASM 3</h3>
+      <div data-testid="qasm-editor-input" className="qasm-editor-panel__input">
         <Editor
           height={`${QASM_EDITOR_HEIGHT}px`}
           language={QASM_LANGUAGE_ID}

@@ -1,3 +1,14 @@
+.circuit-canvas-panel {
+  border: 1px solid var(--border-subtle);
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-panel);
+}
+
+.circuit-canvas-panel__title {
+  margin-top: 0;
+}
+
 .canvas-workbench-toolbar {
   display: grid;
   gap: 10px;

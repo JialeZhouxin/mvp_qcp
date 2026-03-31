@@ -1,0 +1,18 @@
+.qasm-editor-panel {
+  border: 1px solid var(--border-subtle);
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-panel);
+}
+
+.qasm-editor-panel__title {
+  margin-top: 0;
+  color: var(--text-primary);
+}
+
+.qasm-editor-panel__input {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--editor-bg);
+}

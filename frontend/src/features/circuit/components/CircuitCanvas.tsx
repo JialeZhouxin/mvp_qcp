@@ -145,16 +145,8 @@ function CircuitCanvas({
     .join(" ");
 
   return (
-    <section
-      data-testid="circuit-canvas-panel"
-      style={{
-        border: "1px solid var(--border-subtle)",
-        padding: 12,
-        borderRadius: 12,
-        background: "var(--surface-panel)",
-      }}
-    >
-      <h3 style={{ marginTop: 0 }}>{"\u7535\u8def\u753b\u5e03"}</h3>
+    <section data-testid="circuit-canvas-panel" className="circuit-canvas-panel">
+      <h3 className="circuit-canvas-panel__title">{"\u7535\u8def\u753b\u5e03"}</h3>
       {interactionMessage ? <MessageBlock message={interactionMessage} /> : null}
       {pendingPlacement ? (
         <div style={{ marginBottom: 8, display: "flex", gap: 8, alignItems: "center" }}>

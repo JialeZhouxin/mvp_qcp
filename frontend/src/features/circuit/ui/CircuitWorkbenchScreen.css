@@ -13,9 +13,10 @@
 
 .circuit-workbench-primary-layout {
   display: grid;
-  gap: 16px;
+  column-gap: 16px;
+  row-gap: 0;
   align-items: start;
-  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(320px, 380px);
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
 }
 
 .circuit-workbench-gate-column,
@@ -24,14 +25,48 @@
   min-width: 0;
 }
 
+.circuit-workbench-main-workspace {
+  min-width: 0;
+  display: grid;
+  align-items: stretch;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: 0;
+}
+
 .circuit-workbench-qasm-column {
   display: grid;
   gap: 12px;
 }
 
+.circuit-workbench-result-slot {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.circuit-workbench-canvas-column .circuit-canvas-panel {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right-width: 0;
+}
+
+.circuit-workbench-qasm-column .qasm-editor-panel {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.circuit-workbench-result-slot > .workbench-result-panel {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top-width: 0;
+}
+
 @media (max-width: 1439px) {
   .circuit-workbench-primary-layout {
-    grid-template-columns: minmax(208px, 240px) minmax(0, 1fr) minmax(300px, 340px);
+    grid-template-columns: minmax(208px, 240px) minmax(0, 1fr);
+  }
+
+  .circuit-workbench-main-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
   }
 }
 
@@ -43,5 +78,32 @@
 
   .circuit-workbench-primary-layout {
     grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .circuit-workbench-main-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .circuit-workbench-result-slot {
+    grid-column: auto;
+  }
+
+  .circuit-workbench-canvas-column .circuit-canvas-panel {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-right-width: 1px;
+  }
+
+  .circuit-workbench-qasm-column .qasm-editor-panel {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+  }
+
+  .circuit-workbench-result-slot > .workbench-result-panel {
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    border-top-width: 1px;
   }
 }

@@ -138,41 +138,47 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
         <div data-testid="workbench-gate-column" className="circuit-workbench-gate-column">
           <GatePalette />
         </div>
-        <div data-testid="workbench-canvas-column" className="circuit-workbench-canvas-column">
-          <CircuitCanvas
-            circuit={circuit}
-            onCircuitChange={pushCircuit}
-            onUndo={historyState.onUndo}
-            onRedo={historyState.onRedo}
-            controls={canvasControls}
-            simulationStep={simulationStep}
-            totalSimulationSteps={totalSimulationSteps}
-            onSimulationStepChange={setSimulationStep}
-            futureOperationIds={futureOperationIds}
-          />
+        <div
+          data-testid="workbench-main-workspace"
+          className="circuit-workbench-main-workspace"
+        >
+          <div data-testid="workbench-canvas-column" className="circuit-workbench-canvas-column">
+            <CircuitCanvas
+              circuit={circuit}
+              onCircuitChange={pushCircuit}
+              onUndo={historyState.onUndo}
+              onRedo={historyState.onRedo}
+              controls={canvasControls}
+              simulationStep={simulationStep}
+              totalSimulationSteps={totalSimulationSteps}
+              onSimulationStepChange={setSimulationStep}
+              futureOperationIds={futureOperationIds}
+            />
+          </div>
+          <div data-testid="workbench-qasm-column" className="circuit-workbench-qasm-column">
+            <QasmEditorPane
+              value={qasm}
+              onValueChange={setQasm}
+              onValidQasmChange={onValidQasmChange}
+              onParseError={setParseError}
+            />
+            <QasmErrorPanel error={parseError} />
+          </div>
         </div>
-        <div data-testid="workbench-qasm-column" className="circuit-workbench-qasm-column">
-          <QasmEditorPane
-            value={qasm}
-            onValueChange={setQasm}
-            onValidQasmChange={onValidQasmChange}
-            onParseError={setParseError}
+        <div className="circuit-workbench-result-slot">
+          <WorkbenchResultPanel
+            simulationState={simulationState}
+            simError={simError}
+            displayMode={displayMode}
+            epsilonText={epsilonText}
+            probabilityView={probabilityView}
+            probabilityDisplayView={probabilityDisplayView}
+            blochVectors={blochVectors}
+            numQubits={previewCircuit.numQubits}
+            onDisplayModeChange={setDisplayMode}
           />
-          <QasmErrorPanel error={parseError} />
         </div>
       </section>
-
-      <WorkbenchResultPanel
-        simulationState={simulationState}
-        simError={simError}
-        displayMode={displayMode}
-        epsilonText={epsilonText}
-        probabilityView={probabilityView}
-        probabilityDisplayView={probabilityDisplayView}
-        blochVectors={blochVectors}
-        numQubits={previewCircuit.numQubits}
-        onDisplayModeChange={setDisplayMode}
-      />
 
       <WorkbenchProjectPanel
         projects={projects}
