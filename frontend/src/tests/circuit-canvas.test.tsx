@@ -2,7 +2,7 @@
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import CircuitCanvas from "../features/circuit/components/CircuitCanvas";
 import type { CircuitModel } from "../features/circuit/model/types";
@@ -35,7 +35,7 @@ function WorkbenchCanvasHarness() {
     <CircuitCanvas
       circuit={circuit}
       onCircuitChange={pushCircuit}
-      minLayers={8}
+      minLayers={15}
       onUndo={historyState.onUndo}
       onRedo={historyState.onRedo}
       controls={canvasControls}
@@ -44,6 +44,26 @@ function WorkbenchCanvasHarness() {
       onSimulationStepChange={setSimulationStep}
       futureOperationIds={futureOperationIds}
     />
+  );
+}
+
+function LayerRetainHarness() {
+  const [circuit, setCircuit] = useState<CircuitModel>({
+    numQubits: 1,
+    operations: [{ id: "op-tail", gate: "x", targets: [0], layer: 14 }],
+  });
+
+  return (
+    <>
+      <button
+        type="button"
+        data-testid="shrink-circuit"
+        onClick={() => setCircuit({ numQubits: 1, operations: [] })}
+      >
+        shrink
+      </button>
+      <CircuitCanvas circuit={circuit} onCircuitChange={setCircuit} />
+    </>
   );
 }
 
@@ -68,6 +88,33 @@ describe("CircuitCanvas", () => {
     const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
     expect(nextModel.operations[0].gate).toBe("x");
     expect(nextModel.operations[0].targets).toEqual([0]);
+  });
+
+  it("renders 15 columns by default when minLayers is omitted", () => {
+    const model: CircuitModel = { numQubits: 1, operations: [] };
+    render(<CircuitCanvas circuit={model} onCircuitChange={vi.fn()} />);
+
+    expect(screen.getByTestId("canvas-cell-0-14")).toBeInTheDocument();
+    expect(screen.queryByTestId("canvas-cell-0-15")).not.toBeInTheDocument();
+  });
+
+  it("auto expands columns when dragging into the last 3 columns", () => {
+    const model: CircuitModel = { numQubits: 1, operations: [] };
+    render(<CircuitCanvas circuit={model} onCircuitChange={vi.fn()} />);
+
+    expect(screen.queryByTestId("canvas-cell-0-15")).not.toBeInTheDocument();
+    fireEvent.dragOver(screen.getByTestId("canvas-cell-0-12"), {
+      dataTransfer: createGateDragData("h"),
+    });
+    expect(screen.getByTestId("canvas-cell-0-15")).toBeInTheDocument();
+  });
+
+  it("does not shrink visible columns when circuit becomes shorter", () => {
+    render(<LayerRetainHarness />);
+
+    expect(screen.getByTestId("canvas-cell-0-17")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("shrink-circuit"));
+    expect(screen.getByTestId("canvas-cell-0-17")).toBeInTheDocument();
   });
 
   it("shows drag preview feedback for droppable and occupied cells", () => {

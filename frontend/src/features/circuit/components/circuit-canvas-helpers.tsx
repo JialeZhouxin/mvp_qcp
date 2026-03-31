@@ -213,9 +213,9 @@ export function findConnectorOperationAtCell(
 export function computeLayerCount(circuit: CircuitModel, minLayers: number): number {
   const maxLayer = circuit.operations.reduce(
     (max, operation) => Math.max(max, operation.layer),
-    0,
+    -1,
   );
-  return Math.max(minLayers, maxLayer + 2);
+  return Math.max(minLayers, maxLayer + 4);
 }
 
 export function toPendingPlacementMessage(pending: PendingPlacement): LocalizedMessage {

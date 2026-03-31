@@ -11,7 +11,7 @@ import { useCircuitCanvasInteractions } from "./use-circuit-canvas-interactions"
 import { useCircuitCanvasViewport } from "./use-circuit-canvas-viewport";
 import "./CircuitCanvas.css";
 
-const DEFAULT_MIN_LAYERS = 8;
+const DEFAULT_MIN_LAYERS = 15;
 const NOOP_HANDLER = () => {};
 const BELL_TEMPLATE_ID = "bell";
 const SUPERPOSITION_TEMPLATE_ID = "superposition";

@@ -34,7 +34,9 @@ import {
   type ParameterValidationResult,
 } from "./parameter-validation";
 
-const DEFAULT_MIN_LAYERS = 8;
+const DEFAULT_MIN_LAYERS = 15;
+const AUTO_EXPAND_THRESHOLD_LAYERS = 3;
+const AUTO_EXPAND_BUFFER_LAYERS = 3;
 const CELL_WIDTH_PADDING_PX = 10;
 const MIN_CELL_WIDTH_PX = 40;
 
@@ -73,8 +75,9 @@ export function useCircuitCanvasInteractions({
   const [parameterFeedback, setParameterFeedback] = useState<
     Readonly<Record<number, ParameterValidationResult>>
   >({});
-
-  const layers = useMemo(() => computeLayerCount(circuit, minLayers), [circuit, minLayers]);
+  const baseLayerCount = useMemo(() => computeLayerCount(circuit, minLayers), [circuit, minLayers]);
+  const [expandedLayerCount, setExpandedLayerCount] = useState(baseLayerCount);
+  const layers = Math.max(baseLayerCount, expandedLayerCount);
   const qubits = useMemo(
     () => Array.from({ length: circuit.numQubits }, (_, index) => index),
     [circuit.numQubits],
@@ -90,6 +93,10 @@ export function useCircuitCanvasInteractions({
   const selectedOperation = selectedOperationId
     ? circuit.operations.find((operation) => operation.id === selectedOperationId) ?? null
     : null;
+
+  useEffect(() => {
+    setExpandedLayerCount((current) => Math.max(current, baseLayerCount));
+  }, [baseLayerCount]);
 
   useEffect(() => {
     if (!selectedOperationId) {
@@ -149,6 +156,11 @@ export function useCircuitCanvasInteractions({
   const showGateDragPreview = (qubit: number, layer: number) => {
     setIsGateDragging(true);
     setHoveredCellKey(toCellKey(qubit, layer));
+    const remainingLayers = layers - 1 - layer;
+    if (remainingLayers <= AUTO_EXPAND_THRESHOLD_LAYERS) {
+      const requiredLayers = layer + 1 + AUTO_EXPAND_BUFFER_LAYERS;
+      setExpandedLayerCount((current) => Math.max(current, requiredLayers));
+    }
   };
 
   const clearHoveredCell = (qubit: number, layer: number) => {
