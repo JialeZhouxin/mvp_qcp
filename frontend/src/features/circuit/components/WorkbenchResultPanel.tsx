@@ -53,12 +53,10 @@ function WorkbenchResultPanel({
   return (
     <section className="workbench-result-panel" data-testid="workbench-result-panel">
       <div className="workbench-result-panel__header">
-        <div>
-          <h3 className="workbench-result-panel__title">测量结果与布洛赫球</h3>
-          <p className="workbench-result-panel__status">
-            状态：{toSimulationStateLabel(simulationState)} · ε={epsilonText}
-          </p>
-        </div>
+        <h3 className="workbench-result-panel__title">测量结果与布洛赫球</h3>
+        <p className="workbench-result-panel__status">
+          状态：{toSimulationStateLabel(simulationState)} · ε={epsilonText}
+        </p>
       </div>
 
       {simError ? <p className="workbench-result-panel__error">{simError}</p> : null}

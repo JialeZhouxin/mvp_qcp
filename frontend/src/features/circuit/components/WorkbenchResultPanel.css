@@ -12,7 +12,8 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  align-items: flex-start;
+  align-items: baseline;
+  flex-wrap: wrap;
   margin-bottom: 12px;
 }
 
@@ -22,7 +23,7 @@
 }
 
 .workbench-result-panel__status {
-  margin: 4px 0 0 0;
+  margin: 0;
   color: var(--text-muted);
   font-size: 13px;
 }
@@ -143,5 +144,11 @@
 @media (max-width: 1199px) {
   .workbench-result-panel__layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .workbench-result-panel__header {
+    align-items: flex-start;
   }
 }
