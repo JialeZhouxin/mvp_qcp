@@ -224,7 +224,7 @@
 
 .canvas-grid {
   --canvas-gap: calc(6px * var(--canvas-scale));
-  --canvas-wire-empty: var(--border-strong);
+  --canvas-wire-empty: color-mix(in srgb, var(--border-strong) 82%, var(--text-secondary));
   --canvas-wire-connector: var(--text-secondary);
   --canvas-wire-connector-selected: var(--accent-info);
   display: grid;
@@ -248,12 +248,12 @@
 
 .canvas-row-wire {
   position: absolute;
-  left: 0;
+  left: calc(var(--canvas-gap) * -1);
   right: 0;
   top: 50%;
   transform: translateY(-50%);
   border-top: 1px solid var(--canvas-wire-empty);
-  opacity: 0.95;
+  opacity: 1;
   pointer-events: none;
   z-index: 1;
 }
