@@ -85,6 +85,9 @@ function CircuitCanvas({
     showGateDragPreview,
     clearHoveredCell,
     onDropGate,
+    onDragStartOperation,
+    onDragEndOperation,
+    onDropMovedOperation,
     onCellClick,
     onDelete,
     onParamChange,
@@ -123,6 +126,7 @@ function CircuitCanvas({
     showGateDragPreview,
     clearHoveredCell,
     onDropGate,
+    onDropMovedOperation,
   });
   const hasWorkbenchControls = controls !== undefined;
   const canUndoAction = controls?.canUndo ?? false;
@@ -229,6 +233,8 @@ function CircuitCanvas({
         onDragEnterCell={onDragEnterCell}
         onDragOverCell={onDragOverCell}
         onDragLeaveCell={onDragLeaveCell}
+        onDragStartOperation={onDragStartOperation}
+        onDragEndOperation={onDragEndOperation}
         onCellClick={onCellClick}
         onDelete={onDelete}
         onParamChange={onParamChange}

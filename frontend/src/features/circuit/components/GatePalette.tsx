@@ -6,6 +6,7 @@ import {
   type GateCategory,
 } from "../gates/gate-catalog";
 import type { GateName } from "../model/types";
+import { GATE_DRAG_MIME } from "./canvas-drag-mime";
 import GateMatrixTooltip from "./GateMatrixTooltip";
 import { WorkbenchControlButton } from "./WorkbenchControls";
 import "./WorkbenchControls.css";
@@ -72,7 +73,7 @@ function GatePalette({ gates, showMatrixTooltip = true }: GatePaletteProps) {
   }, []);
 
   const onDragStart = (event: DragEvent<HTMLButtonElement>, gate: GateName) => {
-    event.dataTransfer.setData("application/x-qcp-gate", gate);
+    event.dataTransfer.setData(GATE_DRAG_MIME, gate);
     event.dataTransfer.effectAllowed = "copy";
     setIsDragging(true);
     setSuppressedGate(gate);

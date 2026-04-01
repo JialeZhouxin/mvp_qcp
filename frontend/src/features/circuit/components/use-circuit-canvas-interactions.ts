@@ -33,12 +33,30 @@ import {
   validateParameterValue,
   type ParameterValidationResult,
 } from "./parameter-validation";
+import type { OperationMoveDragPayload } from "./canvas-drag-mime";
 
 const DEFAULT_MIN_LAYERS = 15;
 const AUTO_EXPAND_THRESHOLD_LAYERS = 3;
 const AUTO_EXPAND_BUFFER_LAYERS = 3;
 const CELL_WIDTH_PADDING_PX = 10;
 const MIN_CELL_WIDTH_PX = 40;
+
+function shiftQubits(qubits: readonly number[], delta: number): readonly number[] {
+  return qubits.map((qubit) => qubit + delta);
+}
+
+function hasOutOfRangeQubit(qubits: readonly number[], numQubits: number): boolean {
+  return qubits.some((qubit) => qubit < 0 || qubit >= numQubits);
+}
+
+function isSameQubitList(left: readonly number[] | undefined, right: readonly number[] | undefined): boolean {
+  const leftResolved = left ?? [];
+  const rightResolved = right ?? [];
+  if (leftResolved.length !== rightResolved.length) {
+    return false;
+  }
+  return leftResolved.every((value, index) => value === rightResolved[index]);
+}
 
 function computeLayerCellWidths(operations: readonly Operation[], layerCount: number): readonly number[] {
   const widths = Array.from({ length: layerCount }, () => MIN_CELL_WIDTH_PX);
@@ -217,6 +235,62 @@ export function useCircuitCanvasInteractions({
     commitCircuit(next);
   };
 
+  const onDragStartOperation = (operationId: string) => {
+    setPendingPlacement(null);
+    setSelectedOperationId(operationId);
+    setInteractionMessage(null);
+  };
+
+  const onDragEndOperation = () => {
+    clearDragPreview();
+  };
+
+  const onDropMovedOperation = (
+    payload: OperationMoveDragPayload,
+    qubit: number,
+    layer: number,
+  ) => {
+    clearDragPreview();
+    setPendingPlacement(null);
+
+    const operation = circuit.operations.find((item) => item.id === payload.operationId);
+    if (!operation) {
+      return;
+    }
+
+    const deltaQubit = qubit - payload.anchorQubit;
+    const nextTargets = shiftQubits(operation.targets, deltaQubit);
+    const nextControls = operation.controls
+      ? shiftQubits(operation.controls, deltaQubit)
+      : undefined;
+    const movedQubits = [...nextTargets, ...(nextControls ?? [])];
+    if (hasOutOfRangeQubit(movedQubits, circuit.numQubits)) {
+      setInteractionMessage(
+        toCanvasMessage("VALIDATION_ERROR", { reason: "目标位置超出量子比特范围" }),
+      );
+      return;
+    }
+
+    const unchanged =
+      operation.layer === layer &&
+      isSameQubitList(operation.targets, nextTargets) &&
+      isSameQubitList(operation.controls, nextControls);
+    if (unchanged) {
+      setSelectedOperationId(operation.id);
+      return;
+    }
+
+    const next = updateOperation(circuit, operation.id, {
+      layer,
+      targets: nextTargets,
+      controls: nextControls,
+    });
+    if (!commitCircuit(next)) {
+      return;
+    }
+    setSelectedOperationId(operation.id);
+  };
+
   const onDelete = (operationId: string) => {
     const next = removeOperation(circuit, operationId);
     const committed = commitCircuit(next);
@@ -383,6 +457,9 @@ export function useCircuitCanvasInteractions({
     clearHoveredCell,
     clearDragPreview,
     onDropGate,
+    onDragStartOperation,
+    onDragEndOperation,
+    onDropMovedOperation,
     onCellClick,
     onDelete,
     onParamChange,

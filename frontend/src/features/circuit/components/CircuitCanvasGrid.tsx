@@ -10,6 +10,10 @@ import {
 } from "react";
 
 import type { Operation } from "../model/types";
+import {
+  MOVE_OPERATION_DRAG_MIME,
+  encodeOperationMoveDragPayload,
+} from "./canvas-drag-mime";
 import { buildConnectorSpans, findOperationAtCell, GateLabel } from "./circuit-canvas-helpers";
 import { isParameterizedGate } from "./canvas-gate-utils";
 import OperationParameterPanel from "./OperationParameterPanel";
@@ -47,6 +51,8 @@ export interface CircuitCanvasGridProps {
   readonly onDragEnterCell: (event: DragEvent<HTMLDivElement>, qubit: number, layer: number) => void;
   readonly onDragOverCell: (event: DragEvent<HTMLDivElement>, qubit: number, layer: number) => void;
   readonly onDragLeaveCell: (event: DragEvent<HTMLDivElement>, qubit: number, layer: number) => void;
+  readonly onDragStartOperation: (operationId: string) => void;
+  readonly onDragEndOperation: () => void;
   readonly onCellClick: (qubit: number, layer: number) => void;
   readonly onDelete: (operationId: string) => void;
   readonly onParamChange: (index: number, value: number) => void;
@@ -67,6 +73,8 @@ function CircuitCanvasGrid({
   onDragEnterCell,
   onDragOverCell,
   onDragLeaveCell,
+  onDragStartOperation,
+  onDragEndOperation,
   onCellClick,
   onDelete,
   onParamChange,
@@ -197,6 +205,23 @@ function CircuitCanvasGrid({
               return (
                 <div
                   key={`${qubit}-${layer}`}
+                  draggable={operation !== undefined}
+                  onDragStart={(event) => {
+                    if (!operation) {
+                      return;
+                    }
+                    event.dataTransfer.setData(
+                      MOVE_OPERATION_DRAG_MIME,
+                      encodeOperationMoveDragPayload({
+                        operationId: operation.id,
+                        anchorQubit: qubit,
+                        sourceLayer: operation.layer,
+                      }),
+                    );
+                    event.dataTransfer.effectAllowed = "move";
+                    onDragStartOperation(operation.id);
+                  }}
+                  onDragEnd={onDragEndOperation}
                   onDrop={(event) => onDropCell(event, qubit, layer)}
                   onDragEnter={(event) => onDragEnterCell(event, qubit, layer)}
                   onDragOver={(event) => onDragOverCell(event, qubit, layer)}
