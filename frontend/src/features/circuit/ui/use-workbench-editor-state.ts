@@ -16,7 +16,7 @@ import type { ProbabilityDisplayMode } from "../simulation/probability-filter";
 import { useWorkbenchCanvasControls } from "./use-workbench-canvas-controls";
 import { loadWorkbenchDraft } from "./draft-storage";
 import {
-  areCircuitsEquivalent,
+  areCircuitsSemanticallyEquivalent,
   buildInitialState,
   createDefaultCircuit,
   createNextHistoryState,
@@ -120,7 +120,7 @@ export function useWorkbenchEditorState() {
   };
 
   const onValidQasmChange = (nextModel: CircuitModel) => {
-    if (!areCircuitsEquivalent(nextModel, circuit)) {
+    if (!areCircuitsSemanticallyEquivalent(nextModel, circuit)) {
       pushCircuit(nextModel);
     }
   };

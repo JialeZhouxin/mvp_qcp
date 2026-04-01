@@ -39,6 +39,10 @@ export function useCircuitCanvasDragEvents({
   };
 
   const isSupportedDragEvent = (event: DragEvent<HTMLDivElement>): boolean => {
+    const movePayload = getMovePayload(event);
+    if (movePayload) {
+      return true;
+    }
     const types = Array.from(event.dataTransfer?.types ?? []);
     return types.includes(GATE_DRAG_MIME) || types.includes(MOVE_OPERATION_DRAG_MIME);
   };
@@ -85,19 +89,22 @@ export function useCircuitCanvasDragEvents({
   const onDropCell = (event: DragEvent<HTMLDivElement>, qubit: number, layer: number) => {
     event.preventDefault();
 
+    const movePayload = getMovePayload(event);
     const hasMoveType = Array.from(event.dataTransfer?.types ?? []).includes(
       MOVE_OPERATION_DRAG_MIME,
     );
-    if (hasMoveType) {
-      onDropMovedOperation(getMovePayload(event), qubit, layer);
+    if (hasMoveType || movePayload) {
+      onDropMovedOperation(movePayload, qubit, layer);
       return;
     }
 
     const rawGate = event.dataTransfer.getData(GATE_DRAG_MIME);
-    if (!rawGate) {
+    if (rawGate) {
+      onDropGate(rawGate, qubit, layer);
       return;
     }
-    onDropGate(rawGate, qubit, layer);
+
+    onDropMovedOperation(null, qubit, layer);
   };
 
   return {

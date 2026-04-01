@@ -188,6 +188,59 @@ describe("useWorkbenchEditorState", () => {
     expect(getEditorState().simulationStep).toBe(2);
   });
 
+  it("records layer-only changes pushed from canvas path", () => {
+    const { result } = renderHook(() => useWorkbenchEditorState());
+
+    act(() => {
+      result.current.replaceFromProject({
+        circuit: {
+          numQubits: 1,
+          operations: [{ id: "op-layer", gate: "x", targets: [0], layer: 2 }],
+        },
+        qasm: "OPENQASM 3;\nqubit[1] q;\nx q[0];",
+        displayMode: "FILTERED",
+      });
+    });
+
+    expect(result.current.historyState.canUndo).toBe(false);
+    expect(result.current.circuit.operations[0]?.layer).toBe(2);
+
+    act(() => {
+      result.current.pushCircuit({
+        numQubits: 1,
+        operations: [{ id: "op-layer", gate: "x", targets: [0], layer: 3 }],
+      });
+    });
+
+    expect(result.current.circuit.operations[0]?.layer).toBe(3);
+    expect(result.current.historyState.canUndo).toBe(true);
+  });
+
+  it("ignores qasm updates that are semantically same but differ only by layer layout", () => {
+    const { result } = renderHook(() => useWorkbenchEditorState());
+
+    act(() => {
+      result.current.replaceFromProject({
+        circuit: {
+          numQubits: 1,
+          operations: [{ id: "op-layer", gate: "x", targets: [0], layer: 2 }],
+        },
+        qasm: "OPENQASM 3;\nqubit[1] q;\nx q[0];",
+        displayMode: "FILTERED",
+      });
+    });
+
+    act(() => {
+      result.current.onValidQasmChange({
+        numQubits: 1,
+        operations: [{ id: "op-layer-next", gate: "x", targets: [0], layer: 3 }],
+      });
+    });
+
+    expect(result.current.circuit.operations[0]?.layer).toBe(2);
+    expect(result.current.historyState.canUndo).toBe(false);
+  });
+
   it("blocks qubit decrease when higher qubits are still referenced", () => {
     const { result } = renderHook(() => useWorkbenchEditorState());
 

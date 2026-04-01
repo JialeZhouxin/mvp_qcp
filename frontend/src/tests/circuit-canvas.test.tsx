@@ -58,6 +58,45 @@ function WorkbenchCanvasHarness() {
   );
 }
 
+function WorkbenchMoveLayerHarness() {
+  const {
+    circuit,
+    historyState,
+    canvasControls,
+    pushCircuit,
+    simulationStep,
+    setSimulationStep,
+    replaceFromProject,
+  } = useWorkbenchEditorState();
+  const futureOperationIds = getFutureOperationIdsAtSimulationStep(circuit, simulationStep);
+
+  useEffect(() => {
+    replaceFromProject({
+      circuit: {
+        numQubits: 1,
+        operations: [{ id: "op-layer-move", gate: "x", targets: [0], layer: 2 }],
+      },
+      qasm: "OPENQASM 3;\nqubit[1] q;\nx q[0];",
+      displayMode: "FILTERED",
+    });
+  }, []);
+
+  return (
+    <CircuitCanvas
+      circuit={circuit}
+      onCircuitChange={pushCircuit}
+      minLayers={15}
+      onUndo={historyState.onUndo}
+      onRedo={historyState.onRedo}
+      controls={canvasControls}
+      simulationStep={simulationStep}
+      totalSimulationSteps={circuit.operations.length}
+      onSimulationStepChange={setSimulationStep}
+      futureOperationIds={futureOperationIds}
+    />
+  );
+}
+
 function LayerRetainHarness() {
   const [circuit, setCircuit] = useState<CircuitModel>({
     numQubits: 1,
@@ -101,6 +140,24 @@ describe("CircuitCanvas", () => {
     expect(nextModel.operations[0].targets).toEqual([0]);
   });
 
+  it("moves gate to a later empty column through workbench editor state", () => {
+    render(<WorkbenchMoveLayerHarness />);
+
+    expect(screen.getByTestId("canvas-cell-0-2")).toHaveTextContent("X");
+    expect(screen.getByTestId("canvas-cell-0-3")).not.toHaveTextContent("X");
+
+    fireEvent.drop(screen.getByTestId("canvas-cell-0-3"), {
+      dataTransfer: createMoveOperationDragData({
+        operationId: "op-layer-move",
+        anchorQubit: 0,
+        sourceLayer: 2,
+      }),
+    });
+
+    expect(screen.getByTestId("canvas-cell-0-2")).not.toHaveTextContent("X");
+    expect(screen.getByTestId("canvas-cell-0-3")).toHaveTextContent("X");
+  });
+
   it("moves a single-qubit gate inside the canvas", () => {
     const model: CircuitModel = {
       numQubits: 2,
@@ -121,6 +178,63 @@ describe("CircuitCanvas", () => {
     const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
     expect(nextModel.operations[0].layer).toBe(2);
     expect(nextModel.operations[0].targets).toEqual([1]);
+  });
+
+  it("moves a gate when drop event misses move MIME type but payload is present", () => {
+    const model: CircuitModel = {
+      numQubits: 1,
+      operations: [{ id: "op-1", gate: "x", targets: [0], layer: 2 }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={6} />);
+
+    fireEvent.drop(screen.getByTestId("canvas-cell-0-3"), {
+      dataTransfer: {
+        types: [],
+        getData: (type: string) =>
+          type === MOVE_OPERATION_DRAG_MIME
+            ? JSON.stringify({
+                operationId: "op-1",
+                anchorQubit: 0,
+                sourceLayer: 2,
+              })
+            : "",
+      },
+    });
+
+    expect(onCircuitChange).toHaveBeenCalledTimes(1);
+    const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
+    expect(nextModel.operations[0].layer).toBe(3);
+    expect(nextModel.operations[0].targets).toEqual([0]);
+  });
+
+  it("moves a gate with active drag payload fallback when drop payload is missing", () => {
+    const model: CircuitModel = {
+      numQubits: 1,
+      operations: [{ id: "op-1", gate: "x", targets: [0], layer: 2 }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={6} />);
+
+    fireEvent.dragStart(screen.getByTestId("canvas-cell-0-2"), {
+      dataTransfer: {
+        setData: vi.fn(),
+        getData: () => "",
+        effectAllowed: "move",
+      },
+    });
+
+    fireEvent.drop(screen.getByTestId("canvas-cell-0-3"), {
+      dataTransfer: {
+        types: [],
+        getData: () => "",
+      },
+    });
+
+    expect(onCircuitChange).toHaveBeenCalledTimes(1);
+    const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
+    expect(nextModel.operations[0].layer).toBe(3);
+    expect(nextModel.operations[0].targets).toEqual([0]);
   });
 
   it("moves a multi-qubit gate by anchor offset", () => {
