@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import { toErrorMessage } from "../../api/errors";
-import { getTaskCenterDetail } from "../../api/task-center";
 import { getTaskResult } from "../../api/tasks";
 import { isFailureTaskStatus } from "../../lib/task-status";
-import { useTaskRuntime } from "../task-runtime/use-task-runtime";
+import { getTaskDiagnosticText, useTaskRuntime } from "../task-runtime";
 
 export function useCodeTaskRun(code: string) {
   const [resultText, setResultText] = useState("");
@@ -51,18 +50,8 @@ export function useCodeTaskRun(code: string) {
   };
 
   const loadTaskDiagnostic = async (currentTaskId: number) => {
-    try {
-      const detail = await getTaskCenterDetail(currentTaskId);
-      if (!detail.diagnostic) {
-        setDiagnosticText(null);
-        return;
-      }
-      const line = `[${detail.diagnostic.code}] ${detail.diagnostic.summary ?? detail.diagnostic.message}`;
-      const tips = detail.diagnostic.suggestions.join("；");
-      setDiagnosticText(tips ? `${line} | 建议：${tips}` : line);
-    } catch {
-      setDiagnosticText(null);
-    }
+    const diagnostic = await getTaskDiagnosticText(currentTaskId);
+    setDiagnosticText(diagnostic);
   };
 
   useEffect(() => {

@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 
@@ -25,7 +26,7 @@ def test_task_use_cases_do_not_depend_on_fastapi_or_infrastructure_modules() -> 
     assert "from app.queue" not in source
     assert "from app.worker" not in source
     assert "select(" not in source
-    assert "from app.models.task import Task" not in source
+    assert re.search(r"from app\.models\.task import .*\bTask\b", source) is None
     assert "from sqlmodel import Session" not in source
 
 
@@ -74,7 +75,8 @@ def test_task_submit_provider_is_not_kept_under_use_cases() -> None:
     assert not (ROOT / "app" / "use_cases" / "task_submit_provider.py").exists()
 
     tasks_api_source = _read("app", "api", "tasks.py")
-    assert "from app.dependencies.task_submit import build_submit_task_use_case" in tasks_api_source
+    assert "from app.dependencies.task_submit import" in tasks_api_source
+    assert "build_submit_task_use_case" in tasks_api_source
 
 
 def test_legacy_task_query_compatibility_service_is_removed() -> None:

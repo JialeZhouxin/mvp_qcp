@@ -1,10 +1,15 @@
-from typing import Protocol
+import json
+from collections.abc import Callable
+from typing import Any, Protocol
 
 from app.models.task import TaskType
+from app.services.circuit_executor_heartbeat import is_circuit_executor_available
+from app.services.circuit_payload import CircuitPayloadValidationError, normalize_circuit_payload
 from app.services.task_submit_service import TaskSubmitService
 from app.services.task_query_models import UserTaskResultView, UserTaskStatusView
 from app.services.task_query_service import TaskAccessDeniedError, TaskNotFoundError
 from app.services.task_submit_shared import (
+    TaskSubmitDependencyUnavailableError,
     TaskSubmitCommand,
     TaskSubmitOutcome,
     TaskSubmitOverloadedError,
@@ -38,16 +43,40 @@ class SubmitTaskUseCase:
 
 
 class SubmitCircuitTaskUseCase:
-    def __init__(self, service: TaskSubmitService) -> None:
+    def __init__(
+        self,
+        service: TaskSubmitService,
+        *,
+        availability_checker: Callable[[], bool] | None = None,
+        payload_normalizer: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+    ) -> None:
         self._service = service
+        self._availability_checker = availability_checker or is_circuit_executor_available
+        self._payload_normalizer = payload_normalizer or normalize_circuit_payload
 
-    def execute(self, tenant_id: int, user_id: int, payload_json: str, idempotency_key: str | None) -> TaskSubmitOutcome:
+    def execute(
+        self,
+        tenant_id: int,
+        user_id: int,
+        payload: dict[str, Any],
+        idempotency_key: str | None,
+    ) -> TaskSubmitOutcome:
+        if not self._availability_checker():
+            raise TaskSubmitDependencyUnavailableError(
+                code="CIRCUIT_EXECUTOR_UNAVAILABLE",
+                message="circuit executor unavailable",
+            )
+        try:
+            normalized_payload = self._payload_normalizer(payload)
+        except CircuitPayloadValidationError as exc:
+            raise TaskSubmitValidationError(code=exc.code, message=exc.message) from exc
+
         return self._service.submit(
             TaskSubmitCommand(
                 tenant_id=tenant_id,
                 user_id=user_id,
                 task_type=TaskType.CIRCUIT,
-                payload_json=payload_json,
+                payload_json=json.dumps(normalized_payload, ensure_ascii=False, separators=(",", ":")),
                 raw_idempotency_key=idempotency_key,
             )
         )
@@ -75,6 +104,7 @@ __all__ = [
     "SubmitCircuitTaskUseCase",
     "SubmitTaskUseCase",
     "TaskAccessDeniedError",
+    "TaskSubmitDependencyUnavailableError",
     "TaskNotFoundError",
     "TaskSubmitOverloadedError",
     "TaskSubmitQueuePublishError",

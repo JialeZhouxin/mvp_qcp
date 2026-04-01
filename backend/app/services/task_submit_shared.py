@@ -53,3 +53,7 @@ class TaskSubmitOverloadedError(TaskSubmitError):
 
 class TaskSubmitQueuePublishError(TaskSubmitError):
     pass
+
+
+class TaskSubmitDependencyUnavailableError(TaskSubmitError):
+    pass

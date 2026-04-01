@@ -52,7 +52,7 @@ def _auth_headers(username: str, password: str = "pass123456") -> dict[str, str]
 
 def test_circuit_submit_requires_live_circuit_executor(monkeypatch) -> None:
     monkeypatch.setattr(
-        "app.api.tasks.is_circuit_executor_available",
+        "app.use_cases.task_use_cases.is_circuit_executor_available",
         lambda *_args, **_kwargs: False,
     )
 
@@ -81,7 +81,7 @@ def test_circuit_submit_persists_circuit_task_and_routes_to_circuit_queue(monkey
             queued["job_timeout"] = job_timeout
 
     monkeypatch.setattr(
-        "app.api.tasks.is_circuit_executor_available",
+        "app.use_cases.task_use_cases.is_circuit_executor_available",
         lambda *_args, **_kwargs: True,
     )
     monkeypatch.setattr("app.dependencies.task_submit.get_circuit_task_queue", lambda: QueueStub())

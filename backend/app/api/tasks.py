@@ -1,5 +1,3 @@
-import json
-
 from fastapi import APIRouter, Depends, HTTPException, Header, status
 from sqlmodel import Session
 
@@ -14,9 +12,8 @@ from app.schemas.task import (
     TaskSubmitRequest,
     TaskSubmitResponse,
 )
-from app.services.circuit_executor_heartbeat import is_circuit_executor_available
-from app.services.circuit_payload import CircuitPayloadValidationError, normalize_circuit_payload
 from app.services.task_submit_shared import (
+    TaskSubmitDependencyUnavailableError,
     TaskSubmitOverloadedError,
     TaskSubmitQueuePublishError,
     TaskSubmitValidationError,
@@ -32,6 +29,29 @@ from app.use_cases.task_use_cases import (
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 
+def _raise_submit_error(exc: Exception) -> None:
+    if isinstance(exc, TaskSubmitValidationError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    if isinstance(exc, TaskSubmitDependencyUnavailableError):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    if isinstance(exc, TaskSubmitOverloadedError):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": exc.code, "message": "task queue overloaded"},
+        ) from exc
+    if isinstance(exc, TaskSubmitQueuePublishError):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": exc.code, "message": "task enqueue failed"},
+        ) from exc
+
+
 @router.post("/submit", response_model=TaskSubmitResponse)
 def submit_task(
     payload: TaskSubmitRequest,
@@ -43,21 +63,13 @@ def submit_task(
 
     try:
         outcome = use_case.execute(current_user.tenant_id, int(current_user.id or 0), payload.code, idempotency_key)
-    except TaskSubmitValidationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": exc.code, "message": exc.message},
-        ) from exc
-    except TaskSubmitOverloadedError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"code": exc.code, "message": "task queue overloaded"},
-        ) from exc
-    except TaskSubmitQueuePublishError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"code": exc.code, "message": "task enqueue failed"},
-        ) from exc
+    except (
+        TaskSubmitValidationError,
+        TaskSubmitDependencyUnavailableError,
+        TaskSubmitOverloadedError,
+        TaskSubmitQueuePublishError,
+    ) as exc:
+        _raise_submit_error(exc)
 
     return TaskSubmitResponse(
         task_id=outcome.task_id,
@@ -74,44 +86,22 @@ def submit_circuit_task(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> TaskSubmitResponse:
-    if not is_circuit_executor_available():
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"code": "CIRCUIT_EXECUTOR_UNAVAILABLE", "message": "circuit executor unavailable"},
-        )
-
-    try:
-        normalized_payload = normalize_circuit_payload(payload.model_dump())
-    except CircuitPayloadValidationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": exc.code, "message": exc.message},
-        ) from exc
-
     use_case = build_submit_circuit_task_use_case(session)
 
     try:
         outcome = use_case.execute(
             current_user.tenant_id,
             int(current_user.id or 0),
-            json.dumps(normalized_payload, ensure_ascii=False, separators=(",", ":")),
+            payload.model_dump(),
             idempotency_key,
         )
-    except TaskSubmitValidationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": exc.code, "message": exc.message},
-        ) from exc
-    except TaskSubmitOverloadedError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"code": exc.code, "message": "task queue overloaded"},
-        ) from exc
-    except TaskSubmitQueuePublishError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"code": exc.code, "message": "task enqueue failed"},
-        ) from exc
+    except (
+        TaskSubmitValidationError,
+        TaskSubmitDependencyUnavailableError,
+        TaskSubmitOverloadedError,
+        TaskSubmitQueuePublishError,
+    ) as exc:
+        _raise_submit_error(exc)
 
     return TaskSubmitResponse(
         task_id=outcome.task_id,

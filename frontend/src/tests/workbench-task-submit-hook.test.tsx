@@ -136,7 +136,7 @@ describe("useWorkbenchTaskSubmit", () => {
     });
 
     expect(screen.getByTestId("task-status")).toHaveTextContent("RUNNING");
-    expect(screen.getByTestId("task-label")).toHaveTextContent("执行中");
+    expect(screen.getByTestId("task-label")).toHaveTextContent("运行中");
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2000);

@@ -4,7 +4,7 @@ import { submitCircuitTask, type CircuitTaskSubmitRequest, type TaskSubmitRespon
 import {
   useTaskRuntime,
   type UseTaskRuntimeDeps,
-} from "../../task-runtime/use-task-runtime";
+} from "../../task-runtime";
 import { validateCircuitModel } from "../model/circuit-validation";
 import type { CircuitModel } from "../model/types";
 import type { QasmParseError } from "../qasm/qasm-errors";
