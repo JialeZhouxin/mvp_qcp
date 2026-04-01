@@ -654,3 +654,44 @@
   outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
 }
+
+.canvas-inline-params-panel {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
+  width: 220px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-panel);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+}
+
+.canvas-inline-params-panel__close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--surface-panel);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.canvas-inline-params-panel__close:hover {
+  color: var(--accent-danger);
+  background: color-mix(in srgb, var(--surface-panel) 80%, var(--accent-danger));
+}
+
+.canvas-inline-params-panel__close:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}

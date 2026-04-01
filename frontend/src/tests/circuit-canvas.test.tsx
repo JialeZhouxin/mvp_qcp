@@ -1,4 +1,4 @@
-﻿import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -16,7 +16,6 @@ const createGateDragData = (gate: string) => ({
   types: [GATE_DRAG_MIME],
   getData: (type: string) => (type === GATE_DRAG_MIME ? gate : ""),
 });
-
 const createMoveOperationDragData = (payload: {
   operationId: string;
   anchorQubit: number;
@@ -1108,6 +1107,53 @@ describe("CircuitCanvas", () => {
     expect(screen.getByTestId("operation-params-panel")).toBeInTheDocument();
   });
 
+  it("allows closing inline parameter editor and reopening it by clicking the same gate", () => {
+    const model: CircuitModel = {
+      numQubits: 1,
+      operations: [{ id: "op-rx", gate: "rx", targets: [0], layer: 0, params: [0] }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    const cell = screen.getByTestId("canvas-cell-0-0");
+    fireEvent.click(cell);
+    expect(screen.getByTestId("inline-operation-params-panel")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("inline-operation-params-close"));
+    expect(screen.queryByTestId("inline-operation-params-panel")).not.toBeInTheDocument();
+    expect(screen.getByTestId("operation-params-panel")).toBeInTheDocument();
+
+    fireEvent.click(cell);
+    expect(screen.getByTestId("inline-operation-params-panel")).toBeInTheDocument();
+  });
+
+  it("temporarily hides inline parameter editor on long press and restores on release", () => {
+    vi.useFakeTimers();
+    try {
+      const model: CircuitModel = {
+        numQubits: 1,
+        operations: [{ id: "op-rx", gate: "rx", targets: [0], layer: 0, params: [0] }],
+      };
+      const onCircuitChange = vi.fn();
+      render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+      const cell = screen.getByTestId("canvas-cell-0-0");
+      fireEvent.click(cell);
+      expect(screen.getByTestId("inline-operation-params-panel")).toBeInTheDocument();
+
+      fireEvent.pointerDown(cell);
+      act(() => {
+        vi.advanceTimersByTime(181);
+      });
+      expect(screen.queryByTestId("inline-operation-params-panel")).not.toBeInTheDocument();
+
+      fireEvent.pointerUp(cell);
+      expect(screen.getByTestId("inline-operation-params-panel")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps inline editor and side panel parameter values in sync", () => {
     const model: CircuitModel = {
       numQubits: 1,
@@ -1172,3 +1218,4 @@ describe("CircuitCanvas", () => {
     expect(within(inlinePanel).getByTestId("param-error-0")).toBeInTheDocument();
   });
 });
+

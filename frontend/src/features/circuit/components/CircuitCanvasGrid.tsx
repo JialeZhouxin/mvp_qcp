@@ -41,6 +41,7 @@ interface ConnectorLine {
 }
 
 const EMPTY_OPERATION_IDS: readonly string[] = [];
+const INLINE_PANEL_LONG_PRESS_MS = 180;
 
 interface MovedOperationPreview {
   readonly operationId: string;
@@ -100,6 +101,14 @@ function CircuitCanvasGrid({
   const cellRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 });
   const [connectorLines, setConnectorLines] = useState<readonly ConnectorLine[]>([]);
+  const [dismissedInlineOperationId, setDismissedInlineOperationId] = useState<string | null>(
+    null,
+  );
+  const [temporarilyHiddenInlineOperationId, setTemporarilyHiddenInlineOperationId] = useState<
+    string | null
+  >(null);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressOperationIdRef = useRef<string | null>(null);
 
   const connectorSpans = useMemo(() => buildConnectorSpans(circuit.operations), [circuit.operations]);
   const resolvedFutureOperationIds = futureOperationIds ?? EMPTY_OPERATION_IDS;
@@ -116,6 +125,52 @@ function CircuitCanvasGrid({
     }
     cellRefs.current.delete(key);
   }, []);
+
+  const clearInlineLongPressTimer = useCallback(() => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const beginInlineLongPressHide = useCallback(
+    (operation: Operation | undefined, qubit: number) => {
+      if (
+        !operation ||
+        selectedOperationId !== operation.id ||
+        !isParameterizedGate(operation.gate) ||
+        !isInlineAnchorCell(operation, qubit)
+      ) {
+        return;
+      }
+      clearInlineLongPressTimer();
+      longPressOperationIdRef.current = operation.id;
+      longPressTimerRef.current = window.setTimeout(() => {
+        setTemporarilyHiddenInlineOperationId(operation.id);
+        longPressTimerRef.current = null;
+      }, INLINE_PANEL_LONG_PRESS_MS);
+    },
+    [clearInlineLongPressTimer, selectedOperationId],
+  );
+
+  const endInlineLongPressHide = useCallback(() => {
+    clearInlineLongPressTimer();
+    const operationId = longPressOperationIdRef.current;
+    longPressOperationIdRef.current = null;
+    if (!operationId) {
+      return;
+    }
+    setTemporarilyHiddenInlineOperationId((current) =>
+      current === operationId ? null : current,
+    );
+  }, [clearInlineLongPressTimer]);
+
+  useEffect(
+    () => () => {
+      clearInlineLongPressTimer();
+    },
+    [clearInlineLongPressTimer],
+  );
 
   const recomputeConnectorLines = useCallback(() => {
     const grid = gridRef.current;
@@ -259,13 +314,33 @@ function CircuitCanvasGrid({
               const draggedOperation = operation ?? connectorOperation;
               const isSelectedOperation =
                 selectedOperationId !== null && operation?.id === selectedOperationId;
+              const isInlineParameterAnchor =
+                operation &&
+                isSelectedOperation &&
+                isParameterizedGate(operation.gate) &&
+                isInlineAnchorCell(operation, qubit);
+              const isInlinePanelVisible =
+                isInlineParameterAnchor &&
+                dismissedInlineOperationId !== operation.id &&
+                temporarilyHiddenInlineOperationId !== operation.id;
               return (
                 <div
                   key={`${qubit}-${layer}`}
                   draggable={draggedOperation !== undefined}
+                  onPointerDown={() => beginInlineLongPressHide(operation, qubit)}
+                  onPointerUp={endInlineLongPressHide}
+                  onPointerCancel={endInlineLongPressHide}
                   onDragStart={(event) => {
                     if (!draggedOperation) {
                       return;
+                    }
+                    clearInlineLongPressTimer();
+                    longPressOperationIdRef.current = null;
+                    if (
+                      selectedOperationId === draggedOperation.id &&
+                      isParameterizedGate(draggedOperation.gate)
+                    ) {
+                      setTemporarilyHiddenInlineOperationId(draggedOperation.id);
                     }
                     event.dataTransfer.setData(
                       MOVE_OPERATION_DRAG_MIME,
@@ -282,12 +357,28 @@ function CircuitCanvasGrid({
                       sourceLayer: draggedOperation.layer,
                     });
                   }}
-                  onDragEnd={onDragEndOperation}
+                  onDragEnd={() => {
+                    if (
+                      draggedOperation &&
+                      selectedOperationId === draggedOperation.id &&
+                      isParameterizedGate(draggedOperation.gate)
+                    ) {
+                      setTemporarilyHiddenInlineOperationId((current) =>
+                        current === draggedOperation.id ? null : current,
+                      );
+                    }
+                    onDragEndOperation();
+                  }}
                   onDrop={(event) => onDropCell(event, qubit, layer)}
                   onDragEnter={(event) => onDragEnterCell(event, qubit, layer)}
                   onDragOver={(event) => onDragOverCell(event, qubit, layer)}
                   onDragLeave={(event) => onDragLeaveCell(event, qubit, layer)}
-                  onClick={() => onCellClick(qubit, layer)}
+                  onClick={() => {
+                    if (operation?.id === dismissedInlineOperationId) {
+                      setDismissedInlineOperationId(null);
+                    }
+                    onCellClick(qubit, layer);
+                  }}
                   className={getCellClassName(operation, qubit, layer)}
                   style={{
                     "--canvas-cell-width": `${layerCellWidths[layer] ?? 40}px`,
@@ -297,26 +388,31 @@ function CircuitCanvasGrid({
                   data-testid={`canvas-cell-${qubit}-${layer}`}
                 >
                   {operation ? <GateLabel operation={operation} qubit={qubit} /> : null}
-                  {operation &&
-                  isSelectedOperation &&
-                  isParameterizedGate(operation.gate) &&
-                  isInlineAnchorCell(operation, qubit) ? (
+                  {operation && isInlinePanelVisible ? (
                     <div
-                      style={{
-                        position: "absolute",
-                        left: "calc(100% + 8px)",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        zIndex: 3,
-                        width: 220,
-                        padding: 8,
-                        borderRadius: 6,
-                        border: "1px solid var(--border-subtle)",
-                        background: "var(--surface-panel)",
-                        boxShadow: "0 6px 18px rgba(15, 23, 42, 0.12)",
-                      }}
+                      className="canvas-inline-params-panel"
                       onClick={(event) => event.stopPropagation()}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onDragStart={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                      }}
                     >
+                      <button
+                        type="button"
+                        className="canvas-inline-params-panel__close"
+                        data-testid="inline-operation-params-close"
+                        aria-label="Close parameter panel"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setDismissedInlineOperationId(operation.id);
+                          setTemporarilyHiddenInlineOperationId((current) =>
+                            current === operation.id ? null : current,
+                          );
+                        }}
+                      >
+                        {"\u00d7"}
+                      </button>
                       <OperationParameterPanel
                         operation={operation}
                         values={activeParameterValues}
