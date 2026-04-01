@@ -79,6 +79,7 @@ function CircuitCanvas({
     selectedOperation,
     parameterFeedback,
     activeParameterValues,
+    movedOperationPreview,
     qubits,
     layerIndexes,
     layerCellWidths,
@@ -226,6 +227,7 @@ function CircuitCanvas({
         layerCellWidths={layerCellWidths}
         selectedOperationId={selectedOperationId}
         futureOperationIds={futureOperationIds}
+        movedOperationPreview={movedOperationPreview}
         activeParameterValues={activeParameterValues}
         parameterFeedback={parameterFeedback}
         getCellClassName={getCellClassName}

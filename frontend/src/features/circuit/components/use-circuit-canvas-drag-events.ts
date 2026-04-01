@@ -8,11 +8,15 @@ import {
 } from "./canvas-drag-mime";
 
 interface UseCircuitCanvasDragEventsOptions {
-  readonly showGateDragPreview: (qubit: number, layer: number) => void;
+  readonly showGateDragPreview: (
+    qubit: number,
+    layer: number,
+    payload?: OperationMoveDragPayload | null,
+  ) => void;
   readonly clearHoveredCell: (qubit: number, layer: number) => void;
   readonly onDropGate: (rawGate: string, qubit: number, layer: number) => void;
   readonly onDropMovedOperation: (
-    payload: OperationMoveDragPayload,
+    payload: OperationMoveDragPayload | null,
     qubit: number,
     layer: number,
   ) => void;
@@ -24,6 +28,16 @@ export function useCircuitCanvasDragEvents({
   onDropGate,
   onDropMovedOperation,
 }: UseCircuitCanvasDragEventsOptions) {
+  const getMovePayload = (
+    event: DragEvent<HTMLDivElement>,
+  ): OperationMoveDragPayload | null => {
+    const raw = event.dataTransfer.getData(MOVE_OPERATION_DRAG_MIME);
+    if (!raw) {
+      return null;
+    }
+    return decodeOperationMoveDragPayload(raw);
+  };
+
   const isSupportedDragEvent = (event: DragEvent<HTMLDivElement>): boolean => {
     const types = Array.from(event.dataTransfer?.types ?? []);
     return types.includes(GATE_DRAG_MIME) || types.includes(MOVE_OPERATION_DRAG_MIME);
@@ -38,7 +52,7 @@ export function useCircuitCanvasDragEvents({
     if (!isSupportedDragEvent(event)) {
       return;
     }
-    showGateDragPreview(qubit, layer);
+    showGateDragPreview(qubit, layer, getMovePayload(event));
   };
 
   const onDragOverCell = (
@@ -50,7 +64,7 @@ export function useCircuitCanvasDragEvents({
     if (!isSupportedDragEvent(event)) {
       return;
     }
-    showGateDragPreview(qubit, layer);
+    showGateDragPreview(qubit, layer, getMovePayload(event));
   };
 
   const onDragLeaveCell = (
@@ -71,13 +85,12 @@ export function useCircuitCanvasDragEvents({
   const onDropCell = (event: DragEvent<HTMLDivElement>, qubit: number, layer: number) => {
     event.preventDefault();
 
-    const rawMovePayload = event.dataTransfer.getData(MOVE_OPERATION_DRAG_MIME);
-    if (rawMovePayload) {
-      const payload = decodeOperationMoveDragPayload(rawMovePayload);
-      if (payload) {
-        onDropMovedOperation(payload, qubit, layer);
-        return;
-      }
+    const hasMoveType = Array.from(event.dataTransfer?.types ?? []).includes(
+      MOVE_OPERATION_DRAG_MIME,
+    );
+    if (hasMoveType) {
+      onDropMovedOperation(getMovePayload(event), qubit, layer);
+      return;
     }
 
     const rawGate = event.dataTransfer.getData(GATE_DRAG_MIME);

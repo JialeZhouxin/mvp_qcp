@@ -11,10 +11,16 @@ import {
 
 import type { Operation } from "../model/types";
 import {
+  type OperationMoveDragPayload,
   MOVE_OPERATION_DRAG_MIME,
   encodeOperationMoveDragPayload,
 } from "./canvas-drag-mime";
-import { buildConnectorSpans, findOperationAtCell, GateLabel } from "./circuit-canvas-helpers";
+import {
+  buildConnectorSpans,
+  findConnectorOperationAtCell,
+  findOperationAtCell,
+  GateLabel,
+} from "./circuit-canvas-helpers";
 import { isParameterizedGate } from "./canvas-gate-utils";
 import OperationParameterPanel from "./OperationParameterPanel";
 import type { ParameterValidationResult } from "./parameter-validation";
@@ -25,7 +31,8 @@ function isInlineAnchorCell(operation: Operation, qubit: number): boolean {
 }
 
 interface ConnectorLine {
-  readonly operationId: string;
+  readonly operationId?: string;
+  readonly preview: boolean;
   readonly x: number;
   readonly y1: number;
   readonly y2: number;
@@ -34,6 +41,13 @@ interface ConnectorLine {
 }
 
 const EMPTY_OPERATION_IDS: readonly string[] = [];
+
+interface MovedOperationPreview {
+  readonly operationId: string;
+  readonly layer: number;
+  readonly targets: readonly number[];
+  readonly controls?: readonly number[];
+}
 
 export interface CircuitCanvasGridProps {
   readonly circuit: {
@@ -44,6 +58,7 @@ export interface CircuitCanvasGridProps {
   readonly layerCellWidths: readonly number[];
   readonly selectedOperationId: string | null;
   readonly futureOperationIds?: readonly string[];
+  readonly movedOperationPreview: MovedOperationPreview | null;
   readonly activeParameterValues: readonly number[];
   readonly parameterFeedback: Readonly<Record<number, ParameterValidationResult>>;
   readonly getCellClassName: (operation: Operation | undefined, qubit: number, layer: number) => string;
@@ -51,7 +66,7 @@ export interface CircuitCanvasGridProps {
   readonly onDragEnterCell: (event: DragEvent<HTMLDivElement>, qubit: number, layer: number) => void;
   readonly onDragOverCell: (event: DragEvent<HTMLDivElement>, qubit: number, layer: number) => void;
   readonly onDragLeaveCell: (event: DragEvent<HTMLDivElement>, qubit: number, layer: number) => void;
-  readonly onDragStartOperation: (operationId: string) => void;
+  readonly onDragStartOperation: (payload: OperationMoveDragPayload) => void;
   readonly onDragEndOperation: () => void;
   readonly onCellClick: (qubit: number, layer: number) => void;
   readonly onDelete: (operationId: string) => void;
@@ -66,6 +81,7 @@ function CircuitCanvasGrid({
   layerCellWidths,
   selectedOperationId,
   futureOperationIds,
+  movedOperationPreview,
   activeParameterValues,
   parameterFeedback,
   getCellClassName,
@@ -120,6 +136,7 @@ function CircuitCanvasGrid({
         const endRect = endCell.getBoundingClientRect();
 
         return {
+          preview: false,
           operationId: span.operationId,
           x: startRect.left + startRect.width / 2 - gridRect.left,
           y1: startRect.top + startRect.height / 2 - gridRect.top,
@@ -130,12 +147,37 @@ function CircuitCanvasGrid({
       })
       .filter((line): line is ConnectorLine => line !== null);
 
+    if (movedOperationPreview) {
+      const touchedQubits = [
+        ...movedOperationPreview.targets,
+        ...(movedOperationPreview.controls ?? []),
+      ];
+      if (touchedQubits.length >= 2) {
+        const minQubit = Math.min(...touchedQubits);
+        const maxQubit = Math.max(...touchedQubits);
+        const startCell = cellRefs.current.get(`${minQubit}-${movedOperationPreview.layer}`);
+        const endCell = cellRefs.current.get(`${maxQubit}-${movedOperationPreview.layer}`);
+        if (startCell && endCell) {
+          const startRect = startCell.getBoundingClientRect();
+          const endRect = endCell.getBoundingClientRect();
+          nextLines.push({
+            preview: true,
+            x: startRect.left + startRect.width / 2 - gridRect.left,
+            y1: startRect.top + startRect.height / 2 - gridRect.top,
+            y2: endRect.top + endRect.height / 2 - gridRect.top,
+            selected: false,
+            future: false,
+          });
+        }
+      }
+    }
+
     setOverlaySize({
       width: Math.max(0, grid.clientWidth),
       height: Math.max(0, grid.clientHeight),
     });
     setConnectorLines(nextLines);
-  }, [connectorSpans, futureOperationSet, selectedOperationId]);
+  }, [connectorSpans, futureOperationSet, movedOperationPreview, selectedOperationId]);
 
   useLayoutEffect(() => {
     recomputeConnectorLines();
@@ -173,12 +215,21 @@ function CircuitCanvasGrid({
       >
         {connectorLines.map((line) => (
           <line
-            key={`connector-line-${line.operationId}`}
-            data-testid={`canvas-connector-line-${line.operationId}`}
+            key={
+              line.preview
+                ? "connector-line-preview"
+                : `connector-line-${line.operationId ?? "unknown"}`
+            }
+            data-testid={
+              line.preview
+                ? "canvas-connector-line-preview"
+                : `canvas-connector-line-${line.operationId ?? "unknown"}`
+            }
             className={[
               "canvas-connector-line",
               line.selected ? "canvas-connector-line--selected" : "",
               line.future ? "canvas-connector-line--future" : "",
+              line.preview ? "canvas-connector-line--preview" : "",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -200,26 +251,36 @@ function CircuitCanvasGrid({
             />
             {layerIndexes.map((layer) => {
               const operation = findOperationAtCell(circuit.operations, qubit, layer);
+              const connectorOperation = findConnectorOperationAtCell(
+                circuit.operations,
+                qubit,
+                layer,
+              );
+              const draggedOperation = operation ?? connectorOperation;
               const isSelectedOperation =
                 selectedOperationId !== null && operation?.id === selectedOperationId;
               return (
                 <div
                   key={`${qubit}-${layer}`}
-                  draggable={operation !== undefined}
+                  draggable={draggedOperation !== undefined}
                   onDragStart={(event) => {
-                    if (!operation) {
+                    if (!draggedOperation) {
                       return;
                     }
                     event.dataTransfer.setData(
                       MOVE_OPERATION_DRAG_MIME,
                       encodeOperationMoveDragPayload({
-                        operationId: operation.id,
+                        operationId: draggedOperation.id,
                         anchorQubit: qubit,
-                        sourceLayer: operation.layer,
+                        sourceLayer: draggedOperation.layer,
                       }),
                     );
                     event.dataTransfer.effectAllowed = "move";
-                    onDragStartOperation(operation.id);
+                    onDragStartOperation({
+                      operationId: draggedOperation.id,
+                      anchorQubit: qubit,
+                      sourceLayer: draggedOperation.layer,
+                    });
                   }}
                   onDragEnd={onDragEndOperation}
                   onDrop={(event) => onDropCell(event, qubit, layer)}

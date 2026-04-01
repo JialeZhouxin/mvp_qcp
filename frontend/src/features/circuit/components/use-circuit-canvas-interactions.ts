@@ -41,6 +41,13 @@ const AUTO_EXPAND_BUFFER_LAYERS = 3;
 const CELL_WIDTH_PADDING_PX = 10;
 const MIN_CELL_WIDTH_PX = 40;
 
+interface MovedOperationPreview {
+  readonly operationId: string;
+  readonly layer: number;
+  readonly targets: readonly number[];
+  readonly controls?: readonly number[];
+}
+
 function shiftQubits(qubits: readonly number[], delta: number): readonly number[] {
   return qubits.map((qubit) => qubit + delta);
 }
@@ -56,6 +63,26 @@ function isSameQubitList(left: readonly number[] | undefined, right: readonly nu
     return false;
   }
   return leftResolved.every((value, index) => value === rightResolved[index]);
+}
+
+function parseCellKey(key: string | null): { qubit: number; layer: number } | null {
+  if (!key) {
+    return null;
+  }
+  const [rawQubit, rawLayer] = key.split("-");
+  const qubit = Number(rawQubit);
+  const layer = Number(rawLayer);
+  if (!Number.isInteger(qubit) || !Number.isInteger(layer)) {
+    return null;
+  }
+  return { qubit, layer };
+}
+
+function toTouchedQubits(operation: {
+  readonly targets: readonly number[];
+  readonly controls?: readonly number[];
+}): readonly number[] {
+  return [...operation.targets, ...(operation.controls ?? [])];
 }
 
 function computeLayerCellWidths(operations: readonly Operation[], layerCount: number): readonly number[] {
@@ -89,6 +116,8 @@ export function useCircuitCanvasInteractions({
   const [selectedOperationId, setSelectedOperationId] = useState<string | null>(null);
   const [isGateDragging, setIsGateDragging] = useState(false);
   const [hoveredCellKey, setHoveredCellKey] = useState<string | null>(null);
+  const [activeMoveDragPayload, setActiveMoveDragPayload] =
+    useState<OperationMoveDragPayload | null>(null);
   const [parameterDraft, setParameterDraft] = useState<readonly number[] | null>(null);
   const [parameterFeedback, setParameterFeedback] = useState<
     Readonly<Record<number, ParameterValidationResult>>
@@ -111,6 +140,36 @@ export function useCircuitCanvasInteractions({
   const selectedOperation = selectedOperationId
     ? circuit.operations.find((operation) => operation.id === selectedOperationId) ?? null
     : null;
+  const movedOperationPreview = useMemo<MovedOperationPreview | null>(() => {
+    if (!isGateDragging || !activeMoveDragPayload) {
+      return null;
+    }
+    const hoverCell = parseCellKey(hoveredCellKey);
+    if (!hoverCell) {
+      return null;
+    }
+    const sourceOperation = circuit.operations.find(
+      (operation) => operation.id === activeMoveDragPayload.operationId,
+    );
+    if (!sourceOperation) {
+      return null;
+    }
+    const deltaQubit = hoverCell.qubit - activeMoveDragPayload.anchorQubit;
+    const targets = shiftQubits(sourceOperation.targets, deltaQubit);
+    const controls = sourceOperation.controls
+      ? shiftQubits(sourceOperation.controls, deltaQubit)
+      : undefined;
+    const touchedQubits = toTouchedQubits({ targets, controls });
+    if (hasOutOfRangeQubit(touchedQubits, circuit.numQubits)) {
+      return null;
+    }
+    return {
+      operationId: sourceOperation.id,
+      layer: hoverCell.layer,
+      targets,
+      controls,
+    };
+  }, [activeMoveDragPayload, circuit.numQubits, circuit.operations, hoveredCellKey, isGateDragging]);
 
   useEffect(() => {
     setExpandedLayerCount((current) => Math.max(current, baseLayerCount));
@@ -141,6 +200,7 @@ export function useCircuitCanvasInteractions({
   const clearDragPreview = () => {
     setIsGateDragging(false);
     setHoveredCellKey(null);
+    setActiveMoveDragPayload(null);
   };
 
   useEffect(() => {
@@ -183,9 +243,16 @@ export function useCircuitCanvasInteractions({
     return operation.id !== connectorOperation.id;
   };
 
-  const showGateDragPreview = (qubit: number, layer: number) => {
+  const showGateDragPreview = (
+    qubit: number,
+    layer: number,
+    payload: OperationMoveDragPayload | null = null,
+  ) => {
     setIsGateDragging(true);
     setHoveredCellKey(toCellKey(qubit, layer));
+    if (payload) {
+      setActiveMoveDragPayload(payload);
+    }
     const remainingLayers = layers - 1 - layer;
     if (remainingLayers <= AUTO_EXPAND_THRESHOLD_LAYERS) {
       const requiredLayers = layer + 1 + AUTO_EXPAND_BUFFER_LAYERS;
@@ -235,9 +302,10 @@ export function useCircuitCanvasInteractions({
     commitCircuit(next);
   };
 
-  const onDragStartOperation = (operationId: string) => {
+  const onDragStartOperation = (payload: OperationMoveDragPayload) => {
     setPendingPlacement(null);
-    setSelectedOperationId(operationId);
+    setSelectedOperationId(payload.operationId);
+    setActiveMoveDragPayload(payload);
     setInteractionMessage(null);
   };
 
@@ -246,19 +314,23 @@ export function useCircuitCanvasInteractions({
   };
 
   const onDropMovedOperation = (
-    payload: OperationMoveDragPayload,
+    payload: OperationMoveDragPayload | null,
     qubit: number,
     layer: number,
   ) => {
+    const resolvedPayload = payload ?? activeMoveDragPayload;
     clearDragPreview();
     setPendingPlacement(null);
+    if (!resolvedPayload) {
+      return;
+    }
 
-    const operation = circuit.operations.find((item) => item.id === payload.operationId);
+    const operation = circuit.operations.find((item) => item.id === resolvedPayload.operationId);
     if (!operation) {
       return;
     }
 
-    const deltaQubit = qubit - payload.anchorQubit;
+    const deltaQubit = qubit - resolvedPayload.anchorQubit;
     const nextTargets = shiftQubits(operation.targets, deltaQubit);
     const nextControls = operation.controls
       ? shiftQubits(operation.controls, deltaQubit)
@@ -404,6 +476,29 @@ export function useCircuitCanvasInteractions({
       previewOperationId !== null && futureOperationIds.has(previewOperationId);
     const isHovered = hoveredCellKey === key;
     const isConnectorSpanBlocked = !operation && connectorOperation !== undefined;
+    const previewTouchedQubits = movedOperationPreview
+      ? new Set(toTouchedQubits(movedOperationPreview))
+      : null;
+    const previewConnectorBounds = movedOperationPreview
+      ? (() => {
+          const touchedQubits = toTouchedQubits(movedOperationPreview);
+          if (touchedQubits.length < 2) {
+            return null;
+          }
+          return {
+            minQubit: Math.min(...touchedQubits),
+            maxQubit: Math.max(...touchedQubits),
+          };
+        })()
+      : null;
+    const isMovePreviewLayer = movedOperationPreview?.layer === layer;
+    const isMovePreviewEndpoint =
+      isMovePreviewLayer && previewTouchedQubits?.has(qubit) === true;
+    const isMovePreviewConnector =
+      isMovePreviewLayer &&
+      previewConnectorBounds !== null &&
+      qubit >= previewConnectorBounds.minQubit &&
+      qubit <= previewConnectorBounds.maxQubit;
     const classNames = ["canvas-cell"];
 
     if (operation) {
@@ -439,6 +534,12 @@ export function useCircuitCanvasInteractions({
     if (isPreviewFuture) {
       classNames.push("canvas-cell--preview-future");
     }
+    if (isMovePreviewConnector) {
+      classNames.push("canvas-cell--move-preview-connector");
+    }
+    if (isMovePreviewEndpoint) {
+      classNames.push("canvas-cell--move-preview");
+    }
 
     return classNames.join(" ");
   };
@@ -450,6 +551,7 @@ export function useCircuitCanvasInteractions({
     selectedOperation,
     parameterFeedback,
     activeParameterValues,
+    movedOperationPreview,
     qubits,
     layerIndexes,
     layerCellWidths,

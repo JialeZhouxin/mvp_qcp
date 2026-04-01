@@ -146,6 +146,64 @@ describe("CircuitCanvas", () => {
     expect(nextModel.operations[0].targets).toEqual([3]);
   });
 
+  it("allows dragging from connector-middle cell for multi-qubit gate", () => {
+    const model: CircuitModel = {
+      numQubits: 5,
+      operations: [{ id: "op-cx", gate: "cx", controls: [0], targets: [3], layer: 0 }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={4} />);
+
+    const middleConnectorCell = screen.getByTestId("canvas-cell-1-0");
+    expect(middleConnectorCell).toHaveAttribute("draggable", "true");
+
+    fireEvent.drop(screen.getByTestId("canvas-cell-2-2"), {
+      dataTransfer: createMoveOperationDragData({
+        operationId: "op-cx",
+        anchorQubit: 1,
+        sourceLayer: 0,
+      }),
+    });
+
+    expect(onCircuitChange).toHaveBeenCalledTimes(1);
+    const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
+    expect(nextModel.operations[0].layer).toBe(2);
+    expect(nextModel.operations[0].controls).toEqual([1]);
+    expect(nextModel.operations[0].targets).toEqual([4]);
+  });
+
+  it("shows whole-gate preview and preview connector line while dragging moved operation", () => {
+    const model: CircuitModel = {
+      numQubits: 5,
+      operations: [{ id: "op-cx", gate: "cx", controls: [0], targets: [2], layer: 0 }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={4} />);
+
+    const hoverCell = screen.getByTestId("canvas-cell-3-1");
+    fireEvent.dragEnter(hoverCell, {
+      dataTransfer: createMoveOperationDragData({
+        operationId: "op-cx",
+        anchorQubit: 2,
+        sourceLayer: 0,
+      }),
+    });
+    fireEvent.dragOver(hoverCell, {
+      dataTransfer: createMoveOperationDragData({
+        operationId: "op-cx",
+        anchorQubit: 2,
+        sourceLayer: 0,
+      }),
+    });
+
+    expect(screen.getByTestId("canvas-cell-1-1")).toHaveClass("canvas-cell--move-preview");
+    expect(screen.getByTestId("canvas-cell-3-1")).toHaveClass("canvas-cell--move-preview");
+    expect(screen.getByTestId("canvas-cell-2-1")).toHaveClass(
+      "canvas-cell--move-preview-connector",
+    );
+    expect(screen.getByTestId("canvas-connector-line-preview")).toBeInTheDocument();
+  });
+
   it("rejects moving gate into occupied cell", () => {
     const model: CircuitModel = {
       numQubits: 2,

@@ -310,6 +310,12 @@
   opacity: 0.42;
 }
 
+.canvas-connector-line--preview {
+  stroke: color-mix(in srgb, var(--accent-info) 75%, var(--text-secondary));
+  stroke-dasharray: calc(5px * var(--canvas-scale)) calc(4px * var(--canvas-scale));
+  opacity: 0.95;
+}
+
 .canvas-row {
   display: flex;
   gap: var(--canvas-gap);
@@ -415,6 +421,18 @@
   background: color-mix(in srgb, var(--surface-panel) 76%, var(--accent-primary));
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 1px color-mix(in srgb, transparent 80%, var(--accent-primary));
+}
+
+.canvas-cell--move-preview-connector {
+  background: color-mix(in srgb, var(--surface-panel) 84%, var(--accent-info));
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--accent-info) 65%, var(--border-subtle));
+}
+
+.canvas-cell--move-preview {
+  background: color-mix(in srgb, var(--surface-panel) 68%, var(--accent-info));
+  border-color: var(--accent-info);
+  box-shadow: 0 0 0 1px color-mix(in srgb, transparent 70%, var(--accent-info));
 }
 
 .canvas-cell--drop-disabled {
