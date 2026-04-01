@@ -1,5 +1,6 @@
-﻿import { type DragEvent } from "react";
+import { type DragEvent } from "react";
 
+import type { LoadCircuitTemplateOptions } from "../model/templates";
 import type { CircuitModel } from "../model/types";
 import OperationParameterPanel from "./OperationParameterPanel";
 import CircuitCanvasViewport from "./CircuitCanvasViewport";
@@ -15,10 +16,19 @@ const DEFAULT_MIN_LAYERS = 15;
 const NOOP_HANDLER = () => {};
 const BELL_TEMPLATE_ID = "bell";
 const SUPERPOSITION_TEMPLATE_ID = "superposition";
+const QFT_TEMPLATE_ID = "qft";
+const GROVER_TEMPLATE_ID = "grover";
 
-type CanvasTemplateId = typeof BELL_TEMPLATE_ID | typeof SUPERPOSITION_TEMPLATE_ID;
+type CanvasTemplateId =
+  | typeof BELL_TEMPLATE_ID
+  | typeof SUPERPOSITION_TEMPLATE_ID
+  | typeof QFT_TEMPLATE_ID
+  | typeof GROVER_TEMPLATE_ID;
 
-const NOOP_TEMPLATE_HANDLER = (_templateId: CanvasTemplateId) => {};
+const NOOP_TEMPLATE_HANDLER = (
+  _templateId: CanvasTemplateId,
+  _options?: LoadCircuitTemplateOptions,
+) => {};
 
 interface CircuitCanvasControls {
   readonly canUndo: boolean;
@@ -31,7 +41,10 @@ interface CircuitCanvasControls {
   readonly onDecreaseQubits: () => void;
   readonly onClearCircuit: () => void;
   readonly onResetWorkbench: () => void;
-  readonly onLoadTemplate: (templateId: CanvasTemplateId) => void;
+  readonly onLoadTemplate: (
+    templateId: CanvasTemplateId,
+    options?: LoadCircuitTemplateOptions,
+  ) => void;
 }
 
 interface CircuitCanvasProps {
@@ -183,6 +196,12 @@ function CircuitCanvas({
         onDecreaseQubits={onDecreaseQubits}
         onLoadBellTemplate={() => onLoadTemplate(BELL_TEMPLATE_ID)}
         onLoadSuperpositionTemplate={() => onLoadTemplate(SUPERPOSITION_TEMPLATE_ID)}
+        onLoadQftTemplate={(numQubits) =>
+          onLoadTemplate(QFT_TEMPLATE_ID, {
+            numQubits,
+          })
+        }
+        onLoadGroverTemplate={() => onLoadTemplate(GROVER_TEMPLATE_ID)}
         onZoomOut={onZoomOut}
         onZoomIn={onZoomIn}
         onZoomReset={onZoomReset}

@@ -1,8 +1,8 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 
 import { EDITOR_MAX_QUBITS, EDITOR_MIN_QUBITS } from "../model/constants";
 import { decreaseQubits, increaseQubits } from "../model/circuit-model";
-import { loadCircuitTemplate } from "../model/templates";
+import { loadCircuitTemplate, type LoadCircuitTemplateOptions } from "../model/templates";
 import type { CircuitModel } from "../model/types";
 import { WORKBENCH_COPY } from "./copy-catalog";
 
@@ -67,9 +67,18 @@ export function useWorkbenchCanvasControls({
     onResetWorkbench();
   };
 
-  const onLoadTemplate = (templateId: string) => {
-    setQubitMessage(null);
-    onPushCircuit(loadCircuitTemplate(templateId));
+  const onLoadTemplate = (
+    templateId: string,
+    options?: LoadCircuitTemplateOptions,
+  ) => {
+    try {
+      setQubitMessage(null);
+      onPushCircuit(loadCircuitTemplate(templateId, options));
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : WORKBENCH_COPY.editor.maxQubitReached;
+      setQubitMessage(errorMessage);
+    }
   };
 
   return {

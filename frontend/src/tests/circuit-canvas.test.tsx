@@ -442,6 +442,14 @@ describe("CircuitCanvas", () => {
     fireEvent.click(screen.getByTestId("canvas-template-option-bell"));
     fireEvent.click(templateMenu);
     fireEvent.click(screen.getByTestId("canvas-template-option-superposition"));
+    fireEvent.click(templateMenu);
+    fireEvent.click(screen.getByTestId("canvas-template-option-qft"));
+    fireEvent.change(screen.getByTestId("canvas-qft-input"), {
+      target: { value: "4" },
+    });
+    fireEvent.click(screen.getByTestId("canvas-qft-confirm"));
+    fireEvent.click(templateMenu);
+    fireEvent.click(screen.getByTestId("canvas-template-option-grover"));
 
     expect(isBeforeViewport).toBe(true);
     expect(screen.getByTestId("canvas-qubit-count")).toHaveTextContent("3");
@@ -454,6 +462,8 @@ describe("CircuitCanvas", () => {
     expect(onDecreaseQubits).toHaveBeenCalledTimes(1);
     expect(onLoadTemplate).toHaveBeenNthCalledWith(1, "bell");
     expect(onLoadTemplate).toHaveBeenNthCalledWith(2, "superposition");
+    expect(onLoadTemplate).toHaveBeenNthCalledWith(3, "qft", { numQubits: 4 });
+    expect(onLoadTemplate).toHaveBeenNthCalledWith(4, "grover");
   });
 
   it("ignores canvas shortcuts when focus is in editable element", () => {

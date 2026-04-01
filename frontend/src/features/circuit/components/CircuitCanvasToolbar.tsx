@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { WORKBENCH_COPY } from "../ui/copy-catalog";
 import { WorkbenchControlButton, WorkbenchDivider } from "./WorkbenchControls";
@@ -25,6 +25,8 @@ interface CircuitCanvasToolbarProps {
   readonly onDecreaseQubits: () => void;
   readonly onLoadBellTemplate: () => void;
   readonly onLoadSuperpositionTemplate: () => void;
+  readonly onLoadQftTemplate: (numQubits: number) => void;
+  readonly onLoadGroverTemplate: () => void;
   readonly onZoomOut: () => void;
   readonly onZoomIn: () => void;
   readonly onZoomReset: () => void;
@@ -209,11 +211,17 @@ function ChevronDownIcon() {
 function TemplateMenu({
   onLoadBellTemplate,
   onLoadSuperpositionTemplate,
+  onLoadQftTemplate,
+  onLoadGroverTemplate,
 }: {
   readonly onLoadBellTemplate: () => void;
   readonly onLoadSuperpositionTemplate: () => void;
+  readonly onLoadQftTemplate: (numQubits: number) => void;
+  readonly onLoadGroverTemplate: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isQftDialogOpen, setIsQftDialogOpen] = useState(false);
+  const [qftInput, setQftInput] = useState(WORKBENCH_COPY.toolbar.qftPromptDefaultValue);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -224,11 +232,13 @@ function TemplateMenu({
     const handlePointerDown = (event: MouseEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {
         setIsOpen(false);
+        setIsQftDialogOpen(false);
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsOpen(false);
+        setIsQftDialogOpen(false);
       }
     };
 
@@ -240,6 +250,17 @@ function TemplateMenu({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
+
+  const openQftDialog = () => {
+    setQftInput(WORKBENCH_COPY.toolbar.qftPromptDefaultValue);
+    setIsQftDialogOpen(true);
+  };
+
+  const handleQftSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsQftDialogOpen(false);
+    onLoadQftTemplate(Number(qftInput));
+  };
 
   return (
     <div className="canvas-template-menu" data-testid="canvas-workbench-templates" ref={rootRef}>
@@ -280,7 +301,72 @@ function TemplateMenu({
           >
             {WORKBENCH_COPY.toolbar.superpositionTemplate}
           </WorkbenchControlButton>
+          <WorkbenchControlButton
+            variant="ghost"
+            role="menuitem"
+            className="canvas-template-menu-item"
+            data-testid="canvas-template-option-qft"
+            onClick={() => {
+              setIsOpen(false);
+              openQftDialog();
+            }}
+          >
+            {WORKBENCH_COPY.toolbar.qftTemplate}
+          </WorkbenchControlButton>
+          <WorkbenchControlButton
+            variant="ghost"
+            role="menuitem"
+            className="canvas-template-menu-item"
+            data-testid="canvas-template-option-grover"
+            onClick={() => {
+              setIsOpen(false);
+              onLoadGroverTemplate();
+            }}
+          >
+            {WORKBENCH_COPY.toolbar.groverTemplate}
+          </WorkbenchControlButton>
         </div>
+      ) : null}
+      {isQftDialogOpen ? (
+        <form
+          className="canvas-template-qft-dialog"
+          data-testid="canvas-qft-dialog"
+          onSubmit={handleQftSubmit}
+        >
+          <label className="canvas-template-qft-label" htmlFor="canvas-qft-input">
+            {WORKBENCH_COPY.toolbar.qftPrompt}
+          </label>
+          <input
+            id="canvas-qft-input"
+            data-testid="canvas-qft-input"
+            className="canvas-template-qft-input"
+            type="number"
+            min={2}
+            max={32}
+            step={1}
+            value={qftInput}
+            onChange={(event) => setQftInput(event.target.value)}
+          />
+          <div className="canvas-template-qft-actions">
+            <WorkbenchControlButton
+              type="button"
+              variant="ghost"
+              className="canvas-template-qft-action"
+              data-testid="canvas-qft-cancel"
+              onClick={() => setIsQftDialogOpen(false)}
+            >
+              {WORKBENCH_COPY.toolbar.qftCancel}
+            </WorkbenchControlButton>
+            <WorkbenchControlButton
+              type="submit"
+              variant="surface"
+              className="canvas-template-qft-action"
+              data-testid="canvas-qft-confirm"
+            >
+              {WORKBENCH_COPY.toolbar.qftConfirm}
+            </WorkbenchControlButton>
+          </div>
+        </form>
       ) : null}
     </div>
   );
@@ -307,6 +393,8 @@ function CircuitCanvasToolbar({
   onDecreaseQubits,
   onLoadBellTemplate,
   onLoadSuperpositionTemplate,
+  onLoadQftTemplate,
+  onLoadGroverTemplate,
   onZoomOut,
   onZoomIn,
   onZoomReset,
@@ -407,6 +495,8 @@ function CircuitCanvasToolbar({
               <TemplateMenu
                 onLoadBellTemplate={onLoadBellTemplate}
                 onLoadSuperpositionTemplate={onLoadSuperpositionTemplate}
+                onLoadQftTemplate={onLoadQftTemplate}
+                onLoadGroverTemplate={onLoadGroverTemplate}
               />
             ) : null}
             <div className="canvas-workbench-toolbar-cluster" data-testid="canvas-zoom-toolbar">

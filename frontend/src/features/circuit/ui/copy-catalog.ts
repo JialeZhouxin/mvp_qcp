@@ -7,6 +7,12 @@ export const WORKBENCH_COPY = {
     templateLabel: "模板",
     bellTemplate: "Bell 态",
     superpositionTemplate: "均匀叠加态",
+    qftTemplate: "QFT（n 比特）",
+    groverTemplate: "Grover（4+1）",
+    qftPrompt: "请输入 QFT 量子比特数（2-32）",
+    qftPromptDefaultValue: "4",
+    qftCancel: "取消",
+    qftConfirm: "加载",
     zoomOutAriaLabel: "缩小画布",
     zoomInAriaLabel: "放大画布",
     zoomResetAriaLabel: "重置缩放",
@@ -36,8 +42,7 @@ export const WORKBENCH_COPY = {
   },
   simulation: {
     validationFailedPrefix: "电路校验失败：",
-    complexityTooHighPrefix: "本地模拟复杂度过高",
+    complexityTooHighPrefix: "本地模拟复杂度过高：",
     simulationFailedPrefix: "本地模拟失败：",
   },
 } as const;
-

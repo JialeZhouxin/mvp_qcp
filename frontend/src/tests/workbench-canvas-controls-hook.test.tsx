@@ -49,4 +49,31 @@ describe("useWorkbenchCanvasControls", () => {
     expect(onResetWorkbench).toHaveBeenCalledTimes(1);
     expect(result.current.qubitMessage).toBeNull();
   });
+
+  it("keeps current circuit when qft template input is invalid", () => {
+    const circuit: CircuitModel = {
+      numQubits: 2,
+      operations: [{ id: "op-1", gate: "h", targets: [0], layer: 0 }],
+    };
+    const onPushCircuit = vi.fn();
+
+    const { result } = renderHook(() =>
+      useWorkbenchCanvasControls({
+        circuit,
+        canUndo: false,
+        canRedo: false,
+        onUndo: vi.fn(),
+        onRedo: vi.fn(),
+        onPushCircuit,
+        onResetWorkbench: vi.fn(),
+      }),
+    );
+
+    act(() => {
+      result.current.canvasControls.onLoadTemplate("qft", { numQubits: 1 });
+    });
+
+    expect(onPushCircuit).not.toHaveBeenCalled();
+    expect(result.current.qubitMessage).toContain("between 2 and 32");
+  });
 });
