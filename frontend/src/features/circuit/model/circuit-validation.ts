@@ -29,6 +29,19 @@ function toTouchedQubits(operation: Operation): number[] {
   return [...new Set(touched)];
 }
 
+function toOccupiedQubits(operation: Operation): number[] {
+  const touched = toTouchedQubits(operation);
+  if (touched.length < 2) {
+    return touched;
+  }
+  const minQubit = Math.min(...touched);
+  const maxQubit = Math.max(...touched);
+  return Array.from(
+    { length: maxQubit - minQubit + 1 },
+    (_, offset) => minQubit + offset,
+  );
+}
+
 function findInvalidMultiQubitOperation(
   operations: readonly Operation[],
 ): Operation | null {
@@ -47,7 +60,7 @@ function findCellConflict(
 ): { current: Operation; layer: number; qubit: number } | null {
   const occupied = new Map<string, string>();
   for (const operation of operations) {
-    for (const qubit of toTouchedQubits(operation)) {
+    for (const qubit of toOccupiedQubits(operation)) {
       const key = `${operation.layer}:${qubit}`;
       const existing = occupied.get(key);
       if (existing && existing !== operation.id) {

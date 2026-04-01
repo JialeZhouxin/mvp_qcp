@@ -189,4 +189,22 @@ h q[1];
     }
     expect(result.error.code).toBe("INVALID_CIRCUIT");
   });
+
+  it("allows a later-layer gate after a wide multi-qubit connector", () => {
+    const source = `
+OPENQASM 3;
+qubit[4] q;
+cx q[0], q[3];
+x q[1];
+`;
+    const result = parseQasm3(source);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.model.operations).toHaveLength(2);
+    expect(result.model.operations[0]).toMatchObject({ gate: "cx", layer: 0 });
+    expect(result.model.operations[1]).toMatchObject({ gate: "x", layer: 1, targets: [1] });
+  });
 });

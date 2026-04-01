@@ -153,6 +153,18 @@ export function useCircuitCanvasInteractions({
 
   const toCellKey = (qubit: number, layer: number) => `${qubit}-${layer}`;
 
+  const isConnectorSpanBlockedCell = (qubit: number, layer: number): boolean => {
+    const operation = findOperationAtCell(circuit.operations, qubit, layer);
+    const connectorOperation = findConnectorOperationAtCell(circuit.operations, qubit, layer);
+    if (!connectorOperation) {
+      return false;
+    }
+    if (!operation) {
+      return true;
+    }
+    return operation.id !== connectorOperation.id;
+  };
+
   const showGateDragPreview = (qubit: number, layer: number) => {
     setIsGateDragging(true);
     setHoveredCellKey(toCellKey(qubit, layer));
@@ -174,6 +186,10 @@ export function useCircuitCanvasInteractions({
       return;
     }
     if (findOperationAtCell(circuit.operations, qubit, layer)) {
+      setOccupiedMessage(qubit, layer);
+      return;
+    }
+    if (isConnectorSpanBlockedCell(qubit, layer)) {
       setOccupiedMessage(qubit, layer);
       return;
     }
@@ -220,6 +236,10 @@ export function useCircuitCanvasInteractions({
       return;
     }
     if (findOperationAtCell(circuit.operations, qubit, layer)) {
+      setOccupiedMessage(qubit, layer);
+      return;
+    }
+    if (isConnectorSpanBlockedCell(qubit, layer)) {
       setOccupiedMessage(qubit, layer);
       return;
     }
@@ -309,6 +329,7 @@ export function useCircuitCanvasInteractions({
     const isPreviewFuture =
       previewOperationId !== null && futureOperationIds.has(previewOperationId);
     const isHovered = hoveredCellKey === key;
+    const isConnectorSpanBlocked = !operation && connectorOperation !== undefined;
     const classNames = ["canvas-cell"];
 
     if (operation) {
@@ -324,9 +345,13 @@ export function useCircuitCanvasInteractions({
         classNames.push("canvas-cell--pending-layer");
       }
       if (isGateDragging) {
-        classNames.push("canvas-cell--drop-target");
-        if (isHovered) {
-          classNames.push("canvas-cell--drop-hover");
+        if (isConnectorSpanBlocked) {
+          classNames.push("canvas-cell--drop-disabled");
+        } else {
+          classNames.push("canvas-cell--drop-target");
+          if (isHovered) {
+            classNames.push("canvas-cell--drop-hover");
+          }
         }
       }
     }

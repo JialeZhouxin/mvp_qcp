@@ -50,4 +50,21 @@ describe("validateCircuitModel", () => {
 
     expect(result.ok).toBe(true);
   });
+
+  it("rejects operations placed inside a multi-qubit connector span on the same layer", () => {
+    const model: CircuitModel = {
+      numQubits: 4,
+      operations: [
+        { id: "op-cx", gate: "cx", controls: [0], targets: [3], layer: 0 },
+        { id: "op-x", gate: "x", targets: [1], layer: 0 },
+      ],
+    };
+    const result = validateCircuitModel(model);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.error.code).toBe("CELL_CONFLICT");
+  });
 });

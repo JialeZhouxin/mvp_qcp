@@ -371,6 +371,14 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, transparent 80%, var(--accent-primary));
 }
 
+.canvas-cell--drop-disabled {
+  background: var(--surface-panel-muted);
+  border-style: dashed;
+  border-color: var(--border-subtle);
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+
 .canvas-cell--blocked {
   background: var(--surface-panel-muted);
   border-color: var(--border-subtle);

@@ -148,6 +148,34 @@ describe("CircuitCanvas", () => {
     expect(occupiedCell).not.toHaveClass("canvas-cell--blocked");
   });
 
+  it("marks connector-span middle cells as non-droppable and rejects dropping", () => {
+    const model: CircuitModel = {
+      numQubits: 4,
+      operations: [{ id: "op-cx", gate: "cx", controls: [0], targets: [3], layer: 0 }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={2} />);
+
+    const blockedMiddleCell = screen.getByTestId("canvas-cell-1-0");
+
+    fireEvent.dragEnter(blockedMiddleCell, {
+      dataTransfer: createGateDragData("h"),
+    });
+    fireEvent.dragOver(blockedMiddleCell, {
+      dataTransfer: createGateDragData("h"),
+    });
+
+    expect(blockedMiddleCell).toHaveClass("canvas-cell--drop-disabled");
+    expect(blockedMiddleCell).not.toHaveClass("canvas-cell--drop-target");
+    expect(blockedMiddleCell).not.toHaveClass("canvas-cell--drop-hover");
+
+    fireEvent.drop(blockedMiddleCell, {
+      dataTransfer: createGateDragData("h"),
+    });
+
+    expect(onCircuitChange).not.toHaveBeenCalled();
+  });
+
   it("removes operation when delete button clicked", () => {
     const model: CircuitModel = {
       numQubits: 1,
