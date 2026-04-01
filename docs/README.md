@@ -17,7 +17,9 @@
    本地 Docker Compose 启动、验证、排障和服务重启规则。
 4. [data-flow.md](data-flow.md)
    认证、任务提交、任务执行、结果展示和项目保存的数据流。
-5. [execution-service-contract.md](execution-service-contract.md)
+5. [api/README.md](api/README.md)
+   面向内部开发的 API 文档索引，覆盖后端 HTTP、SSE 事件消费者契约、前端 API 层与对外 Hook 契约。
+6. [execution-service-contract.md](execution-service-contract.md)
    仅面向内部服务通信，描述代码任务执行服务的 HTTP 契约。
 
 ## 当前重点事实
@@ -43,6 +45,7 @@
 - [usage-guide.md](usage-guide.md)
 - [docker-deployment.md](docker-deployment.md)
 - [data-flow.md](data-flow.md)
+- [api/README.md](api/README.md)
 - [execution-service-contract.md](execution-service-contract.md)
 
 ### 历史记录与风险记录
