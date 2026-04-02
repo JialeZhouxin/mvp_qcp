@@ -649,7 +649,8 @@ function CircuitCanvasToolbar({
           <div className="canvas-workbench-timeline" data-testid="canvas-workbench-timeline">
             <div className="canvas-workbench-timeline-meta">
               <label className="canvas-workbench-label" htmlFor="canvas-time-step-slider">
-                鏃堕棿姝?              </label>
+                时间步
+              </label>
               <span className="canvas-workbench-value" data-testid="canvas-time-step-value">
                 {simulationStep} / {totalSimulationSteps}
               </span>
