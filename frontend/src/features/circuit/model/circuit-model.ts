@@ -1,5 +1,6 @@
 import type {
   CircuitModel,
+  DeleteEmptyColumnsResult,
   GateName,
   Operation,
   QubitAdjustResult,
@@ -111,6 +112,71 @@ export function updateOperation(
     };
   });
   return normalizeCircuit({ ...model, operations });
+}
+
+export function insertColumnsBefore(
+  model: CircuitModel,
+  beforeLayer: number,
+  count: number,
+): CircuitModel {
+  const resolvedBeforeLayer = Math.max(0, Math.trunc(beforeLayer));
+  const resolvedCount = Math.max(0, Math.trunc(count));
+  if (resolvedCount === 0) {
+    return normalizeCircuit(model);
+  }
+  const operations = model.operations.map((operation) => ({
+    ...operation,
+    layer:
+      operation.layer >= resolvedBeforeLayer
+        ? operation.layer + resolvedCount
+        : operation.layer,
+  }));
+  return normalizeCircuit({ ...model, operations });
+}
+
+export function deleteEmptyColumnsBefore(
+  model: CircuitModel,
+  beforeLayer: number,
+  count: number,
+): DeleteEmptyColumnsResult {
+  const resolvedBeforeLayer = Math.max(0, Math.trunc(beforeLayer));
+  const resolvedCount = Math.max(0, Math.trunc(count));
+  if (resolvedCount === 0) {
+    return { ok: true, model: normalizeCircuit(model) };
+  }
+  const startLayer = resolvedBeforeLayer - resolvedCount;
+  if (startLayer < 0) {
+    return {
+      ok: false,
+      code: "COLUMN_DELETE_INVALID_RANGE",
+      message: "column delete range is out of bounds",
+    };
+  }
+  const blockingOperation = model.operations.find(
+    (operation) =>
+      operation.layer >= startLayer && operation.layer < resolvedBeforeLayer,
+  );
+  if (blockingOperation) {
+    return {
+      ok: false,
+      code: "COLUMN_DELETE_BLOCKED_BY_OPERATION",
+      message: `operation ${blockingOperation.id} occupies layer ${blockingOperation.layer}`,
+      blockingLayer: blockingOperation.layer,
+      operationId: blockingOperation.id,
+    };
+  }
+  const operations = model.operations.map((operation) => ({
+    ...operation,
+    layer:
+      operation.layer >= resolvedBeforeLayer
+        ? operation.layer - resolvedCount
+        : operation.layer,
+  }));
+  return { ok: true, model: normalizeCircuit({ ...model, operations }) };
+}
+
+export function insertLeadingLayer(model: CircuitModel): CircuitModel {
+  return insertColumnsBefore(model, 0, 1);
 }
 
 export function getCircuitDepth(model: CircuitModel): number {

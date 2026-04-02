@@ -63,6 +63,20 @@ export type QubitAdjustResult =
       readonly operationId?: string;
     };
 
+export type ColumnDeleteErrorCode =
+  | "COLUMN_DELETE_INVALID_RANGE"
+  | "COLUMN_DELETE_BLOCKED_BY_OPERATION";
+
+export type DeleteEmptyColumnsResult =
+  | { readonly ok: true; readonly model: CircuitModel }
+  | {
+      readonly ok: false;
+      readonly code: ColumnDeleteErrorCode;
+      readonly message: string;
+      readonly blockingLayer?: number;
+      readonly operationId?: string;
+    };
+
 export type ComplexityErrorCode =
   | "QUBIT_LIMIT_EXCEEDED"
   | "DEPTH_LIMIT_EXCEEDED"

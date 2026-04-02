@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+﻿import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { WORKBENCH_COPY } from "../ui/copy-catalog";
 import { WorkbenchControlButton, WorkbenchDivider } from "./WorkbenchControls";
@@ -13,6 +13,7 @@ interface CircuitCanvasToolbarProps {
   readonly canIncreaseQubits: boolean;
   readonly canDecreaseQubits: boolean;
   readonly currentQubits: number;
+  readonly maxBeforeColumn: number;
   readonly qubitMessage: string | null;
   readonly zoomPercentText: string;
   readonly canZoomIn: boolean;
@@ -23,6 +24,8 @@ interface CircuitCanvasToolbarProps {
   readonly onResetWorkbench: () => void;
   readonly onIncreaseQubits: () => void;
   readonly onDecreaseQubits: () => void;
+  readonly onInsertColumns: (beforeColumnOneBased: number, count: number) => void;
+  readonly onDeleteEmptyColumns: (beforeColumnOneBased: number, count: number) => void;
   readonly onLoadBellTemplate: () => void;
   readonly onLoadSuperpositionTemplate: () => void;
   readonly onLoadQftTemplate: (numQubits: number) => void;
@@ -372,6 +375,16 @@ function TemplateMenu({
   );
 }
 
+const DEFAULT_COLUMN_INPUT = "1";
+
+function parseColumnInput(value: string, fallback: number): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.trunc(parsed);
+}
+
 function CircuitCanvasToolbar({
   hasWorkbenchControls,
   simulationStep,
@@ -381,6 +394,7 @@ function CircuitCanvasToolbar({
   canIncreaseQubits,
   canDecreaseQubits,
   currentQubits,
+  maxBeforeColumn,
   qubitMessage,
   zoomPercentText,
   canZoomIn,
@@ -391,6 +405,8 @@ function CircuitCanvasToolbar({
   onResetWorkbench,
   onIncreaseQubits,
   onDecreaseQubits,
+  onInsertColumns,
+  onDeleteEmptyColumns,
   onLoadBellTemplate,
   onLoadSuperpositionTemplate,
   onLoadQftTemplate,
@@ -402,6 +418,41 @@ function CircuitCanvasToolbar({
 }: CircuitCanvasToolbarProps) {
   const hasSimulationStepControl =
     simulationStep !== null && totalSimulationSteps !== null;
+  const [columnBeforeInput, setColumnBeforeInput] = useState(DEFAULT_COLUMN_INPUT);
+  const [columnCountInput, setColumnCountInput] = useState(DEFAULT_COLUMN_INPUT);
+
+  useEffect(() => {
+    const resolved = parseColumnInput(columnBeforeInput, 1);
+    const clamped = Math.min(Math.max(resolved, 1), Math.max(1, maxBeforeColumn));
+    if (String(clamped) !== columnBeforeInput) {
+      setColumnBeforeInput(String(clamped));
+    }
+  }, [columnBeforeInput, maxBeforeColumn]);
+
+  const normalizeBeforeInput = () => {
+    const resolved = parseColumnInput(columnBeforeInput, 1);
+    const clamped = Math.min(Math.max(resolved, 1), Math.max(1, maxBeforeColumn));
+    setColumnBeforeInput(String(clamped));
+  };
+
+  const normalizeCountInput = () => {
+    const resolved = parseColumnInput(columnCountInput, 1);
+    setColumnCountInput(String(Math.max(1, resolved)));
+  };
+
+  const handleInsertColumns = () => {
+    onInsertColumns(
+      parseColumnInput(columnBeforeInput, 1),
+      parseColumnInput(columnCountInput, 1),
+    );
+  };
+
+  const handleDeleteEmptyColumns = () => {
+    onDeleteEmptyColumns(
+      parseColumnInput(columnBeforeInput, 1),
+      parseColumnInput(columnCountInput, 1),
+    );
+  };
 
   return (
     <>
@@ -457,34 +508,92 @@ function CircuitCanvasToolbar({
             className="canvas-workbench-section canvas-workbench-section--center"
             data-testid="canvas-workbench-center"
           >
-            {hasWorkbenchControls ? (
-              <div className="canvas-workbench-toolbar-cluster" data-testid="canvas-workbench-qubits">
-                <span className="canvas-workbench-label">Qubits</span>
+            <div
+              className="canvas-workbench-center-controls"
+              data-testid="canvas-workbench-center-controls"
+            >
+              {hasWorkbenchControls ? (
+                <div className="canvas-workbench-toolbar-cluster" data-testid="canvas-workbench-qubits">
+                  <span className="canvas-workbench-label">Qubits</span>
+                  <WorkbenchControlButton
+                    variant="icon"
+                    aria-label="减少 qubits"
+                    title="减少 qubits"
+                    onClick={onDecreaseQubits}
+                    disabled={!canDecreaseQubits}
+                    data-testid="canvas-decrease-qubits"
+                  >
+                    <MinusIcon />
+                  </WorkbenchControlButton>
+                  <span className="canvas-workbench-value" data-testid="canvas-qubit-count">
+                    {currentQubits}
+                  </span>
+                  <WorkbenchControlButton
+                    variant="icon"
+                    aria-label="增加 qubits"
+                    title="增加 qubits"
+                    onClick={onIncreaseQubits}
+                    disabled={!canIncreaseQubits}
+                    data-testid="canvas-increase-qubits"
+                  >
+                    <PlusIcon />
+                  </WorkbenchControlButton>
+                </div>
+              ) : null}
+              {hasWorkbenchControls ? <WorkbenchDivider /> : null}
+              <div className="canvas-workbench-toolbar-cluster" data-testid="canvas-workbench-columns">
+                <span className="canvas-workbench-label">Columns</span>
+                <label className="canvas-workbench-column-field" htmlFor="canvas-column-before-input">
+                  <span className="canvas-workbench-column-text">Before</span>
+                  <input
+                    id="canvas-column-before-input"
+                    data-testid="canvas-column-before-input"
+                    className="canvas-workbench-column-input"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={maxBeforeColumn}
+                    step={1}
+                    value={columnBeforeInput}
+                    onBlur={normalizeBeforeInput}
+                    onChange={(event) => setColumnBeforeInput(event.target.value)}
+                  />
+                </label>
+                <label className="canvas-workbench-column-field" htmlFor="canvas-column-count-input">
+                  <span className="canvas-workbench-column-text">Count</span>
+                  <input
+                    id="canvas-column-count-input"
+                    data-testid="canvas-column-count-input"
+                    className="canvas-workbench-column-input"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    step={1}
+                    value={columnCountInput}
+                    onBlur={normalizeCountInput}
+                    onChange={(event) => setColumnCountInput(event.target.value)}
+                  />
+                </label>
                 <WorkbenchControlButton
                   variant="icon"
-                  aria-label="减少 qubits"
-                  title="减少 qubits"
-                  onClick={onDecreaseQubits}
-                  disabled={!canDecreaseQubits}
-                  data-testid="canvas-decrease-qubits"
+                  aria-label="删除空列"
+                  title="删除空列"
+                  data-testid="canvas-delete-empty-columns"
+                  onClick={handleDeleteEmptyColumns}
                 >
                   <MinusIcon />
                 </WorkbenchControlButton>
-                <span className="canvas-workbench-value" data-testid="canvas-qubit-count">
-                  {currentQubits}
-                </span>
                 <WorkbenchControlButton
                   variant="icon"
-                  aria-label="增加 qubits"
-                  title="增加 qubits"
-                  onClick={onIncreaseQubits}
-                  disabled={!canIncreaseQubits}
-                  data-testid="canvas-increase-qubits"
+                  aria-label="插入列"
+                  title="插入列"
+                  data-testid="canvas-insert-columns"
+                  onClick={handleInsertColumns}
                 >
                   <PlusIcon />
                 </WorkbenchControlButton>
               </div>
-            ) : null}
+            </div>
           </div>
 
           <div
@@ -540,8 +649,7 @@ function CircuitCanvasToolbar({
           <div className="canvas-workbench-timeline" data-testid="canvas-workbench-timeline">
             <div className="canvas-workbench-timeline-meta">
               <label className="canvas-workbench-label" htmlFor="canvas-time-step-slider">
-                时间步
-              </label>
+                鏃堕棿姝?              </label>
               <span className="canvas-workbench-value" data-testid="canvas-time-step-value">
                 {simulationStep} / {totalSimulationSteps}
               </span>

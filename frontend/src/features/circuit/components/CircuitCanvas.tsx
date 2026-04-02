@@ -93,6 +93,9 @@ function CircuitCanvas({
     onDelete,
     onParamChange,
     onNormalizeParam,
+    maxBeforeColumn,
+    onInsertColumns,
+    onDeleteEmptyColumns,
     cancelPendingPlacement,
     getCellClassName,
   } = useCircuitCanvasInteractions({
@@ -199,6 +202,9 @@ function CircuitCanvas({
         onResetWorkbench={onResetWorkbench}
         onIncreaseQubits={onIncreaseQubits}
         onDecreaseQubits={onDecreaseQubits}
+        maxBeforeColumn={maxBeforeColumn}
+        onInsertColumns={onInsertColumns}
+        onDeleteEmptyColumns={onDeleteEmptyColumns}
         onLoadBellTemplate={() => onLoadTemplate(BELL_TEMPLATE_ID)}
         onLoadSuperpositionTemplate={() => onLoadTemplate(SUPERPOSITION_TEMPLATE_ID)}
         onLoadQftTemplate={(numQubits) =>

@@ -157,6 +157,76 @@ describe("CircuitCanvas", () => {
     expect(screen.getByTestId("canvas-cell-0-3")).toHaveTextContent("X");
   });
 
+  it("shifts all operations to the right when inserting columns from toolbar control", () => {
+    const model: CircuitModel = {
+      numQubits: 2,
+      operations: [
+        { id: "op-1", gate: "x", targets: [0], layer: 0 },
+        { id: "op-2", gate: "h", targets: [1], layer: 2 },
+      ],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={4} />);
+
+    fireEvent.change(screen.getByTestId("canvas-column-before-input"), {
+      target: { value: "1" },
+    });
+    fireEvent.change(screen.getByTestId("canvas-column-count-input"), {
+      target: { value: "2" },
+    });
+    fireEvent.click(screen.getByTestId("canvas-insert-columns"));
+
+    expect(onCircuitChange).toHaveBeenCalledTimes(1);
+    const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
+    expect(nextModel.operations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "op-1", layer: 2 }),
+        expect.objectContaining({ id: "op-2", layer: 4 }),
+      ]),
+    );
+  });
+
+  it("deletes empty columns before the target column", () => {
+    const model: CircuitModel = {
+      numQubits: 2,
+      operations: [{ id: "op-1", gate: "x", targets: [0], layer: 3 }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={6} />);
+
+    fireEvent.change(screen.getByTestId("canvas-column-before-input"), {
+      target: { value: "4" },
+    });
+    fireEvent.change(screen.getByTestId("canvas-column-count-input"), {
+      target: { value: "2" },
+    });
+    fireEvent.click(screen.getByTestId("canvas-delete-empty-columns"));
+
+    expect(onCircuitChange).toHaveBeenCalledTimes(1);
+    const nextModel = onCircuitChange.mock.calls[0][0] as CircuitModel;
+    expect(nextModel.operations[0]).toMatchObject({ id: "op-1", layer: 1 });
+  });
+
+  it("blocks deleting columns when selected range contains gates", () => {
+    const model: CircuitModel = {
+      numQubits: 2,
+      operations: [{ id: "op-1", gate: "x", targets: [0], layer: 1 }],
+    };
+    const onCircuitChange = vi.fn();
+    render(<CircuitCanvas circuit={model} onCircuitChange={onCircuitChange} minLayers={6} />);
+
+    fireEvent.change(screen.getByTestId("canvas-column-before-input"), {
+      target: { value: "3" },
+    });
+    fireEvent.change(screen.getByTestId("canvas-column-count-input"), {
+      target: { value: "2" },
+    });
+    fireEvent.click(screen.getByTestId("canvas-delete-empty-columns"));
+
+    expect(onCircuitChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId("canvas-message")).toBeInTheDocument();
+  });
+
   it("moves a single-qubit gate inside the canvas", () => {
     const model: CircuitModel = {
       numQubits: 2,
@@ -675,6 +745,7 @@ describe("CircuitCanvas", () => {
     expect(screen.getByTestId("canvas-workbench-left")).toBeInTheDocument();
     expect(screen.getByTestId("canvas-workbench-center")).toBeInTheDocument();
     expect(screen.getByTestId("canvas-workbench-right")).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-workbench-columns")).toBeInTheDocument();
 
     const actionButtons = within(screen.getByTestId("canvas-workbench-actions")).getAllByRole("button");
     fireEvent.click(actionButtons[0]);

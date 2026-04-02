@@ -2,6 +2,9 @@
 
 import {
   addOperation,
+  deleteEmptyColumnsBefore,
+  getCircuitDepth,
+  insertColumnsBefore,
   removeOperation,
   updateOperation,
 } from "../model/circuit-model";
@@ -40,6 +43,8 @@ const AUTO_EXPAND_THRESHOLD_LAYERS = 3;
 const AUTO_EXPAND_BUFFER_LAYERS = 3;
 const CELL_WIDTH_PADDING_PX = 10;
 const MIN_CELL_WIDTH_PX = 40;
+const DEFAULT_COLUMN_BEFORE = 1;
+const DEFAULT_COLUMN_COUNT = 1;
 
 interface MovedOperationPreview {
   readonly operationId: string;
@@ -136,6 +141,10 @@ export function useCircuitCanvasInteractions({
   const layerCellWidths = useMemo(
     () => computeLayerCellWidths(circuit.operations, layers),
     [circuit.operations, layers],
+  );
+  const maxBeforeColumn = useMemo(
+    () => Math.max(DEFAULT_COLUMN_BEFORE, getCircuitDepth(circuit) + 1),
+    [circuit],
   );
   const selectedOperation = selectedOperationId
     ? circuit.operations.find((operation) => operation.id === selectedOperationId) ?? null
@@ -456,6 +465,81 @@ export function useCircuitCanvasInteractions({
     setInteractionMessage(null);
   };
 
+  const resetColumnActionState = () => {
+    clearDragPreview();
+    setPendingPlacement(null);
+    setInteractionMessage(null);
+  };
+
+  const toColumnNotice = (detail: string, suggestion?: string): LocalizedMessage => ({
+    title: "列操作提示",
+    detail,
+    suggestion,
+  });
+
+  const onInsertColumns = (beforeColumnOneBased: number, count: number) => {
+    resetColumnActionState();
+    const rawBefore = toIntOrDefault(beforeColumnOneBased, DEFAULT_COLUMN_BEFORE);
+    const rawCount = toIntOrDefault(count, DEFAULT_COLUMN_COUNT);
+    const resolvedBefore = clamp(rawBefore, DEFAULT_COLUMN_BEFORE, maxBeforeColumn);
+    const resolvedCount = Math.max(DEFAULT_COLUMN_COUNT, rawCount);
+    const next = insertColumnsBefore(circuit, resolvedBefore - 1, resolvedCount);
+    const committed = commitCircuit(next);
+    if (
+      committed &&
+      (rawBefore !== resolvedBefore || rawCount !== resolvedCount)
+    ) {
+      setInteractionMessage(
+        toColumnNotice(`已自动调整输入：在第 ${resolvedBefore} 列前插入 ${resolvedCount} 列。`),
+      );
+    }
+  };
+
+  const onDeleteEmptyColumns = (beforeColumnOneBased: number, count: number) => {
+    resetColumnActionState();
+    const rawBefore = toIntOrDefault(beforeColumnOneBased, DEFAULT_COLUMN_BEFORE);
+    const rawCount = toIntOrDefault(count, DEFAULT_COLUMN_COUNT);
+    const resolvedBefore = clamp(rawBefore, DEFAULT_COLUMN_BEFORE, maxBeforeColumn);
+    const normalizedCount = Math.max(DEFAULT_COLUMN_COUNT, rawCount);
+    const maxDeletableCount = resolvedBefore - 1;
+    const resolvedCount = Math.min(normalizedCount, maxDeletableCount);
+
+    if (resolvedCount <= 0) {
+      setInteractionMessage(toColumnNotice(`第 ${resolvedBefore} 列前没有可删除的列。`));
+      return;
+    }
+
+    const result = deleteEmptyColumnsBefore(circuit, resolvedBefore - 1, resolvedCount);
+    if (!result.ok) {
+      if (
+        result.code === "COLUMN_DELETE_BLOCKED_BY_OPERATION" &&
+        result.blockingLayer !== undefined
+      ) {
+        setInteractionMessage(
+          toColumnNotice(
+            `删除失败：第 ${result.blockingLayer + 1} 列存在量子门。`,
+            "请调整列范围，仅删除空列。",
+          ),
+        );
+        return;
+      }
+      setInteractionMessage(toColumnNotice("删除失败：目标列范围无效。"));
+      return;
+    }
+
+    const committed = commitCircuit(result.model);
+    if (
+      committed &&
+      (rawBefore !== resolvedBefore ||
+        rawCount !== normalizedCount ||
+        normalizedCount !== resolvedCount)
+    ) {
+      setInteractionMessage(
+        toColumnNotice(`已自动调整输入：在第 ${resolvedBefore} 列前删除 ${resolvedCount} 列。`),
+      );
+    }
+  };
+
   const getCellClassName = (
     operation: Operation | undefined,
     qubit: number,
@@ -555,6 +639,7 @@ export function useCircuitCanvasInteractions({
     qubits,
     layerIndexes,
     layerCellWidths,
+    maxBeforeColumn,
     showGateDragPreview,
     clearHoveredCell,
     clearDragPreview,
@@ -566,7 +651,20 @@ export function useCircuitCanvasInteractions({
     onDelete,
     onParamChange,
     onNormalizeParam,
+    onInsertColumns,
+    onDeleteEmptyColumns,
     cancelPendingPlacement,
     getCellClassName,
   };
+}
+
+function toIntOrDefault(value: number, fallback: number): number {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.trunc(value);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }

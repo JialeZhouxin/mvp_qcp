@@ -44,4 +44,62 @@ describe("useCircuitCanvasInteractions", () => {
       ],
     });
   });
+
+  it("cancels pending placement and shifts operations when inserting columns", () => {
+    const circuit: CircuitModel = {
+      numQubits: 3,
+      operations: [{ id: "op-1", gate: "x", targets: [0], layer: 0 }],
+    };
+    const onCircuitChange = vi.fn();
+
+    const { result } = renderHook(() =>
+      useCircuitCanvasInteractions({
+        circuit,
+        onCircuitChange,
+      }),
+    );
+
+    act(() => {
+      result.current.onDropGate("cx", 1, 2);
+    });
+    expect(result.current.pendingPlacement).not.toBeNull();
+
+    act(() => {
+      result.current.onInsertColumns(1, 1);
+    });
+
+    expect(result.current.pendingPlacement).toBeNull();
+    expect(onCircuitChange).toHaveBeenCalledTimes(1);
+    expect(onCircuitChange.mock.calls[0][0]).toMatchObject({
+      operations: [
+        {
+          id: "op-1",
+          gate: "x",
+          targets: [0],
+          layer: 1,
+        },
+      ],
+    });
+  });
+
+  it("blocks deleting columns when target range contains gates", () => {
+    const circuit: CircuitModel = {
+      numQubits: 2,
+      operations: [{ id: "op-1", gate: "x", targets: [0], layer: 1 }],
+    };
+    const onCircuitChange = vi.fn();
+    const { result } = renderHook(() =>
+      useCircuitCanvasInteractions({
+        circuit,
+        onCircuitChange,
+      }),
+    );
+
+    act(() => {
+      result.current.onDeleteEmptyColumns(3, 2);
+    });
+
+    expect(onCircuitChange).not.toHaveBeenCalled();
+    expect(result.current.interactionMessage).toBeTruthy();
+  });
 });
