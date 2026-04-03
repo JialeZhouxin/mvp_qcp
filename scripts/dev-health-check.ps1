@@ -83,7 +83,7 @@ function Wait-TaskTerminalStatus {
   while ((Get-Date) -lt $deadline) {
     $statusResp = Invoke-RestMethod -Method Get -Uri $TaskUrl -Headers $Headers -TimeoutSec 10
     $lastStatus = $statusResp.status
-    if ($lastStatus -in @("SUCCESS", "FAILURE", "TIMEOUT", "RETRY_EXHAUSTED")) {
+    if ($lastStatus -in @("SUCCESS", "FAILURE", "TIMEOUT", "RETRY_EXHAUSTED", "CANCELLED")) {
       return $statusResp
     }
     Start-Sleep -Seconds 1
@@ -94,7 +94,7 @@ function Wait-TaskTerminalStatus {
 
 if ($Docker) {
   Write-Host "[0/4] Checking Docker Compose services..."
-  Assert-DockerComposeServices -RequiredServices @("postgres", "redis", "backend", "worker", "circuit-worker", "execution-service", "frontend")
+  Assert-DockerComposeServices -RequiredServices @("postgres", "redis", "backend", "worker", "circuit-worker", "hybrid-worker", "execution-service", "frontend")
 }
 
 Write-Host "[1/4] Checking Redis..."
@@ -168,8 +168,29 @@ try {
   Assert-Ok -Condition ($resultResp.status -eq $statusResp.status) `
     -OkMessage "Task result endpoint status matches: $($resultResp.status)" `
     -FailMessage "Task result status mismatch"
+
+  $hybridSubmitBody = @{
+    algorithm = "vqe"
+    problem_template = "bell_state_overlap"
+    max_iterations = 4
+    step_size = 0.2
+    tolerance = 0.001
+    target_bitstring = "00"
+    num_qubits = 2
+  } | ConvertTo-Json
+  $hybridSubmitResp = Invoke-RestMethod -Method Post -Uri "$ApiBase/api/tasks/hybrid/submit" -Headers $headers -Body $hybridSubmitBody -ContentType "application/json" -TimeoutSec 10
+
+  $hybridTaskId = $hybridSubmitResp.task_id
+  Assert-Ok -Condition ($hybridTaskId -gt 0) `
+    -OkMessage "Hybrid task submitted: id=$hybridTaskId" `
+    -FailMessage "Hybrid task submit response invalid"
+
+  $hybridStatusResp = Wait-TaskTerminalStatus -TaskUrl "$ApiBase/api/tasks/$hybridTaskId" -Headers $headers
+  Assert-Ok -Condition (-not [string]::IsNullOrWhiteSpace($hybridStatusResp.status)) `
+    -OkMessage "Hybrid task reached terminal status: $($hybridStatusResp.status)" `
+    -FailMessage "Hybrid task status missing"
 } catch {
-  Write-Error "FAIL Deep check failed: $($_.Exception.Message). If status stays PENDING, inspect Celery worker logs and Redis connectivity."
+  Write-Error "FAIL Deep check failed: $($_.Exception.Message). If status stays PENDING, inspect worker/hybrid-worker logs and Redis queue consumers."
   exit 1
 }
 

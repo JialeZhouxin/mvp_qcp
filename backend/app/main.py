@@ -5,7 +5,7 @@ from fastapi.openapi.utils import get_openapi
 from app.api import auth_router, health_router, metrics_router, projects_router, tasks_center_router, tasks_router
 from app.core.config import settings
 from app.core.logging import configure_logging
-from app.schemas.task_stream import TaskHeartbeatEvent, TaskStatusStreamEvent
+from app.schemas.task_stream import HybridIterationStreamEvent, TaskHeartbeatEvent, TaskStatusStreamEvent
 
 
 configure_logging()
@@ -41,6 +41,9 @@ def custom_openapi() -> dict:
         ref_template="#/components/schemas/{model}"
     )
     components["TaskHeartbeatEvent"] = TaskHeartbeatEvent.model_json_schema(
+        ref_template="#/components/schemas/{model}"
+    )
+    components["HybridIterationStreamEvent"] = HybridIterationStreamEvent.model_json_schema(
         ref_template="#/components/schemas/{model}"
     )
     app.openapi_schema = openapi_schema

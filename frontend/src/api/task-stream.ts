@@ -1,6 +1,7 @@
 ﻿import { getAccessToken } from "../auth/session-store";
 import { API_BASE_URL } from "./client";
 import type {
+  HybridIterationStreamEvent,
   TaskHeartbeatEvent,
   TaskStatusStreamEvent,
   TaskStreamMessage,
@@ -8,6 +9,7 @@ import type {
 
 export interface TaskStreamCallbacks {
   onStatus: (event: TaskStatusStreamEvent) => void;
+  onHybridIteration?: (event: HybridIterationStreamEvent) => void;
   onHeartbeat?: (event: TaskHeartbeatEvent) => void;
   onDisconnect?: () => void;
   onError?: (error: Error) => void;
@@ -45,10 +47,19 @@ function parseEventBlock(block: string, callbacks: TaskStreamCallbacks): void {
   }
   if (message.event === "heartbeat" && callbacks.onHeartbeat) {
     callbacks.onHeartbeat(message.data);
+    return;
+  }
+  if (message.event === "hybrid_iteration" && callbacks.onHybridIteration) {
+    callbacks.onHybridIteration(message.data);
   }
 }
 
-export type { TaskHeartbeatEvent, TaskStatusStreamEvent, TaskStreamMessage };
+export type {
+  HybridIterationStreamEvent,
+  TaskHeartbeatEvent,
+  TaskStatusStreamEvent,
+  TaskStreamMessage,
+};
 
 export function subscribeTaskStream(
   taskIds: number[] | null,

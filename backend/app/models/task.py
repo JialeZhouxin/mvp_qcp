@@ -9,6 +9,7 @@ from sqlmodel import Field, SQLModel
 class TaskStatus(str, Enum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
+    CANCELLED = "CANCELLED"
     SUCCESS = "SUCCESS"
     FAILURE = "FAILURE"
     TIMEOUT = "TIMEOUT"
@@ -18,6 +19,7 @@ class TaskStatus(str, Enum):
 class TaskType(str, Enum):
     CODE = "code"
     CIRCUIT = "circuit"
+    HYBRID = "hybrid"
 
 
 class Task(SQLModel, table=True):

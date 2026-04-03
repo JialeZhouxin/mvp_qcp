@@ -8,7 +8,7 @@ QCP MVP 当前已经形成一套可运行的开发与演示闭环：
 - 后端负责认证、项目管理、任务入队、状态查询和结果读写
 - PostgreSQL 是业务真相源
 - Redis + Celery 承担异步执行调度
-- 代码任务和图形化量子电路任务走两条不同的执行链路
+- 代码任务、图形化量子电路任务、混合算法任务走不同执行链路
 
 本文档只描述仓库当前真实实现，不描述目标态或规划态。
 
@@ -26,6 +26,8 @@ frontend(5173)
                  -> Docker runner
        -> circuit-worker(qcp-circuit)
             -> qibo hot executor
+       -> hybrid-worker(qcp-hybrid)
+            -> hybrid vqe executor
 ```
 
 ## 服务职责
@@ -63,6 +65,11 @@ frontend(5173)
 - 消费 `qcp-circuit`
 - 负责图形化量子电路任务
 - 维护常驻热执行器并预热 `qibo`
+
+### hybrid-worker
+
+- 消费 `qcp-hybrid`
+- 负责混合算法任务（当前为 VQE）
 
 ### execution-service
 
@@ -119,6 +126,18 @@ frontend/circuit workbench
 - 后端接收结构化电路 payload，而不是前端生成的 Python 脚本
 - `circuit-worker` 启动时预热 `qibo`
 - 目标是降低图形化电路提交时的冷启动成本
+
+### 混合算法任务链路
+
+```text
+frontend/circuit workbench (hybrid mode)
+  -> POST /api/tasks/hybrid/submit
+  -> backend 写入 hybrid task
+  -> Celery hybrid-worker 消费 qcp-hybrid
+  -> VQE 迭代执行（含中间进度事件）
+  -> 结果回写 PostgreSQL
+  -> 前端查看任务状态和收敛轨迹
+```
 
 ## 图形化工作台能力边界
 
@@ -187,7 +206,7 @@ frontend/circuit workbench
 ## 当前运行事实
 
 - `backend` 与 `execution-service` 使用 `uvicorn --reload`
-- `worker` 与 `circuit-worker` 是 Celery worker，不会自动热更新导入代码
+- `worker`、`circuit-worker` 与 `hybrid-worker` 是 Celery worker，不会自动热更新导入代码
 - 只要后端执行逻辑、门映射或 payload 校验发生变化，就需要重启对应 worker
 - 图形化门支持已经扩展到高级门，但如果 `circuit-worker` 未重启，仍可能继续运行旧代码并报 `unsupported gate`
 

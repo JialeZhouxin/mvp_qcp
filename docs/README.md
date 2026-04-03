@@ -15,11 +15,13 @@
    面向开发和演示的日常使用入口，包括图形化编程、代码任务、任务中心和项目保存。
 3. [docker-deployment.md](docker-deployment.md)
    本地 Docker Compose 启动、验证、排障和服务重启规则。
-4. [data-flow.md](data-flow.md)
+4. [china-deployment-playbook.md](china-deployment-playbook.md)
+   中国网络环境与上线导向的镜像源、依赖供应链和合规基线。
+5. [data-flow.md](data-flow.md)
    认证、任务提交、任务执行、结果展示和项目保存的数据流。
-5. [api/README.md](api/README.md)
+6. [api/README.md](api/README.md)
    面向内部开发的 API 文档索引，覆盖后端 HTTP、SSE 事件消费者契约、前端 API 层与对外 Hook 契约。
-6. [execution-service-contract.md](execution-service-contract.md)
+7. [execution-service-contract.md](execution-service-contract.md)
    仅面向内部服务通信，描述代码任务执行服务的 HTTP 契约。
 
 ## 当前重点事实
@@ -44,6 +46,7 @@
 - [architecture.md](architecture.md)
 - [usage-guide.md](usage-guide.md)
 - [docker-deployment.md](docker-deployment.md)
+- [china-deployment-playbook.md](china-deployment-playbook.md)
 - [data-flow.md](data-flow.md)
 - [api/README.md](api/README.md)
 - [execution-service-contract.md](execution-service-contract.md)

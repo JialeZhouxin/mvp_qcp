@@ -4,6 +4,8 @@
 
 本文档只覆盖当前仓库真实存在的 `docker-compose.yml` 开发/演示栈，不覆盖生产部署。
 
+如果你要在中国网络环境或受限网络环境运行，请同时阅读 [china-deployment-playbook.md](china-deployment-playbook.md)。
+
 ## 当前 Compose 服务
 
 当前 Compose 栈包含：
@@ -13,6 +15,7 @@
 - `backend`
 - `worker`
 - `circuit-worker`
+- `hybrid-worker`
 - `execution-service`
 - `frontend`
 
@@ -27,6 +30,9 @@
 - `circuit-worker`
   - 消费 `qcp-circuit`
   - 负责图形化量子电路任务
+- `hybrid-worker`
+  - 消费 `qcp-hybrid`
+  - 负责混合算法任务（当前为 VQE）
 - `execution-service`
   - 只服务代码任务
   - 开发态使用 `uvicorn --reload`
@@ -36,7 +42,7 @@
 ## 重要运行事实
 
 - `backend` 和 `execution-service` 会热更新
-- `worker` 和 `circuit-worker` 不会热更新
+- `worker`、`circuit-worker` 和 `hybrid-worker` 不会热更新
 - 只要后端任务执行逻辑、量子门映射、payload 校验规则发生变化，就必须重启对应 worker
 
 这条规则对图形化量子电路尤其重要：前端门库更新不代表后端 worker 已经加载新门支持。
@@ -99,12 +105,25 @@ powershell -ExecutionPolicy Bypass -File "scripts/dev-health-check.ps1" -Docker 
 docker compose restart circuit-worker
 ```
 
+### 什么时候需要重启 `hybrid-worker`
+
+- 混合算法执行逻辑变化（如 VQE 迭代策略）
+- 混合任务 payload 校验变化
+- 混合任务流事件模型变化
+
+典型命令：
+
+```powershell
+docker compose restart hybrid-worker
+```
+
 ## 日志查看
 
 ```powershell
 docker compose logs backend --tail=200
 docker compose logs worker --tail=200
 docker compose logs circuit-worker --tail=200
+docker compose logs hybrid-worker --tail=200
 docker compose logs execution-service --tail=200
 docker compose logs frontend --tail=200
 ```
@@ -158,6 +177,23 @@ docker compose logs circuit-worker --tail=200
 ```powershell
 docker compose up -d --build frontend
 ```
+
+### 5. 混合任务长期停留 `PENDING`
+
+优先检查：
+
+```powershell
+docker compose ps
+docker compose logs hybrid-worker --tail=200
+docker compose exec worker celery -A app.worker.celery_app:celery_app inspect active_queues --timeout=10
+docker compose exec redis redis-cli LLEN qcp-hybrid
+```
+
+重点关注：
+
+- `hybrid-worker` 是否在运行
+- Celery active queues 是否包含 `qcp-hybrid`
+- `qcp-hybrid` 队列长度是否持续增长
 
 ## 停止与清理
 

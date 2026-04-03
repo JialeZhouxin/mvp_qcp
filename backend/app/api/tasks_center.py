@@ -66,6 +66,7 @@ def get_task_detail(
         "x-sse-events": {
             "task_status": "TaskStatusStreamEvent",
             "heartbeat": "TaskHeartbeatEvent",
+            "hybrid_iteration": "HybridIterationStreamEvent",
         }
     },
 )

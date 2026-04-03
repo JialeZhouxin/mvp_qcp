@@ -17,8 +17,13 @@ celery_app.conf.update(
     broker_connection_retry_on_startup=True,
 )
 
-celery_app.conf.imports = ("app.worker.celery_tasks", "app.worker.circuit_tasks")
+celery_app.conf.imports = (
+    "app.worker.celery_tasks",
+    "app.worker.circuit_tasks",
+    "app.worker.hybrid_tasks",
+)
 
 # Import task registrations eagerly so worker startup and tests share the same task registry.
 import app.worker.celery_tasks  # noqa: F401,E402
 import app.worker.circuit_tasks  # noqa: F401,E402
+import app.worker.hybrid_tasks  # noqa: F401,E402

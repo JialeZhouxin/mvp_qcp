@@ -15,6 +15,7 @@ from app.services.task_query_models import (
     UserTaskStatusView,
 )
 from app.services.error_diagnostic_service import normalize_task_diagnostic
+from app.services.task_lifecycle import TaskLifecycleService
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,8 @@ class TaskQueryService:
         message = None
         if task.status in {TaskStatus.PENDING, TaskStatus.RUNNING}:
             message = "task not finished"
+        elif task.status == TaskStatus.CANCELLED:
+            message = "task cancelled"
         elif task.status in {TaskStatus.FAILURE, TaskStatus.TIMEOUT, TaskStatus.RETRY_EXHAUSTED}:
             message = "task failed"
 
@@ -155,6 +158,17 @@ class TaskQueryService:
             attempt_count=task.attempt_count,
             result=_parse_json_or_none(task.result_json),
             diagnostic=_build_diagnostic(task.error_message),
+        )
+
+    def cancel_task(self, tenant_id: int, user_id: int, task_id: int) -> UserTaskStatusView:
+        task = self._load_user_task(task_id, tenant_id, user_id, action="task_cancel")
+        if task.status in {TaskStatus.PENDING, TaskStatus.RUNNING}:
+            TaskLifecycleService(self._session).mark_cancelled(task)
+        return UserTaskStatusView(
+            task_id=task.id or 0,
+            status=task.status.value,
+            task_type=task.task_type.value,
+            error_message=_parse_json_or_none(task.error_message),
         )
 
     def _load_user_task(self, task_id: int, tenant_id: int, user_id: int, action: str) -> Task:

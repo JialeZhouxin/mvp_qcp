@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { TaskStatusResponse } from "../../api/tasks";
 import type {
+  HybridIterationStreamEvent,
   TaskStreamCallbacks,
   TaskStreamConnection,
 } from "../../api/task-stream";
@@ -33,6 +34,7 @@ interface UseTaskStatusTrackingParams {
   readonly deps: TaskStatusTrackingDeps;
   readonly onStatusUpdated: (status: string) => void;
   readonly onStatusRefreshError: (error: unknown) => void;
+  readonly onHybridIteration?: (event: HybridIterationStreamEvent) => void;
 }
 
 export { isActiveTaskStatus, toTaskStatusLabel };
@@ -41,6 +43,7 @@ export function useTaskStatusTracking({
   deps,
   onStatusUpdated,
   onStatusRefreshError,
+  onHybridIteration,
 }: UseTaskStatusTrackingParams) {
   const [trackingMode, setTrackingMode] = useState<TaskTrackingMode>("idle");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -131,6 +134,7 @@ export function useTaskStatusTracking({
           }
           applyTaskStatus(event.status);
         },
+        onHybridIteration,
         onError: () => {
           startPolling(taskId);
         },

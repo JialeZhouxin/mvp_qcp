@@ -93,7 +93,7 @@ function Try-StartRedis {
   return $false
 }
 
-Write-Host "[0/7] Checking prerequisites..."
+Write-Host "[0/8] Checking prerequisites..."
 Assert-CommandExists -CommandName "uv"
 Assert-CommandExists -CommandName "npm"
 
@@ -106,7 +106,7 @@ if (-not (Test-Path $frontend)) {
   exit 1
 }
 
-Write-Host "[1/7] Checking Redis connectivity..."
+Write-Host "[1/8] Checking Redis connectivity..."
 if (-not (Test-TcpPort -TargetHost $RedisHost -Port $RedisPort)) {
   Write-Host "Redis is not reachable, trying to start Redis..."
   if (-not (Try-StartRedis -TargetHost $RedisHost -Port $RedisPort)) {
@@ -116,7 +116,7 @@ if (-not (Test-TcpPort -TargetHost $RedisHost -Port $RedisPort)) {
 }
 Write-Host "Redis is reachable: $RedisHost`:$RedisPort"
 
-Write-Host "[2/7] Checking backend Python version (must be 3.11)..."
+Write-Host "[2/8] Checking backend Python version (must be 3.11)..."
 Push-Location $backend
 try {
   uv run python -c "import sys; assert sys.version_info[:2] == (3, 11), f'Expected 3.11, got {sys.version}'"
@@ -127,7 +127,7 @@ try {
 }
 Pop-Location
 
-Write-Host "[3/7] Checking backend dependencies..."
+Write-Host "[3/8] Checking backend dependencies..."
 Push-Location $backend
 try {
   uv run python -c "import fastapi, sqlmodel, redis, celery, qibo, docker, requests; print('backend deps ok')"
@@ -144,7 +144,7 @@ try {
 }
 Pop-Location
 
-Write-Host "[4/7] Checking frontend dependencies..."
+Write-Host "[4/8] Checking frontend dependencies..."
 if (-not (Test-Path (Join-Path $frontend "node_modules"))) {
   if ($InstallDeps) {
     Push-Location $frontend
@@ -159,7 +159,7 @@ if (-not (Test-Path (Join-Path $frontend "node_modules"))) {
   }
 }
 
-Write-Host "[5/7] Starting backend API..."
+Write-Host "[5/8] Starting backend API..."
 Start-Process powershell -ArgumentList @(
   "-NoProfile",
   "-NoExit",
@@ -167,15 +167,23 @@ Start-Process powershell -ArgumentList @(
   "$env:EXECUTION_BACKEND='local'; cd `"$backend`"; uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
 )
 
-Write-Host "[6/7] Starting Celery worker..."
+Write-Host "[6/8] Starting default Celery worker..."
 Start-Process powershell -ArgumentList @(
   "-NoProfile",
   "-NoExit",
   "-Command",
-  "$env:EXECUTION_BACKEND='local'; cd `"$backend`"; uv run celery -A app.worker.celery_app:celery_app worker --loglevel=info --pool=solo"
+  "$env:EXECUTION_BACKEND='local'; cd `"$backend`"; uv run celery -A app.worker.celery_app:celery_app worker --loglevel=info --pool=solo --queues=qcp-default"
 )
 
-Write-Host "[7/7] Starting frontend..."
+Write-Host "[7/8] Starting hybrid Celery worker..."
+Start-Process powershell -ArgumentList @(
+  "-NoProfile",
+  "-NoExit",
+  "-Command",
+  "$env:EXECUTION_BACKEND='local'; cd `"$backend`"; uv run celery -A app.worker.celery_app:celery_app worker --loglevel=info --pool=solo --queues=qcp-hybrid"
+)
+
+Write-Host "[8/8] Starting frontend..."
 Start-Process powershell -ArgumentList @(
   "-NoProfile",
   "-NoExit",

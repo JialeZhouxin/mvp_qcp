@@ -9,6 +9,7 @@ import {
 } from "../../api/tasks";
 import type { TaskStreamCallbacks, TaskStreamConnection } from "../../api/task-stream";
 import { subscribeTaskStream as connectTaskStatusStreamApi } from "../../api/task-stream";
+import type { HybridIterationStreamEvent } from "../../api/task-stream";
 import {
   isActiveTaskStatus,
   toTaskStatusLabel,
@@ -53,6 +54,7 @@ interface UseTaskRuntimeParams {
   readonly submitErrorHint: string;
   readonly statusRefreshErrorHint: string;
   readonly pollingIntervalMs?: number;
+  readonly onHybridIteration?: (event: HybridIterationStreamEvent) => void;
 }
 
 const DEFAULT_DEPS: UseTaskRuntimeDeps = {
@@ -70,6 +72,7 @@ export function useTaskRuntime({
   submitErrorHint,
   statusRefreshErrorHint,
   pollingIntervalMs = DEFAULT_POLLING_INTERVAL_MS,
+  onHybridIteration,
 }: UseTaskRuntimeParams) {
   const resolvedDeps = useMemo<UseTaskRuntimeDeps>(
     () => ({ ...DEFAULT_DEPS, ...deps }),
@@ -101,6 +104,7 @@ export function useTaskRuntime({
     onStatusRefreshError: (error) => {
       setTaskError(toErrorMessage(error, statusRefreshErrorHint));
     },
+    onHybridIteration,
   });
 
   const clearPollingTimer = () => {

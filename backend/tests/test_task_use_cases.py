@@ -10,7 +10,7 @@ from app.services.task_submit_shared import (
     TaskSubmitOutcome,
     TaskSubmitValidationError,
 )
-from app.use_cases.task_use_cases import SubmitCircuitTaskUseCase, SubmitTaskUseCase
+from app.use_cases.task_use_cases import SubmitCircuitTaskUseCase, SubmitHybridTaskUseCase, SubmitTaskUseCase
 
 
 @dataclass
@@ -136,3 +136,40 @@ def test_submit_circuit_task_use_case_normalizes_payload_before_submit() -> None
     assert recorder.last_command.code is None
     assert recorder.last_command.payload_json == '{"num_qubits":2,"operations":[{"gate":"h","targets":[0]}]}'
     assert recorder.last_command.raw_idempotency_key == "dedupe-key"
+
+
+def test_submit_hybrid_task_use_case_persists_hybrid_payload() -> None:
+    recorder = SubmitRecorder(
+        outcome=TaskSubmitOutcome(
+            task_id=51,
+            status="PENDING",
+            task_type="hybrid",
+            deduplicated=False,
+            queue_depth=2,
+        )
+    )
+    use_case = SubmitHybridTaskUseCase(recorder)  # type: ignore[arg-type]
+    payload = {
+        "algorithm": "vqe",
+        "problem_template": "bell_state_overlap",
+        "max_iterations": 12,
+        "step_size": 0.25,
+        "target_bitstring": "00",
+    }
+
+    outcome = use_case.execute(
+        tenant_id=7,
+        user_id=8,
+        payload=payload,
+        idempotency_key="hybrid-key-1",
+    )
+
+    assert outcome.task_id == 51
+    assert recorder.last_command is not None
+    assert recorder.last_command.task_type == TaskType.HYBRID
+    assert recorder.last_command.code is None
+    assert recorder.last_command.payload_json == (
+        '{"algorithm":"vqe","problem_template":"bell_state_overlap","max_iterations":12,'
+        '"step_size":0.25,"tolerance":0.001,"target_bitstring":"00","num_qubits":2}'
+    )
+    assert recorder.last_command.raw_idempotency_key == "hybrid-key-1"

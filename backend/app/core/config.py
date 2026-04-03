@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     cors_allow_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
     task_queue_name: str = "qcp-default"
     circuit_task_queue_name: str = "qcp-circuit"
+    hybrid_task_queue_name: str = "qcp-hybrid"
     task_job_timeout_seconds: int = 90
     token_expire_hours: int = 24
     qibo_exec_timeout_seconds: int = 60

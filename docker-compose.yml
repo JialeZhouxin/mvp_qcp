@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
     environment:
       POSTGRES_DB: qcp
       POSTGRES_USER: qcp
@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7-alpine
+    image: ${REDIS_IMAGE:-redis:7-alpine}
     ports:
       - "6379:6379"
     healthcheck:
@@ -31,7 +31,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: qcp-backend-dev:latest
+      args:
+        APT_MIRROR_URL: ${APT_MIRROR_URL:-}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+        PIP_EXTRA_INDEX_URL: ${PIP_EXTRA_INDEX_URL:-}
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-}
+    image: ${BACKEND_IMAGE:-qcp-backend-dev:latest}
     command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     working_dir: /app/backend
     environment:
@@ -42,6 +47,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       TASK_QUEUE_NAME: qcp-default
       CIRCUIT_TASK_QUEUE_NAME: qcp-circuit
+      HYBRID_TASK_QUEUE_NAME: qcp-hybrid
       TASK_JOB_TIMEOUT_SECONDS: "90"
       QIBO_EXEC_TIMEOUT_SECONDS: "60"
       CIRCUIT_EXEC_BACKEND: numpy
@@ -73,7 +79,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: qcp-backend-dev:latest
+      args:
+        APT_MIRROR_URL: ${APT_MIRROR_URL:-}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+        PIP_EXTRA_INDEX_URL: ${PIP_EXTRA_INDEX_URL:-}
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-}
+    image: ${BACKEND_IMAGE:-qcp-backend-dev:latest}
     command: celery -A app.worker.celery_app:celery_app worker --loglevel=info --queues=qcp-default
     working_dir: /app/backend
     environment:
@@ -82,6 +93,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       TASK_QUEUE_NAME: qcp-default
       CIRCUIT_TASK_QUEUE_NAME: qcp-circuit
+      HYBRID_TASK_QUEUE_NAME: qcp-hybrid
       TASK_JOB_TIMEOUT_SECONDS: "90"
       QIBO_EXEC_TIMEOUT_SECONDS: "60"
       WORKER_ROLE: default
@@ -103,7 +115,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: qcp-backend-dev:latest
+      args:
+        APT_MIRROR_URL: ${APT_MIRROR_URL:-}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+        PIP_EXTRA_INDEX_URL: ${PIP_EXTRA_INDEX_URL:-}
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-}
+    image: ${BACKEND_IMAGE:-qcp-backend-dev:latest}
     command: celery -A app.worker.celery_app:celery_app worker --loglevel=info --pool=solo --concurrency=1 --queues=qcp-circuit
     working_dir: /app/backend
     environment:
@@ -112,6 +129,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       TASK_QUEUE_NAME: qcp-default
       CIRCUIT_TASK_QUEUE_NAME: qcp-circuit
+      HYBRID_TASK_QUEUE_NAME: qcp-hybrid
       TASK_JOB_TIMEOUT_SECONDS: "90"
       CIRCUIT_EXEC_BACKEND: numpy
       CIRCUIT_EXEC_POOL_SIZE: "1"
@@ -130,11 +148,47 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  hybrid-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        APT_MIRROR_URL: ${APT_MIRROR_URL:-}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+        PIP_EXTRA_INDEX_URL: ${PIP_EXTRA_INDEX_URL:-}
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-}
+    image: ${BACKEND_IMAGE:-qcp-backend-dev:latest}
+    command: celery -A app.worker.celery_app:celery_app worker --loglevel=info --concurrency=1 --queues=qcp-hybrid
+    working_dir: /app/backend
+    environment:
+      ENV: dev
+      DATABASE_URL: postgresql+psycopg://qcp:QcpDev_2026_Strong!@postgres:5432/qcp
+      REDIS_URL: redis://redis:6379/0
+      TASK_QUEUE_NAME: qcp-default
+      CIRCUIT_TASK_QUEUE_NAME: qcp-circuit
+      HYBRID_TASK_QUEUE_NAME: qcp-hybrid
+      TASK_JOB_TIMEOUT_SECONDS: "90"
+      QIBO_EXEC_TIMEOUT_SECONDS: "60"
+      WORKER_ROLE: hybrid
+    volumes:
+      - ./backend:/app/backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   execution-service:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: qcp-backend-dev:latest
+      args:
+        APT_MIRROR_URL: ${APT_MIRROR_URL:-}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+        PIP_EXTRA_INDEX_URL: ${PIP_EXTRA_INDEX_URL:-}
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-}
+    image: ${BACKEND_IMAGE:-qcp-backend-dev:latest}
     command: uvicorn app.execution_service_app:execution_service_app --reload --host 0.0.0.0 --port 8010
     working_dir: /app/backend
     environment:
@@ -154,6 +208,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-}
+        NPM_FETCH_RETRIES: ${NPM_FETCH_RETRIES:-5}
+        NPM_FETCH_RETRY_FACTOR: ${NPM_FETCH_RETRY_FACTOR:-2}
+        NPM_FETCH_RETRY_MINTIMEOUT: ${NPM_FETCH_RETRY_MINTIMEOUT:-20000}
+        NPM_FETCH_RETRY_MAXTIMEOUT: ${NPM_FETCH_RETRY_MAXTIMEOUT:-120000}
+    image: ${FRONTEND_IMAGE:-qcp-frontend-dev:latest}
     command: npm run dev
     working_dir: /app/frontend
     environment:

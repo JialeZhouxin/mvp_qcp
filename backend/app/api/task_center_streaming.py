@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from fastapi import Request
 
 from app.api.task_center_presenters import (
+    to_hybrid_iteration_stream_event,
     to_sse,
     to_task_heartbeat_event,
     to_task_status_stream_event,
@@ -26,10 +27,12 @@ async def stream_task_events(
         if await request.is_disconnected():
             break
 
-        events, versions = use_case.poll(tenant_id, user_id, watched_task_ids, versions)
-        if events:
+        events, hybrid_events, versions = use_case.poll(tenant_id, user_id, watched_task_ids, versions)
+        if events or hybrid_events:
             for event_payload in events:
                 yield to_sse("task_status", to_task_status_stream_event(event_payload))
+            for hybrid_payload in hybrid_events:
+                yield to_sse("hybrid_iteration", to_hybrid_iteration_stream_event(hybrid_payload))
             idle_seconds = 0.0
         else:
             idle_seconds += use_case.poll_interval_seconds

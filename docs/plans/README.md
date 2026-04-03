@@ -47,6 +47,11 @@
 - [2026-03-23-circuit-canvas-refactor.md](2026-03-23-circuit-canvas-refactor.md)
   - 电路画布重构计划
 
+### 中国部署与供应链风险记录
+
+- [2026-04-02-cn-network-supply-chain-risk-note.md](2026-04-02-cn-network-supply-chain-risk-note.md)
+  - 中国网络环境下 Docker 拉起与依赖供应链风险记录
+
 ## 使用约定
 
 - 带 `-design` 的文档更偏方案设计与权衡

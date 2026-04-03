@@ -1,6 +1,7 @@
 export const TASK_STATUSES = [
   "PENDING",
   "RUNNING",
+  "CANCELLED",
   "SUCCESS",
   "FAILURE",
   "TIMEOUT",
@@ -14,6 +15,7 @@ export const TASK_STATUS_FILTER_OPTIONS = ["ALL", ...TASK_STATUSES] as const;
 export type TaskStatusFilter = (typeof TASK_STATUS_FILTER_OPTIONS)[number];
 
 const TERMINAL_TASK_STATUS_SET = new Set<TaskStatus>([
+  "CANCELLED",
   "SUCCESS",
   "FAILURE",
   "TIMEOUT",
@@ -31,6 +33,7 @@ const FAILURE_TASK_STATUS_SET = new Set<TaskStatus>([
 const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   PENDING: "\u6392\u961F\u4E2D",
   RUNNING: "\u8FD0\u884C\u4E2D",
+  CANCELLED: "已取消",
   SUCCESS: "\u6267\u884C\u6210\u529F",
   FAILURE: "\u6267\u884C\u5931\u8D25",
   TIMEOUT: "\u6267\u884C\u8D85\u65F6",

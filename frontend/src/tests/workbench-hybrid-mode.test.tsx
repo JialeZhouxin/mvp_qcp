@@ -20,5 +20,7 @@ describe("Circuit workbench hybrid mode", () => {
     expect(screen.getByTestId("hybrid-max-iterations-input")).toBeInTheDocument();
     expect(screen.getByTestId("hybrid-step-size-input")).toBeInTheDocument();
     expect(screen.getByTestId("hybrid-tolerance-input")).toBeInTheDocument();
+    expect(screen.getByTestId("hybrid-convergence-empty")).toHaveTextContent("提交后将展示每轮目标值变化");
+    expect(screen.queryByTestId("hybrid-convergence-scroll-container")).not.toBeInTheDocument();
   });
 });

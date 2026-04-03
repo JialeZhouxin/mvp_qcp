@@ -83,7 +83,11 @@ class TaskSubmitService:
             user_id=command.user_id,
             task_type=command.task_type,
             code=command.code if command.task_type == TaskType.CODE else None,
-            payload_json=command.payload_json if command.task_type == TaskType.CIRCUIT else None,
+            payload_json=(
+                command.payload_json
+                if command.task_type in {TaskType.CIRCUIT, TaskType.HYBRID}
+                else None
+            ),
             status=TaskStatus.PENDING,
         )
         self._session.add(task)

@@ -20,6 +20,14 @@ class TaskSubmitValidator:
                 )
             return
 
+        if command.task_type == TaskType.HYBRID:
+            if command.payload_json is None or not command.payload_json.strip():
+                raise TaskSubmitValidationError(
+                    code="INVALID_HYBRID_PAYLOAD",
+                    message="hybrid payload is empty",
+                )
+            return
+
         raise TaskSubmitValidationError(
             code="INVALID_TASK_TYPE",
             message=f"unsupported task type: {command.task_type}",

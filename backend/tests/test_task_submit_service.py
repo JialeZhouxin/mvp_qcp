@@ -306,3 +306,31 @@ def test_submit_persists_circuit_payload_without_code(session: Session) -> None:
     assert task.task_type == TaskType.CIRCUIT
     assert task.code is None
     assert task.payload_json == payload_json
+
+
+def test_submit_persists_hybrid_payload_without_code(session: Session) -> None:
+    queue = QueueRecorder()
+    backpressure = BackpressureStub(depth=4)
+    service = _build_submit_service(session, queue=queue, backpressure=backpressure)
+    tenant_id = _create_tenant(session, slug="hybrid-submit-tenant")
+    payload_json = (
+        '{"algorithm":"vqe","problem_template":"bell_state_overlap","max_iterations":20,'
+        '"step_size":0.2,"target_bitstring":"00"}'
+    )
+
+    outcome = service.submit(
+        TaskSubmitCommand(
+            tenant_id=tenant_id,
+            user_id=1,
+            task_type=TaskType.HYBRID,
+            payload_json=payload_json,
+        )
+    )
+
+    assert outcome.status == "PENDING"
+    assert outcome.task_type == "hybrid"
+    task = session.exec(select(Task).where(Task.id == outcome.task_id)).first()
+    assert task is not None
+    assert task.task_type == TaskType.HYBRID
+    assert task.code is None
+    assert task.payload_json == payload_json

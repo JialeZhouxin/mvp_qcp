@@ -7,6 +7,7 @@
 - 用户认证
 - 代码任务执行
 - 图形化量子电路任务执行
+- 混合算法任务执行
 - 本地模拟预览
 - 项目保存与读取
 - 任务中心结果展示
@@ -65,6 +66,25 @@ Frontend
 - 后端接收的是结构化电路 payload，不是前端拼接的 Python 脚本
 - 图形化电路和代码任务使用不同队列、不同 worker、不同执行边界
 - 高级量子门的后端支持由 `circuit-worker` 当前加载的代码决定
+
+## 3.1 混合算法任务数据流
+
+```text
+/tasks/circuit (hybrid mode)
+  -> 前端构造 hybrid payload
+  -> POST /api/tasks/hybrid/submit
+  -> backend 创建 hybrid task
+  -> Celery hybrid-worker 消费 qcp-hybrid
+  -> VQE 迭代执行并持续写回进度
+  -> result_json 回写 PostgreSQL
+  -> frontend 在工作台与任务中心查看结果
+```
+
+说明：
+
+- 当前混合算法能力以 VQE 模板为主
+- 混合任务和代码任务/图形化任务使用独立队列隔离运行
+- 混合任务长期 `PENDING` 时优先检查 `hybrid-worker` 与 `qcp-hybrid` 消费状态
 
 ## 4. 图形化工作台本地模拟流
 
@@ -156,6 +176,7 @@ Task Center
 
 - 代码任务走 `worker -> execution-service -> Docker`
 - 图形化任务走 `circuit-worker -> qibo hot executor`
+- 混合算法任务走 `hybrid-worker -> hybrid executor`
 
 两条链路不要混为一谈。
 

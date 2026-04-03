@@ -9,6 +9,7 @@ from app.services.task_error_payload import build_error_payload
 
 TERMINAL_TASK_STATUSES = frozenset(
     {
+        TaskStatus.CANCELLED,
         TaskStatus.SUCCESS,
         TaskStatus.FAILURE,
         TaskStatus.TIMEOUT,
@@ -51,6 +52,24 @@ class TaskLifecycleService:
         task.status = TaskStatus.SUCCESS
         task.result_json = json.dumps(result, ensure_ascii=False)
         task.error_message = None
+        task.finished_at = finished_at
+        task.duration_ms = _duration_ms(task, finished_at)
+        task.updated_at = finished_at
+        self._persist(task)
+
+    def mark_progress(self, task: Task, result: dict[str, Any], now: datetime | None = None) -> None:
+        self._assert_mutable(task)
+        updated_at = now or datetime.utcnow()
+        task.result_json = json.dumps(result, ensure_ascii=False)
+        task.updated_at = updated_at
+        self._persist(task)
+
+    def mark_cancelled(self, task: Task, now: datetime | None = None) -> None:
+        if task.status == TaskStatus.CANCELLED:
+            return
+        self._assert_mutable(task)
+        finished_at = now or datetime.utcnow()
+        task.status = TaskStatus.CANCELLED
         task.finished_at = finished_at
         task.duration_ms = _duration_ms(task, finished_at)
         task.updated_at = finished_at
