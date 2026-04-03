@@ -9,8 +9,7 @@ from app.core.config import settings
 from app.db.base import metadata
 
 config = context.config
-configured_url = config.get_main_option("sqlalchemy.url")
-if configured_url == "sqlite:///./data/qcp.db" and settings.database_url:
+if settings.database_url:
     config.set_main_option("sqlalchemy.url", settings.database_url)
 
 if config.config_file_name is not None:
@@ -43,7 +42,9 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
+        context.configure(
+            connection=connection, target_metadata=target_metadata, compare_type=True
+        )
 
         with context.begin_transaction():
             context.run_migrations()

@@ -1,9 +1,10 @@
 import os
-from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-os.environ["DATABASE_URL"] = "sqlite:///./data/test_observability.db"
+os.environ["DATABASE_URL"] = (
+    "postgresql+psycopg://qcp:QcpDev_2026_Strong!@127.0.0.1:5432/qcp_test"
+)
 
 from app.main import app  # noqa: E402
 
@@ -58,6 +59,3 @@ def test_metrics_endpoint_returns_parseable_text(monkeypatch) -> None:
 
 def teardown_module() -> None:
     client.close()
-    db_path = Path(__file__).resolve().parents[1] / "data" / "test_observability.db"
-    if db_path.exists():
-        db_path.unlink()

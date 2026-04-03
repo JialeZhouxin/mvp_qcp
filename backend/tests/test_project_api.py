@@ -1,13 +1,14 @@
 import os
-from pathlib import Path
 
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel
 
-os.environ["DATABASE_URL"] = "sqlite:///./data/test_project_api.db"
-
+os.environ["DATABASE_URL"] = (
+    "postgresql+psycopg://qcp:QcpDev_2026_Strong!@127.0.0.1:5432/qcp_test"
+)
 from app.db.session import engine, init_db  # noqa: E402
 from app.main import app  # noqa: E402
+
 
 SQLModel.metadata.drop_all(engine)
 init_db()
@@ -16,7 +17,9 @@ client = TestClient(app)
 
 def _auth_headers(username: str, password: str = "pass123456") -> dict[str, str]:
     client.post("/api/auth/register", json={"username": username, "password": password})
-    response = client.post("/api/auth/login", json={"username": username, "password": password})
+    response = client.post(
+        "/api/auth/login", json={"username": username, "password": password}
+    )
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
@@ -60,7 +63,10 @@ def test_project_isolation_by_user() -> None:
 
     created = client.put(
         "/api/projects/owner-only",
-        json={"entry_type": "code", "payload": {"code": "def main():\n    return {'counts': {'00': 1}}"}},
+        json={
+            "entry_type": "code",
+            "payload": {"code": "def main():\n    return {'counts': {'00': 1}}"},
+        },
         headers=owner_headers,
     )
     project_id = created.json()["id"]
@@ -72,9 +78,3 @@ def test_project_isolation_by_user() -> None:
 
 def teardown_module() -> None:
     client.close()
-    db_path = Path(__file__).resolve().parents[1] / "data" / "test_project_api.db"
-    try:
-        if db_path.exists():
-            db_path.unlink()
-    except PermissionError:
-        pass

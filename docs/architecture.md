@@ -222,6 +222,5 @@ frontend/circuit workbench (hybrid mode)
 以下说法在当前仓库中已经不成立：
 
 - 使用 `RQ` 作为任务队列
-- 使用 `SQLite` 作为默认主数据库
 - 图形化电路统一转成 Python 脚本后再走代码执行链路
 - `execution-service` 健康状态固定等于 `remote`

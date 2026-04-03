@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     app_name: str = "QCP MVP API"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    database_url: str = "sqlite:///./data/qcp.db"
+    database_url: str = "postgresql+psycopg://qcp:qcp_dev_password@127.0.0.1:5432/qcp"
     database_pool_size: int = 10
     database_max_overflow: int = 20
     database_pool_recycle_seconds: int = 1800
@@ -49,7 +49,9 @@ class Settings(BaseSettings):
     circuit_exec_heartbeat_key: str = "qcp:circuit:heartbeat"
     worker_role: str = "default"
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
     @property
     def cors_origins(self) -> list[str]:
@@ -57,11 +59,19 @@ class Settings(BaseSettings):
 
     @property
     def retry_backoff_schedule(self) -> list[int]:
-        schedule = [int(value.strip()) for value in self.task_retry_backoff_seconds.split(",") if value.strip()]
+        schedule = [
+            int(value.strip())
+            for value in self.task_retry_backoff_seconds.split(",")
+            if value.strip()
+        ]
         if not schedule:
-            raise ValueError("task_retry_backoff_seconds must contain at least one positive integer")
+            raise ValueError(
+                "task_retry_backoff_seconds must contain at least one positive integer"
+            )
         if any(value <= 0 for value in schedule):
-            raise ValueError("task_retry_backoff_seconds values must be positive integers")
+            raise ValueError(
+                "task_retry_backoff_seconds values must be positive integers"
+            )
         return schedule
 
 

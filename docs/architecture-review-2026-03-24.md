@@ -25,7 +25,7 @@
 1. 任务系统仍然强绑定 `RQ`
 2. 执行架构仍依赖宿主机 Docker Socket
 3. 运行脚本和文档仍在强化旧架构
-4. 数据库运行时实现仍偏向 SQLite 文件库
+4. 数据库运行时实现已迁移到 PostgreSQL
 5. Python 工程规范执行不一致
 6. `StorageService` 抽象尚未落地
 
@@ -76,27 +76,14 @@
 - Worker 只负责调度和状态推进，不直接接触 Docker Socket
 - 后续可演进为独立 `execution service`
 
-### 3. 数据库访问方式合规，但运行时仍明显以 SQLite 为中心
+### 3. 数据库访问合规，已统一到 PostgreSQL
 
 #### 结论
-当前未发现原生 SQL，ORM 使用方向正确；但运行时实现仍包含 SQLite 专属路径归一化和连接分支，数据库无关性不足。
-
-#### 证据
-- [backend/app/core/config.py:14](/E:/02_Projects/quantuncloudplatform/mvp_qcp/backend/app/core/config.py#L14)
-- [backend/app/db/session.py:9](/E:/02_Projects/quantuncloudplatform/mvp_qcp/backend/app/db/session.py#L9)
-- [backend/app/db/session.py:23](/E:/02_Projects/quantuncloudplatform/mvp_qcp/backend/app/db/session.py#L23)
-- [backend/app/db/session.py:32](/E:/02_Projects/quantuncloudplatform/mvp_qcp/backend/app/db/session.py#L32)
-- [backend/app/main.py:25](/E:/02_Projects/quantuncloudplatform/mvp_qcp/backend/app/main.py#L25)
-
-#### 风险
-- 数据库初始化逻辑和路径管理混入运行时代码，未来迁移 PostgreSQL/MySQL 时改动面大
-- 启动时 `create_all` 不适合作为长期演进策略
-- 团队容易继续把 SQLite 特殊处理写进更多业务模块
+数据库访问通过 `SQLModel` / `SQLAlchemy ORM` 完成，方言分支已清理，连接池配置统一。
 
 #### 建议
-- 保留 SQLite 作为 MVP 默认实现，但把 engine 创建收口为方言无关工厂
-- 把 schema 初始化从应用启动迁移到迁移工具链
-- 后续采用 Alembic 或等价机制管理 schema 变更
+- 保持 Alembic 作为唯一 schema 演进机制
+- 单元测试保留 `sqlite:///:memory:` 作为轻量隔离手段
 
 ### 4. 运行脚本和文档仍然强化旧架构
 
@@ -193,7 +180,7 @@
 ### P2：持续治理
 1. 建立 Python 代码质量基线并补齐 Docstring / 日志 / 异常处理
 2. 引入 `StorageService` 抽象
-3. 持续减少 SQLite 专属分支和宿主机耦合假设
+3. 持续减少宿主机耦合假设
 
 ## 建议的分步优化路线
 
@@ -227,3 +214,4 @@
 1. 本次将测试代码中使用 SQLite 内存库视为测试策略，不视为生产架构冲突。
 2. 本次未修改代码，结论基于静态阅读与搜索结果。
 3. 本次未跑全量测试，因此本报告不对当前运行稳定性做完整担保。
+4. 数据库相关 SQLite 分支已在此后清理完毕，生产环境已统一到 PostgreSQL。

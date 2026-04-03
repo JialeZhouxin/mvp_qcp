@@ -1,34 +1,12 @@
 import json
 import os
-from pathlib import Path
 
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session, select
 
-TEST_DATABASE_URL = "sqlite:///./data/test_hybrid_task_api.db"
-os.environ["DATABASE_URL"] = TEST_DATABASE_URL
-
-
-def _resolve_sqlite_db_path(database_url: str) -> Path | None:
-    sqlite_prefix = "sqlite:///"
-    if not database_url.startswith(sqlite_prefix):
-        return None
-
-    db_path_text = database_url.replace(sqlite_prefix, "", 1)
-    if db_path_text == ":memory:":
-        return None
-
-    db_path = Path(db_path_text)
-    if db_path.is_absolute():
-        return db_path
-
-    backend_root = Path(__file__).resolve().parents[1]
-    return (backend_root / db_path).resolve()
-
-
-initial_db_path = _resolve_sqlite_db_path(TEST_DATABASE_URL)
-if initial_db_path and initial_db_path.exists():
-    initial_db_path.unlink()
+os.environ["DATABASE_URL"] = (
+    "postgresql+psycopg://qcp:QcpDev_2026_Strong!@127.0.0.1:5432/qcp_test"
+)
 
 
 from app.db.session import engine, init_db  # noqa: E402
@@ -44,7 +22,9 @@ client = TestClient(app)
 
 def _auth_headers(username: str, password: str = "pass123456") -> dict[str, str]:
     client.post("/api/auth/register", json={"username": username, "password": password})
-    login_resp = client.post("/api/auth/login", json={"username": username, "password": password})
+    login_resp = client.post(
+        "/api/auth/login", json={"username": username, "password": password}
+    )
     assert login_resp.status_code == 200
     token = login_resp.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
@@ -59,7 +39,9 @@ def test_hybrid_submit_persists_task_and_routes_to_hybrid_queue(monkeypatch) -> 
             queued["task_id"] = task_id
             queued["job_timeout"] = job_timeout
 
-    monkeypatch.setattr("app.dependencies.task_submit.get_hybrid_task_queue", lambda: QueueStub())
+    monkeypatch.setattr(
+        "app.dependencies.task_submit.get_hybrid_task_queue", lambda: QueueStub()
+    )
 
     headers = _auth_headers("tester_hybrid_submit_ok")
     response = client.post(
@@ -137,7 +119,9 @@ def test_hybrid_submit_accepts_max_iterations_10000(monkeypatch) -> None:
         def enqueue(self, _task_name: str, _task_id: int, _job_timeout: int) -> None:
             return
 
-    monkeypatch.setattr("app.dependencies.task_submit.get_hybrid_task_queue", lambda: QueueStub())
+    monkeypatch.setattr(
+        "app.dependencies.task_submit.get_hybrid_task_queue", lambda: QueueStub()
+    )
     headers = _auth_headers("tester_hybrid_max_iterations")
     response = client.post(
         "/api/tasks/hybrid/submit",
@@ -158,10 +142,3 @@ def test_hybrid_submit_accepts_max_iterations_10000(monkeypatch) -> None:
 
 def teardown_module() -> None:
     client.close()
-    database_url = os.getenv("DATABASE_URL", TEST_DATABASE_URL)
-    db_path = _resolve_sqlite_db_path(database_url)
-    try:
-        if db_path and db_path.exists():
-            db_path.unlink()
-    except PermissionError:
-        pass

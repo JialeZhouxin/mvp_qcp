@@ -63,7 +63,6 @@ services:
       WATCHFILES_FORCE_POLLING: "true"
     volumes:
       - ./backend:/app/backend
-      - ../cc/mvp_qcp/backend/data:/migration-source:ro
     ports:
       - "8000:8000"
     depends_on:

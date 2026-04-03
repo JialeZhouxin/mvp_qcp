@@ -10,18 +10,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-    if bind.dialect.name == "sqlite":
-        with op.batch_alter_table("task", recreate="always") as batch_op:
-            batch_op.alter_column("code", existing_type=sa.String(), nullable=True)
-        return
     op.alter_column("task", "code", existing_type=sa.String(), nullable=True)
 
 
 def downgrade() -> None:
-    bind = op.get_bind()
-    if bind.dialect.name == "sqlite":
-        with op.batch_alter_table("task", recreate="always") as batch_op:
-            batch_op.alter_column("code", existing_type=sa.String(), nullable=False)
-        return
     op.alter_column("task", "code", existing_type=sa.String(), nullable=False)

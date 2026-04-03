@@ -28,13 +28,12 @@
 - 所有可变配置必须通过 `.env` 注入，并由 `pydantic-settings` 或 `os.getenv` 读取。
 - 严禁在代码中写死端口、IP、密码、密钥、数据库连接串、Redis 地址、对象存储地址。
 
-### 2. 数据库策略（PostgreSQL 优先，保留迁移能力）
-- 当前项目主数据库为 PostgreSQL；开发与联调默认以 PostgreSQL 为基线，不再以 SQLite 作为主运行路径。
+### 2. 数据库策略（PostgreSQL）
+- 当前项目主数据库为 PostgreSQL；开发与联调默认以 PostgreSQL 为基线。
 - 所有数据库访问必须通过 `SQLAlchemy` / `SQLModel` ORM 完成。
 - Schema 变更必须通过 Alembic 管理；禁止把 `create_all()` 作为生产或联调环境的 schema 演进手段。
 - `DATABASE_URL` 是唯一运行时数据库入口；禁止在业务代码中分叉出隐式数据库连接来源。
-- SQLite 仅允许用于测试、临时本地验证、历史数据迁移脚本输入（如 `SQLITE_SOURCE_DATABASE_URL`）；不得作为新功能验收的默认目标库。
-- 禁止在业务层引入新的 SQLite 专属分支或方言锁定写法；若因性能或迁移需要使用方言特性，必须封装在基础设施层并补充回归测试。
+- 禁止在业务层引入数据库方言锁定写法；若因性能需要使用方言特性，必须封装在基础设施层并补充回归测试。
 
 ### 3. 无状态架构与存储抽象
 - Worker 必须设计为无状态。
@@ -97,8 +96,7 @@
 - 包管理器：`uv`（Python）、`npm`（Node.js）
 
 补充说明：
-- 仓库中仍保留 SQLite 兼容代码与测试用例，仅用于测试与迁移，不代表主运行形态。
-- 历史迁移仅通过 `SQLITE_SOURCE_DATABASE_URL -> DATABASE_URL` 的一次性脚本路径执行。
+- 单元测试使用 `sqlite:///:memory:` 作为轻量隔离手段，不涉及生产架构。
 
 ### 目录基线
 ```text

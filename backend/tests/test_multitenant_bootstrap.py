@@ -3,7 +3,9 @@ import os
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session, create_engine
 
-os.environ["DATABASE_URL"] = "sqlite:///./data/test_multitenant_bootstrap.db"
+os.environ["DATABASE_URL"] = (
+    "postgresql+psycopg://qcp:QcpDev_2026_Strong!@127.0.0.1:5432/qcp_test"
+)
 
 from app.db.session import engine, init_db  # noqa: E402
 from app.main import app  # noqa: E402

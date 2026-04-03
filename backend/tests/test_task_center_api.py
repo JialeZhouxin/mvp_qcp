@@ -1,10 +1,11 @@
 import os
-from pathlib import Path
 
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session
 
-os.environ["DATABASE_URL"] = "sqlite:///./data/test_task_center_api.db"
+os.environ["DATABASE_URL"] = (
+    "postgresql+psycopg://qcp:QcpDev_2026_Strong!@127.0.0.1:5432/qcp_test"
+)
 
 from app.db.session import engine, init_db  # noqa: E402
 from app.main import app  # noqa: E402
@@ -21,16 +22,24 @@ init_db()
 client = TestClient(app)
 
 
-def _auth(username: str, password: str = "pass123456") -> tuple[int, int, dict[str, str]]:
-    register = client.post("/api/auth/register", json={"username": username, "password": password})
+def _auth(
+    username: str, password: str = "pass123456"
+) -> tuple[int, int, dict[str, str]]:
+    register = client.post(
+        "/api/auth/register", json={"username": username, "password": password}
+    )
     tenant_id = register.json().get("tenant_id")
     user_id = register.json().get("user_id")
-    login = client.post("/api/auth/login", json={"username": username, "password": password})
+    login = client.post(
+        "/api/auth/login", json={"username": username, "password": password}
+    )
     token = login.json()["access_token"]
     return int(tenant_id), int(user_id), {"Authorization": f"Bearer {token}"}
 
 
-def _create_task(tenant_id: int, user_id: int, status: TaskStatus, error_payload: str | None = None) -> int:
+def _create_task(
+    tenant_id: int, user_id: int, status: TaskStatus, error_payload: str | None = None
+) -> int:
     with Session(engine) as session:
         task = Task(
             tenant_id=tenant_id,
@@ -90,7 +99,9 @@ def test_task_event_stream_service_emits_change_payload() -> None:
     task_id = _create_task(tenant_id, user_id, TaskStatus.PENDING)
 
     service = TaskEventStreamService()
-    changed, hybrid_events, versions = service.list_changed_tasks(tenant_id, user_id, {task_id}, {})
+    changed, hybrid_events, versions = service.list_changed_tasks(
+        tenant_id, user_id, {task_id}, {}
+    )
 
     assert len(changed) == 1
     assert isinstance(changed[0], TaskStatusStreamPayload)
@@ -122,7 +133,9 @@ def test_task_event_stream_service_emits_hybrid_iteration_payload() -> None:
         task_id = int(task.id or 0)
 
     service = TaskEventStreamService()
-    changed, hybrid_events, versions = service.list_changed_tasks(tenant_id, user_id, {task_id}, {})
+    changed, hybrid_events, versions = service.list_changed_tasks(
+        tenant_id, user_id, {task_id}, {}
+    )
 
     assert len(changed) == 1
     assert len(hybrid_events) == 2
@@ -146,9 +159,3 @@ def test_task_event_stream_service_builds_typed_heartbeat() -> None:
 
 def teardown_module() -> None:
     client.close()
-    db_path = Path(__file__).resolve().parents[1] / "data" / "test_task_center_api.db"
-    try:
-        if db_path.exists():
-            db_path.unlink()
-    except PermissionError:
-        pass

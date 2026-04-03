@@ -12,15 +12,18 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("task", sa.Column("task_type", sa.String(length=16), nullable=False, server_default="code"))
+    op.add_column(
+        "task",
+        sa.Column(
+            "task_type", sa.String(length=16), nullable=False, server_default="code"
+        ),
+    )
     op.add_column("task", sa.Column("payload_json", sa.String(), nullable=True))
     op.create_index("ix_task_task_type", "task", ["task_type"], unique=False)
 
     op.execute("UPDATE task SET task_type = 'code' WHERE task_type IS NULL")
 
-    bind = op.get_bind()
-    if bind.dialect.name != "sqlite":
-        op.alter_column("task", "task_type", server_default=None)
+    op.alter_column("task", "task_type", server_default=None)
 
 
 def downgrade() -> None:

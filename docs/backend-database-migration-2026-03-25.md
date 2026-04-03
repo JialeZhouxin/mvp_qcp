@@ -13,12 +13,6 @@
 2. Run `alembic upgrade head` in `backend/`.
 3. Start the API and worker processes.
 
-For local legacy data migration:
-
-1. Set `SQLITE_SOURCE_DATABASE_URL` to the old SQLite file.
-2. Set `DATABASE_URL` to the empty target database.
-3. Run `python scripts/migrate_sqlite_to_postgres.py` in `backend/`.
-
 ## Auth and tenant behavior
 
 - Registering a user now auto-creates a tenant.
@@ -28,6 +22,5 @@ For local legacy data migration:
 
 ## Notes
 
-- SQLite remains available for tests and temporary local development.
-- Production intent is PostgreSQL with Alembic-managed schema changes.
-- The one-time migration script clears legacy tokens during import and requires the target database to be empty.
+- Production database is PostgreSQL with Alembic-managed schema changes.
+- Unit tests use `sqlite:///:memory:` as a lightweight isolation strategy; this does not affect production architecture.
