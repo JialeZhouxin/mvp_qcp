@@ -13,3 +13,12 @@ class TaskStatusStreamEvent(BaseModel):
 
 class TaskHeartbeatEvent(BaseModel):
     timestamp: datetime
+
+
+class HybridIterationStreamEvent(BaseModel):
+    task_id: int
+    iteration: int
+    objective: float
+    best_objective: float
+    current_best_gap: float
+    updated_at: datetime

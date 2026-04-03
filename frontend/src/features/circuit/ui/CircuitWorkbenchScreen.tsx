@@ -1,13 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import CircuitCanvas from "../components/CircuitCanvas";
 import GatePalette from "../components/GatePalette";
 import QasmEditorPane from "../components/QasmEditorPane";
 import QasmErrorPanel from "../components/QasmErrorPanel";
 import WorkbenchGuide from "../components/WorkbenchGuide";
+import WorkbenchHybridPanel from "../components/WorkbenchHybridPanel";
 import WorkbenchProjectPanel from "../components/WorkbenchProjectPanel";
 import WorkbenchResultPanel from "../components/WorkbenchResultPanel";
 import WorkbenchSubmitPanel from "../components/WorkbenchSubmitPanel";
+import { useWorkbenchHybridSubmit } from "../submission/use-workbench-hybrid-submit";
 import { useWorkbenchTaskSubmit } from "../submission/use-workbench-task-submit";
 import { type SimulationSchedulerLike, useWorkbenchSimulation } from "../simulation/use-workbench-simulation";
 import { useWorkbenchDraftSync } from "./use-workbench-draft-sync";
@@ -28,6 +30,7 @@ interface CircuitWorkbenchScreenProps {
 }
 
 function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
+  const [workbenchMode, setWorkbenchMode] = useState<"single" | "hybrid">("single");
   const {
     circuit,
     qasm,
@@ -106,6 +109,37 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
     onSubmitTask,
   } = useWorkbenchTaskSubmit({ circuit, parseError });
 
+  const {
+    config: hybridConfig,
+    setMaxIterations,
+    setStepSize,
+    setTolerance,
+    submittingTask: hybridSubmittingTask,
+    submittedTaskId: hybridSubmittedTaskId,
+    taskStatusLabel: hybridTaskStatusLabel,
+    submitError: hybridSubmitError,
+    deduplicatedSubmit: hybridDeduplicatedSubmit,
+    canSubmit: hybridCanSubmit,
+    elapsedSeconds: hybridElapsedSeconds,
+    canCancel: hybridCanCancel,
+    iterations: hybridIterations,
+    iterationCount: hybridIterationCount,
+    latestObjective,
+    bestObjective,
+    latestCurrentBestGap,
+    onSubmitHybrid,
+    onCancelHybrid,
+  } = useWorkbenchHybridSubmit({ numQubits: circuit.numQubits });
+
+  const isHybridMode = workbenchMode === "hybrid";
+  const railSubmitting = isHybridMode ? hybridSubmittingTask : submittingTask;
+  const railCanSubmit = isHybridMode ? hybridCanSubmit : canSubmit;
+  const railTaskId = isHybridMode ? hybridSubmittedTaskId : submittedTaskId;
+  const railStatusLabel = isHybridMode ? hybridTaskStatusLabel : taskStatusLabel;
+  const railError = isHybridMode ? hybridSubmitError : submitError;
+  const railDeduplicated = isHybridMode ? hybridDeduplicatedSubmit : deduplicatedSubmit;
+  const railElapsed = isHybridMode ? hybridElapsedSeconds : elapsedSeconds;
+
   return (
     <main data-testid="circuit-workbench-shell" className="circuit-workbench-shell">
       <WorkbenchGuide visible={showGuide} onDismiss={dismissGuide} />
@@ -119,16 +153,41 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
           zIndex: SUBMIT_RAIL_Z_INDEX,
         }}
       >
+        <button
+          type="button"
+          data-testid="workbench-mode-toggle"
+          onClick={() => setWorkbenchMode((previous) => (previous === "single" ? "hybrid" : "single"))}
+          style={{ marginBottom: 8 }}
+        >
+          {isHybridMode ? "混合算法模式" : "单次任务模式"}
+        </button>
         <WorkbenchSubmitPanel
-          submitting={submittingTask}
-          canSubmit={canSubmit}
-          taskId={submittedTaskId}
-          taskStatusLabel={taskStatusLabel}
-          submitError={submitError}
-          deduplicated={deduplicatedSubmit}
-          elapsedSeconds={elapsedSeconds}
-          onSubmit={() => void onSubmitTask()}
+          submitting={railSubmitting}
+          canSubmit={railCanSubmit}
+          taskId={railTaskId}
+          taskStatusLabel={railStatusLabel}
+          submitError={railError}
+          deduplicated={railDeduplicated}
+          elapsedSeconds={railElapsed}
+          onSubmit={() => (isHybridMode ? void onSubmitHybrid() : void onSubmitTask())}
         />
+        {isHybridMode ? (
+          <WorkbenchHybridPanel
+            maxIterations={hybridConfig.maxIterations}
+            stepSize={hybridConfig.stepSize}
+            tolerance={hybridConfig.tolerance}
+            iterationCount={hybridIterationCount}
+            latestObjective={latestObjective}
+            bestObjective={bestObjective}
+            latestCurrentBestGap={latestCurrentBestGap}
+            canCancel={hybridCanCancel}
+            iterations={hybridIterations}
+            onMaxIterationsChange={setMaxIterations}
+            onStepSizeChange={setStepSize}
+            onToleranceChange={setTolerance}
+            onCancel={() => void onCancelHybrid()}
+          />
+        ) : null}
       </section>
 
       <section

@@ -14,3 +14,13 @@ class TaskStatusStreamPayload:
 @dataclass(frozen=True)
 class TaskHeartbeatPayload:
     timestamp: datetime
+
+
+@dataclass(frozen=True)
+class HybridIterationStreamPayload:
+    task_id: int
+    iteration: int
+    objective: float
+    best_objective: float
+    current_best_gap: float
+    updated_at: datetime

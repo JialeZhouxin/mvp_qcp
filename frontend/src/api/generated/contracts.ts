@@ -72,6 +72,16 @@ export interface CircuitTaskSubmitRequest {
   operations?: CircuitTaskOperationRequest[];
 }
 
+export interface HybridTaskSubmitRequest {
+  algorithm: string;
+  problem_template: string;
+  max_iterations?: number;
+  step_size?: number;
+  tolerance?: number;
+  target_bitstring?: string;
+  num_qubits?: number;
+}
+
 export interface TaskSubmitResponse {
   task_id: number;
   status: string;
@@ -92,6 +102,11 @@ export interface TaskResultResponse {
   task_type: string;
   result?: Record<string, unknown> | null;
   message?: string | null;
+}
+
+export interface TaskCancelResponse {
+  task_id: number;
+  status: string;
 }
 
 export interface TaskDiagnostic {
@@ -146,6 +161,16 @@ export interface TaskHeartbeatEvent {
   timestamp: string;
 }
 
+export interface HybridIterationStreamEvent {
+  task_id: number;
+  iteration: number;
+  objective: number;
+  best_objective: number;
+  current_best_gap: number;
+  updated_at: string;
+}
+
 export type TaskStreamMessage =
   | { event: "task_status"; data: TaskStatusStreamEvent }
-  | { event: "heartbeat"; data: TaskHeartbeatEvent };
+  | { event: "heartbeat"; data: TaskHeartbeatEvent }
+  | { event: "hybrid_iteration"; data: HybridIterationStreamEvent };

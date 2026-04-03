@@ -3,9 +3,13 @@ import json
 from pydantic import BaseModel
 
 from app.schemas.task_center import TaskCenterDetailResponse, TaskCenterListResponse
-from app.schemas.task_stream import TaskHeartbeatEvent, TaskStatusStreamEvent
+from app.schemas.task_stream import HybridIterationStreamEvent, TaskHeartbeatEvent, TaskStatusStreamEvent
 from app.services.task_query_models import TaskDetailView, TaskDiagnosticView, TaskListView
-from app.services.task_stream_models import TaskHeartbeatPayload, TaskStatusStreamPayload
+from app.services.task_stream_models import (
+    HybridIterationStreamPayload,
+    TaskHeartbeatPayload,
+    TaskStatusStreamPayload,
+)
 
 
 def to_sse(event: str, payload: BaseModel) -> str:
@@ -74,3 +78,14 @@ def to_task_status_stream_event(payload: TaskStatusStreamPayload) -> TaskStatusS
 
 def to_task_heartbeat_event(payload: TaskHeartbeatPayload) -> TaskHeartbeatEvent:
     return TaskHeartbeatEvent(timestamp=payload.timestamp)
+
+
+def to_hybrid_iteration_stream_event(payload: HybridIterationStreamPayload) -> HybridIterationStreamEvent:
+    return HybridIterationStreamEvent(
+        task_id=payload.task_id,
+        iteration=payload.iteration,
+        objective=payload.objective,
+        best_objective=payload.best_objective,
+        current_best_gap=payload.current_best_gap,
+        updated_at=payload.updated_at,
+    )

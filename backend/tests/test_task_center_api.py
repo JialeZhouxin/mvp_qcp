@@ -8,9 +8,13 @@ os.environ["DATABASE_URL"] = "sqlite:///./data/test_task_center_api.db"
 
 from app.db.session import engine, init_db  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models.task import Task, TaskStatus  # noqa: E402
+from app.models.task import Task, TaskStatus, TaskType  # noqa: E402
 from app.services.task_event_stream_service import TaskEventStreamService  # noqa: E402
-from app.services.task_stream_models import TaskHeartbeatPayload, TaskStatusStreamPayload  # noqa: E402
+from app.services.task_stream_models import (  # noqa: E402
+    HybridIterationStreamPayload,
+    TaskHeartbeatPayload,
+    TaskStatusStreamPayload,
+)
 
 SQLModel.metadata.drop_all(engine)
 init_db()
@@ -86,12 +90,48 @@ def test_task_event_stream_service_emits_change_payload() -> None:
     task_id = _create_task(tenant_id, user_id, TaskStatus.PENDING)
 
     service = TaskEventStreamService()
-    changed, versions = service.list_changed_tasks(tenant_id, user_id, {task_id}, {})
+    changed, hybrid_events, versions = service.list_changed_tasks(tenant_id, user_id, {task_id}, {})
 
     assert len(changed) == 1
     assert isinstance(changed[0], TaskStatusStreamPayload)
     assert changed[0].task_id == task_id
     assert changed[0].status == "PENDING"
+    assert hybrid_events == []
+    assert task_id in versions
+
+
+def test_task_event_stream_service_emits_hybrid_iteration_payload() -> None:
+    tenant_id, user_id, _headers = _auth("task_stream_hybrid_owner")
+    with Session(engine) as session:
+        task = Task(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            task_type=TaskType.HYBRID,
+            payload_json='{"algorithm":"vqe"}',
+            status=TaskStatus.RUNNING,
+            result_json=(
+                '{"hybrid":{"current_iteration":2,"best_objective":0.41,'
+                '"iterations":[{"iteration":1,"objective":0.6,"best_objective":0.6,"current_best_gap":0.0},'
+                '{"iteration":2,"objective":0.41,"best_objective":0.41,"current_best_gap":0.0}]}}'
+            ),
+            attempt_count=1,
+        )
+        session.add(task)
+        session.commit()
+        session.refresh(task)
+        task_id = int(task.id or 0)
+
+    service = TaskEventStreamService()
+    changed, hybrid_events, versions = service.list_changed_tasks(tenant_id, user_id, {task_id}, {})
+
+    assert len(changed) == 1
+    assert len(hybrid_events) == 2
+    assert isinstance(hybrid_events[-1], HybridIterationStreamPayload)
+    assert hybrid_events[-1].task_id == task_id
+    assert hybrid_events[-1].iteration == 2
+    assert hybrid_events[-1].objective == 0.41
+    assert hybrid_events[-1].best_objective == 0.41
+    assert hybrid_events[-1].current_best_gap == 0.0
     assert task_id in versions
 
 
