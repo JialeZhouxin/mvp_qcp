@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import CircuitCanvas from "../components/CircuitCanvas";
 import GatePalette from "../components/GatePalette";
@@ -31,6 +31,9 @@ interface CircuitWorkbenchScreenProps {
 
 function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
   const [workbenchMode, setWorkbenchMode] = useState<"single" | "hybrid">("single");
+  const [qasmHeight, setQasmHeight] = useState(280);
+  const canvasColumnRef = useRef<HTMLDivElement | null>(null);
+  const qasmColumnRef = useRef<HTMLDivElement | null>(null);
   const {
     circuit,
     qasm,
@@ -59,6 +62,25 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
     simulationStep,
     resetVersion,
   });
+
+  useLayoutEffect(() => {
+    const canvasEl = canvasColumnRef.current;
+    if (!canvasEl) return;
+
+    setQasmHeight(canvasEl.getBoundingClientRect().height);
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const h = Math.round(entry.contentRect.height);
+        if (h > 0) {
+          setQasmHeight(h);
+        }
+      }
+    });
+    observer.observe(canvasEl);
+
+    return () => observer.disconnect();
+  }, []);
 
   const previewCircuit = useMemo(
     () => sliceCircuitBySimulationStep(circuit, simulationStep),
@@ -201,7 +223,7 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
           data-testid="workbench-main-workspace"
           className="circuit-workbench-main-workspace"
         >
-          <div data-testid="workbench-canvas-column" className="circuit-workbench-canvas-column">
+          <div ref={canvasColumnRef} data-testid="workbench-canvas-column" className="circuit-workbench-canvas-column">
             <CircuitCanvas
               circuit={circuit}
               onCircuitChange={pushCircuit}
@@ -214,8 +236,9 @@ function CircuitWorkbenchScreen({ scheduler }: CircuitWorkbenchScreenProps) {
               futureOperationIds={futureOperationIds}
             />
           </div>
-          <div data-testid="workbench-qasm-column" className="circuit-workbench-qasm-column">
+          <div ref={qasmColumnRef} data-testid="workbench-qasm-column" className="circuit-workbench-qasm-column">
             <QasmEditorPane
+              height={qasmHeight}
               value={qasm}
               onValueChange={setQasm}
               onValidQasmChange={onValidQasmChange}

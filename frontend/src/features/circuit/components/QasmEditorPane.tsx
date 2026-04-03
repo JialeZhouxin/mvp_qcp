@@ -1,5 +1,5 @@
 import Editor from "@monaco-editor/react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { useTasksTheme } from "../../../theme/AppTheme";
 import { ensureTasksMonacoThemes, resolveTasksMonacoTheme } from "../../../theme/editor-theme";
@@ -15,7 +15,6 @@ import {
 import "./QasmEditorPane.css";
 
 const DEFAULT_DEBOUNCE_MS = 200;
-const QASM_EDITOR_HEIGHT = 280;
 const MONACO_ERROR_SEVERITY_FALLBACK = 8;
 
 type MonacoApi = typeof import("monaco-editor");
@@ -23,6 +22,7 @@ type MonacoCodeEditor = import("monaco-editor").editor.IStandaloneCodeEditor;
 type MonacoModel = import("monaco-editor").editor.ITextModel;
 
 interface QasmEditorPaneProps {
+  readonly height: number;
   readonly value: string;
   readonly onValueChange: (next: string) => void;
   readonly onValidQasmChange: (nextModel: CircuitModel) => void;
@@ -31,6 +31,7 @@ interface QasmEditorPaneProps {
 }
 
 function QasmEditorPane({
+  height,
   value,
   onValueChange,
   onValidQasmChange,
@@ -44,6 +45,7 @@ function QasmEditorPane({
   const latestParseErrorRef = useRef<QasmParseError | null>(null);
   const monacoRef = useRef<MonacoApi | null>(null);
   const modelRef = useRef<MonacoModel | null>(null);
+  const editorRef = useRef<MonacoCodeEditor | null>(null);
 
   useEffect(() => {
     onValidQasmChangeRef.current = onValidQasmChange;
@@ -68,12 +70,13 @@ function QasmEditorPane({
     );
   };
 
-  const onEditorMount = (editor: MonacoCodeEditor, monaco: MonacoApi) => {
+  const onEditorMount = useCallback((editor: MonacoCodeEditor, monaco: MonacoApi) => {
     registerQasmLanguage(monaco);
     monacoRef.current = monaco;
     modelRef.current = editor.getModel();
+    editorRef.current = editor;
     applyErrorMarkers(latestParseErrorRef.current);
-  };
+  }, []);
 
   useEffect(
     () => () => {
@@ -86,6 +89,10 @@ function QasmEditorPane({
     },
     [],
   );
+
+  useEffect(() => {
+    editorRef.current?.layout();
+  }, [height]);
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -109,11 +116,15 @@ function QasmEditorPane({
   }, [value, debounceMs]);
 
   return (
-    <section data-testid="qasm-editor-panel" className="qasm-editor-panel">
+    <section
+      data-testid="qasm-editor-panel"
+      className="qasm-editor-panel"
+      style={{ height: `${height}px` }}
+    >
       <h3 className="qasm-editor-panel__title">OpenQASM 3</h3>
       <div data-testid="qasm-editor-input" className="qasm-editor-panel__input">
         <Editor
-          height={`${QASM_EDITOR_HEIGHT}px`}
+          height="100%"
           language={QASM_LANGUAGE_ID}
           path="workbench-qasm.openqasm"
           value={value}

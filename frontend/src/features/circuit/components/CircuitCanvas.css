@@ -298,7 +298,7 @@
 .canvas-viewport {
   overflow: auto;
   max-width: 100%;
-  max-height: 480px;
+  max-height: 60vh;
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   background-color: var(--surface-panel-muted);
